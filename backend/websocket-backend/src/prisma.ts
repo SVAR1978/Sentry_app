@@ -1,6 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import Redis from "ioredis";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,5 +17,19 @@ export const prisma = new PrismaClient({
     },
   },
 });
+
+// ioredis typings sometimes present the module as a namespace in this TS config.
+// Use a safe any-cast here so TypeScript accepts the constructor call.
+const redis = new (Redis as any)(process.env.REDIS_URL || '');
+
+redis.on("connect", () => {
+  console.log("Connected to Redis successfully!");
+});
+
+redis.on("error", (err: Error) => {
+  console.error("Redis connection error:", err);
+});
+
+export default redis;
 
 

@@ -6,4 +6,6 @@ export declare const prisma: PrismaClient<{
         };
     };
 }, never, import("./generated/prisma/runtime/library.js").DefaultArgs>;
+declare const redis: any;
+export default redis;
 //# sourceMappingURL=prisma.d.ts.map

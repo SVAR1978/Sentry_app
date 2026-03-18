@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Queue } from "bullmq";
 import { redis } from "../config/redis.js";
 import { prisma } from "../prisma.js";
+import { emailService } from "../services/emailService.js";
 const router = Router();
 const emailQueue = new Queue("emailQueue", { connection: redis });
 // POST /sos
@@ -17,13 +18,24 @@ router.post("/", async (req, res) => {
             const to = c.email;
             if (!to)
                 continue;
-            await emailQueue.add("sendEmail", {
-                email: to,
-                subject: `SOS from user ${userId}`,
-                htmlContent: `<p>SOS request from user ${userId}</p><p>${message ?? ""}</p>`,
-                userId,
-                contactId: c.id,
-            });
+            try {
+                await emailQueue.add("sendEmail", {
+                    email: to,
+                    subject: `SOS from user ${userId}`,
+                    htmlContent: `<p>SOS request from user ${userId}</p><p>${message ?? ""}</p>`,
+                    userId,
+                    contactId: c.id,
+                });
+            }
+            catch (err) {
+                console.warn("emailQueue.add failed in /sos, falling back to direct send:", err?.message ?? err);
+                try {
+                    await emailService.sendEmail(to, `SOS from user ${userId}`, `<p>SOS request from user ${userId}</p><p>${message ?? ""}</p>`);
+                }
+                catch (err2) {
+                    console.error("Direct email send failed for /sos:", err2);
+                }
+            }
             enqueued++;
         }
         if (enqueued === 0) {
