@@ -24,7 +24,7 @@ interface QuickActionsProps {
 const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
   const [helplineModalVisible, setHelplineModalVisible] = useState(false);
 
-  // ✅ Updated: Direct call (no double confirmation)
+  // Updated: Direct call (no double confirmation)
   const handleEmergencyCall = useCallback(async (action: QuickAction) => {
     if (!action.phoneNumber) return;
 
