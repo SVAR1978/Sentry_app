@@ -11,6 +11,7 @@ app.use(express.json());
 
 // Routes
 app.use("/auth", authRouter);
+app
 app.use("/sos", sosRouter);
 app.use("/contacts", contactsRouter);
 
