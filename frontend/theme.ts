@@ -1,7 +1,31 @@
 import { MD3LightTheme } from "react-native-paper";
 
+const customFonts = {
+  ...MD3LightTheme.fonts,
+  displayLarge: { ...MD3LightTheme.fonts.displayLarge, fontFamily: "PlusJakartaSans_800ExtraBold" },
+  displayMedium: { ...MD3LightTheme.fonts.displayMedium, fontFamily: "PlusJakartaSans_800ExtraBold" },
+  displaySmall: { ...MD3LightTheme.fonts.displaySmall, fontFamily: "PlusJakartaSans_800ExtraBold" },
+
+  headlineLarge: { ...MD3LightTheme.fonts.headlineLarge, fontFamily: "PlusJakartaSans_700Bold" },
+  headlineMedium: { ...MD3LightTheme.fonts.headlineMedium, fontFamily: "PlusJakartaSans_700Bold" },
+  headlineSmall: { ...MD3LightTheme.fonts.headlineSmall, fontFamily: "PlusJakartaSans_700Bold" },
+
+  titleLarge: { ...MD3LightTheme.fonts.titleLarge, fontFamily: "PlusJakartaSans_700Bold" },
+  titleMedium: { ...MD3LightTheme.fonts.titleMedium, fontFamily: "PlusJakartaSans_700Bold" },
+  titleSmall: { ...MD3LightTheme.fonts.titleSmall, fontFamily: "PlusJakartaSans_500Medium" },
+
+  bodyLarge: { ...MD3LightTheme.fonts.bodyLarge, fontFamily: "PlusJakartaSans_500Medium" },
+  bodyMedium: { ...MD3LightTheme.fonts.bodyMedium, fontFamily: "PlusJakartaSans_500Medium" },
+  bodySmall: { ...MD3LightTheme.fonts.bodySmall, fontFamily: "PlusJakartaSans_500Medium" },
+
+  labelLarge: { ...MD3LightTheme.fonts.labelLarge, fontFamily: "PlusJakartaSans_700Bold" },
+  labelMedium: { ...MD3LightTheme.fonts.labelMedium, fontFamily: "PlusJakartaSans_500Medium" },
+  labelSmall: { ...MD3LightTheme.fonts.labelSmall, fontFamily: "PlusJakartaSans_500Medium" },
+} as const;
+
 export const theme = {
   ...MD3LightTheme,
+  fonts: customFonts,
   colors: {
     ...MD3LightTheme.colors,
 

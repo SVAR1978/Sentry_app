@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Shield, User, Check } from "lucide-react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -6,26 +6,29 @@ import React, { useState } from "react";
 import {
   Animated,
   Dimensions,
+  Easing,
+  Image,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
-  Easing,
   View,
 } from "react-native";
-import { Button, Card, Text, useTheme } from "react-native-paper";
+import { ActivityIndicator } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ROLES, UserRole } from "../../types/rbac";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const COLORS = {
-  primary: "#21100B",
-  accent: "#8C7D79",
-  background: "#F5F1EE",
-  text: "#1A1818",
-  textLight: "#4A4341",
+  primary: "#21100B", // Deep luxurious brown/black
+  background: "#F5F1EE", // Bone white
+  surface: "#FFFFFF",
   white: "#FFFFFF",
-  success: "#10B981",
+  coral: "#38302E", // SOS Red / Selected Highlight
+  coralLight: "#38302E",
+  textLight: "#8C7D79",
+  ghostBorder: "rgba(33, 16, 11, 0.06)",
 };
 
 interface RoleSelectionScreenProps {
@@ -37,68 +40,54 @@ export default function RoleSelectionScreen({
   onRoleSelect,
   selectedEmail,
 }: RoleSelectionScreenProps) {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Entrance Animations
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(50)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
+  const slideAnim = React.useRef(new Animated.Value(40)).current;
+  const scaleSelectedAnim = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 700,
-        easing: Easing.out(Easing.exp),
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 700,
+        duration: 800,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 40,
-        friction: 6,
       }),
     ]).start();
   }, []);
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
-    // Animate selection
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 7,
-      }),
-    ]).start();
+    // Micro-interaction bounce for selection
+    scaleSelectedAnim.setValue(0.95);
+    Animated.spring(scaleSelectedAnim, {
+      toValue: 1,
+      tension: 60,
+      friction: 6,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleContinue = async () => {
     if (!selectedRole) return;
-
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 600));
 
       if (onRoleSelect) {
         onRoleSelect(selectedRole);
       } else {
-        // Navigate to role-specific login screen
         if (selectedRole.id === "admin") {
           router.push("/(auth)/admin-login");
         } else {
@@ -112,192 +101,121 @@ export default function RoleSelectionScreen({
     }
   };
 
-  // Filter to show only User and Administration roles
   const filteredRoles = ROLES.filter(
     (role) => role.id === "user" || role.id === "admin",
   );
 
+  const renderRoleIcon = (roleId: string, isSelected: boolean) => {
+    const props = {
+      size: 28,
+      color: isSelected ? COLORS.coral : COLORS.primary,
+      strokeWidth: 2.5,
+    };
+
+    if (roleId === "admin") return <Shield {...props} />;
+    return <User {...props} />;
+  };
+
   return (
-    <View style={styles.safeContainer}>
+    <View style={styles.container}>
       <StatusBar style="dark" translucent backgroundColor="transparent" />
+
+      {/* Decorative ambient background blur vectors */}
+      <View style={styles.ambientTopLeft} />
+      <View style={styles.ambientBottomRight} />
+
       <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: Math.max(insets.bottom, 40) }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Gradient Background Header */}
-        <LinearGradient
-          colors={["#EDE7E3", "#F5F1EE"]}
-          style={[styles.headerGradient, { paddingTop: Math.max(insets.top, 60) }]}
-        >
-          {/* Logo & Icon */}
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
-          >
-            <View style={styles.shieldIcon}>
-              <MaterialCommunityIcons
-                name="account-group"
-                size={60}
-                color={COLORS.primary}
+        <View style={styles.centerWrapper}>
+          {/* App Icon / Shield Component */}
+          <Animated.View style={[styles.headerSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <View style={styles.iconContainer}>
+              <View style={styles.iconGlassOverlay} />
+              <Image
+                source={require("../../assets/images/sentry-3.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
               />
+              <View style={styles.iconGlowDot} />
             </View>
+
+            <Text style={styles.headline}>Sentry</Text>
+            <Text style={styles.subheadline}>Choose your access level to enter your secure workspace.</Text>
           </Animated.View>
 
-          {/* Headline */}
-          <Animated.View
-            style={[
-              styles.headlineContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <Text style={styles.headline}>Welcome to Sentry</Text>
-            <Text style={styles.subheadline}>
-              Choose your account type to get started
-            </Text>
-          </Animated.View>
-        </LinearGradient>
+          {/* Roles List (Stacked Massive Cards) */}
+          <Animated.View style={[styles.rolesGrid, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            {filteredRoles.map((role) => {
+              const isSelected = selectedRole?.id === role.id;
 
-        {/* Role Cards Container */}
-        <Animated.View
-          style={[
-            styles.rolesContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          {filteredRoles.map((role, index) => (
-            <Animated.View
-              key={role.id}
-              style={[
-                styles.cardWrapper,
-                {
-                  opacity: fadeAnim,
-                  transform: [
-                    {
-                      translateY: Animated.add(
-                        slideAnim,
-                        new Animated.Value(index * 10),
-                      ),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() => handleRoleSelect(role)}
-                activeOpacity={0.7}
-                disabled={loading}
-              >
-                <Card
-                  style={[
-                    styles.roleCard,
-                    {
-                      borderColor:
-                        selectedRole?.id === role.id
-                          ? role.color
-                          : COLORS.white,
-                      borderWidth: selectedRole?.id === role.id ? 3 : 1,
-                      backgroundColor: COLORS.white,
-                    },
-                  ]}
-                  elevation={selectedRole?.id === role.id ? 5 : 3}
+              return (
+                <TouchableOpacity
+                  key={role.id}
+                  style={styles.roleCardWrapper}
+                  activeOpacity={0.9}
+                  onPress={() => handleRoleSelect(role)}
+                  disabled={loading}
                 >
-                  <View style={styles.cardContent}>
-                    <View
-                      style={[
-                        styles.iconContainer,
-                        { backgroundColor: `${role.color}15` },
-                      ]}
+                  <Animated.View
+                    style={[
+                      styles.roleCard,
+                      isSelected && styles.roleCardActive,
+                      isSelected && { transform: [{ scale: scaleSelectedAnim }] },
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={isSelected ? [COLORS.coralLight, COLORS.surface] : [COLORS.surface, COLORS.surface]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.cardGradient}
                     >
-                      <MaterialCommunityIcons
-                        name={role.icon as any}
-                        size={48}
-                        color={role.color}
-                      />
-                    </View>
+                      <View style={styles.cardRow}>
+                        {/* Role Icon */}
+                        <View style={[styles.roleIconWrapper, isSelected && styles.roleIconWrapperActive]}>
+                          {renderRoleIcon(role.id, isSelected)}
+                        </View>
 
-                    <View style={styles.textContainer}>
-                      <Text style={[styles.roleTitle, { color: COLORS.text }]}>
-                        {role.displayName}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.roleDescription,
-                          { color: COLORS.textLight },
-                        ]}
-                      >
-                        {role.id === "admin"
-                          ? "Full system access with all administrative privileges"
-                          : "Standard user access with essential features"}
-                      </Text>
-                    </View>
+                        {/* Role Texts */}
+                        <View style={styles.roleTextContainer}>
+                          <Text style={[styles.roleTitle, isSelected && styles.roleTitleActive]}>{role.displayName}</Text>
+                          <Text style={styles.roleDesc}>
+                            {role.id === "admin" ? "Administrative controls & oversight" : "Standard secure access"}
+                          </Text>
+                        </View>
 
-                    {selectedRole?.id === role.id && (
-                      <View style={styles.selectedBadge}>
-                        <MaterialCommunityIcons
-                          name="check-circle"
-                          size={32}
-                          color={role.color}
-                        />
+                        {/* Checkmark Indicator */}
+                        <View style={[styles.checkboxCircle, isSelected && styles.checkboxCircleActive]}>
+                          {isSelected && <Check size={14} color={COLORS.white} strokeWidth={3} />}
+                        </View>
                       </View>
-                    )}
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
-        </Animated.View>
+                    </LinearGradient>
+                  </Animated.View>
+                </TouchableOpacity>
+              );
+            })}
+          </Animated.View>
+        </View>
 
-        {/* Continue Button */}
-        <Animated.View
-          style={[
-            styles.buttonContainer,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <Button
-            mode="contained"
+        {/* Action Button */}
+        <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
+          <TouchableOpacity
+            style={[styles.continueButton, !selectedRole && styles.continueButtonDisabled]}
+            activeOpacity={0.8}
             onPress={handleContinue}
             disabled={!selectedRole || loading}
-            loading={loading}
-            style={[
-              styles.continueButton,
-              {
-                backgroundColor: selectedRole
-                  ? selectedRole.color
-                  : theme.colors.surfaceVariant,
-              },
-            ]}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
-            icon={selectedRole ? "arrow-right" : "account-arrow-right"}
           >
-            {loading
-              ? "Please wait..."
-              : selectedRole
-                ? `Continue as ${selectedRole.displayName}`
-                : "Select a role to continue"}
-          </Button>
-
-          {selectedRole && (
-            <Text style={styles.helperText}>
-              You'll be able to access all{" "}
-              {selectedRole.displayName.toLowerCase()} features
-            </Text>
-          )}
+            {loading ? (
+              <ActivityIndicator color={COLORS.white} size={24} />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Text style={styles.buttonText}>
+                  {selectedRole ? `Continue as ${selectedRole.displayName}` : "Select Role"}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
     </View>
@@ -305,116 +223,218 @@ export default function RoleSelectionScreen({
 }
 
 const styles = StyleSheet.create({
-  safeContainer: {
+  container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  container: {
+  ambientTopLeft: {
+    position: "absolute",
+    top: -100,
+    left: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "rgba(33, 16, 11, 0.03)",
+  },
+  ambientBottomRight: {
+    position: "absolute",
+    bottom: -50,
+    right: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: "rgba(255, 56, 92, 0.03)",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+  },
+  centerWrapper: {
     flex: 1,
-  },
-  content: {
-    paddingBottom: 40,
-  },
-  headerGradient: {
-    paddingBottom: 60,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    marginBottom: 40,
-  },
-  logoContainer: {
-    marginBottom: 24,
-  },
-  shieldIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.white,
     justifyContent: "center",
-    alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingBottom: 20,
   },
-  headlineContainer: {
-    alignItems: "center",
-  },
-  headline: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  subheadline: {
-    fontSize: 16,
-    color: COLORS.textLight,
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  rolesContainer: {
-    paddingHorizontal: 20,
-    gap: 20,
-  },
-  cardWrapper: {
-    marginBottom: 20,
-  },
-  roleCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  cardContent: {
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 140,
+  headerSection: {
+    alignItems: "flex-start",
+    marginBottom: 50,
   },
   iconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 40, // Perfect circle
+    // Removed solid white so custom logo background doesn't clash
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 20,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: COLORS.ghostBorder,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 5,
+    position: "relative",
+    overflow: "hidden", // Ensures image respects circular corners
   },
-  textContainer: {
-    flex: 1,
+  iconGlassOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.3)", // Reduced opacity
+    borderRadius: 40, // Match container
+    zIndex: 0,
   },
-  roleTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 8,
+  logoImage: {
+    width: 80, // Fill container width
+    height: 80, // Fill container height
+    zIndex: 2, // Definitely above overlay
   },
-  roleDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  selectedBadge: {
+  iconGlowDot: {
     position: "absolute",
-    top: 16,
-    right: 16,
+    top: 14,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.coral,
+    shadowColor: COLORS.coral,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
-  buttonContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
-  continueButton: {
-    borderRadius: 12,
+  headline: {
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 44,
+    color: COLORS.primary,
+    letterSpacing: -1.5,
     marginBottom: 12,
   },
-  buttonContent: {
-    paddingVertical: 14,
-  },
-  buttonLabel: {
+  subheadline: {
+    fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 16,
-    fontWeight: "600",
-  },
-  helperText: {
-    textAlign: "center",
     color: COLORS.textLight,
+    lineHeight: 24,
+    fontWeight: "500",
+    paddingRight: 40,
+  },
+  rolesGrid: {
+    flexDirection: "column",
+    gap: 16,
+  },
+  roleCardWrapper: {
+    width: "100%",
+  },
+  roleCard: {
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "transparent",
+    backgroundColor: COLORS.surface,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  cardGradient: {
+    padding: 24,
+    minHeight: 120,
+    justifyContent: "center",
+  },
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  roleCardActive: {
+    borderColor: COLORS.coral,
+    shadowColor: COLORS.coral,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  roleIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  roleIconWrapperActive: {
+    backgroundColor: COLORS.surface,
+    shadowColor: COLORS.coral,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  roleTextContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  roleTitle: {
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 20,
+    color: COLORS.primary,
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  roleTitleActive: {
+    color: COLORS.coral,
+  },
+  roleDesc: {
+    fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 13,
-    marginTop: 8,
+    color: COLORS.textLight,
+    lineHeight: 18,
+    fontWeight: "500",
+    paddingRight: 10,
+  },
+  checkboxCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.ghostBorder,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "flex-end",
+  },
+  checkboxCircleActive: {
+    backgroundColor: COLORS.coral,
+    borderColor: COLORS.coral,
+  },
+  footer: {
+    width: "100%",
+  },
+  continueButton: {
+    backgroundColor: COLORS.coral,
+    borderRadius: 999,
+    height: 64,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: COLORS.coral,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  continueButtonDisabled: {
+    backgroundColor: "rgba(33, 16, 11, 0.1)",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 18,
+    color: COLORS.white,
+    letterSpacing: -0.3,
+  },
+  btnIcon: {
+    marginLeft: 12,
   },
 });

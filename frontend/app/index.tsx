@@ -1,94 +1,138 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Redirect } from "expo-router";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Image, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../store/AuthContext";
 
 const COLORS = {
   primary: "#21100B",
   background: "#F5F1EE",
-  text: "#1A1818",
 };
 
 export default function Index() {
   const { isAuthenticated, role, loading } = useAuth();
+  const [splashFinished, setSplashFinished] = useState(false);
 
-  // Add console logs for debugging
+  // Entrance Animations
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // 1. Kick off the logo presentation animations
   useEffect(() => {
-    console.log("Index - isAuthenticated:", isAuthenticated);
-    console.log("Index - role:", role);
-    console.log("Index - loading:", loading);
-  }, [isAuthenticated, role, loading]);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 12,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
-  // Show loading screen while checking auth state
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <View style={styles.logoContainer}>
-          <MaterialCommunityIcons
-            name="shield-account"
-            size={80}
-            color={COLORS.primary}
+    // 2. Enforce a deliberate 2-second hold for "Premium" brand recognition 
+    // before allowing the app to transition out of the loading screen.
+    const timer = setTimeout(() => {
+      setSplashFinished(true);
+    }, 2200);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 3. Orchestrate smooth routing ONLY when both the auth-check AND splash animation are fully done
+  useEffect(() => {
+    if (!loading && splashFinished) {
+      if (!isAuthenticated) {
+        router.replace("/(auth)/role-selection");
+      } else {
+        if (role === "admin") {
+          router.replace("/(admin-tabs)");
+        } else if (role === "user") {
+          router.replace("/(user-tabs)");
+        } else {
+          router.replace("/(auth)/role-selection");
+        }
+      }
+    }
+  }, [loading, splashFinished, isAuthenticated, role]);
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
+
+      {/* Decorative Blur Backgrounds */}
+      <View style={styles.ambientTopLeft} />
+
+      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+        <View style={styles.logoCircle}>
+          <Image
+            source={require("../assets/images/sentry-3.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
           />
         </View>
         <Text style={styles.appName}>Sentry</Text>
-        <ActivityIndicator
-          size="large"
-          color={COLORS.primary}
-          style={styles.loader}
-        />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
-  // Not authenticated - go to role selection
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/role-selection" />;
-  }
-
-  // Authenticated - redirect based on role
-  if (role === "admin") {
-    return <Redirect href="/(admin-tabs)" />;
-  }
-
-  if (role === "user") {
-    return <Redirect href="/(user-tabs)" />;
-  }
-
-  // Fallback to role selection
-  return <Redirect href="/(auth)/role-selection" />;
+        <Text style={styles.tagline}>Intelligent Protection</Text>
+      </Animated.View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  container: {
     flex: 1,
+    backgroundColor: COLORS.background,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.background,
   },
-  logoContainer: {
-    marginBottom: 20,
+  ambientTopLeft: {
+    position: "absolute",
+    top: -100,
+    left: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
+  },
+  content: {
+    alignItems: "center",
+  },
+  logoCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.1,
+    shadowRadius: 32,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+    overflow: "hidden",
+  },
+  logoImage: {
+    width: 140,
+    height: 140,
   },
   appName: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 40,
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 48,
+    color: COLORS.primary,
+    letterSpacing: -2,
+    marginBottom: 8,
   },
-  loader: {
-    marginVertical: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text,
-    marginTop: 10,
+  tagline: {
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontSize: 14,
+    color: "#8C7D79",
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
 });
-
-// import { Redirect } from "expo-router";
-
-// export default function Index() {
-//   return <Redirect href="/(auth)/role-selection" />;
-// }
