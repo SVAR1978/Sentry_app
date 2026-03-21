@@ -1,4 +1,5 @@
 import * as LucideIcons from "lucide-react-native";
+import { BlurView } from "expo-blur";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
@@ -10,11 +11,11 @@ import {
 import { getCurrentLocation } from "../../services/maps/locationService";
 
 const getIconColor = (icon: string) => {
-  if (icon.includes("Sun")) return "#F59E0B";
-  if (icon.includes("Cloud") && !icon.includes("Rain") && !icon.includes("Bolt")) return "#8A9BB8";
-  if (icon.includes("Rain") || icon.includes("Bolt")) return "#4F8EF7";
-  if (icon.includes("Snowflake")) return "#60A5FA";
-  return "#F59E0B";
+  if (icon.includes("Sun")) return "#F5B041";
+  if (icon.includes("Cloud") && !icon.includes("Rain") && !icon.includes("Bolt")) return COLORS.silver;
+  if (icon.includes("Rain") || icon.includes("Bolt")) return "#5DADE2";
+  if (icon.includes("Snowflake")) return "#85C1E9";
+  return "#F5B041";
 };
 
 const WeatherWidget: React.FC = () => {
@@ -48,10 +49,12 @@ const WeatherWidget: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.section}>
-        <View style={styles.weatherCard}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading weather...</Text>
-        </View>
+        <BlurView intensity={30} tint="light" style={styles.weatherCard}>
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={COLORS.gold} />
+            <Text style={styles.loadingText}>Loading weather...</Text>
+          </View>
+        </BlurView>
       </View>
     );
   }
@@ -59,9 +62,9 @@ const WeatherWidget: React.FC = () => {
   if (error || !weather) {
     return (
       <View style={styles.section}>
-        <View style={styles.weatherCard}>
+        <BlurView intensity={30} tint="light" style={styles.weatherCard}>
           <View style={styles.errorRow}>
-            <LucideIcons.CloudAlert size={36} color="#8A9BB8" strokeWidth={2} />
+            <LucideIcons.CloudAlert size={36} color={COLORS.silver} strokeWidth={2} />
             <View style={styles.errorInfo}>
               <Text style={styles.errorText}>Weather unavailable</Text>
               <TouchableOpacity onPress={fetchWeather}>
@@ -69,7 +72,7 @@ const WeatherWidget: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </BlurView>
       </View>
     );
   }
@@ -81,42 +84,44 @@ const WeatherWidget: React.FC = () => {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Current Weather</Text>
         <TouchableOpacity onPress={fetchWeather} style={styles.refreshBtn}>
-          <LucideIcons.RefreshCw size={14} color={COLORS.textMuted} strokeWidth={2.5} />
+          <LucideIcons.RefreshCw size={14} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
           <Text style={styles.refreshText}>Refresh</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.weatherCard}>
-        {/* Left: Temp + Icon */}
-        <View style={styles.weatherLeft}>
-          <View style={[styles.weatherIconBg, { backgroundColor: `${iconColor}20` }]}>
-            {(() => {
-              const Icon = (LucideIcons as any)[weather.icon] || LucideIcons.Cloud;
-              return <Icon size={36} color={iconColor} strokeWidth={2} />;
-            })()}
+      <BlurView intensity={30} tint="light" style={styles.weatherCard}>
+        <View style={styles.cardContent}>
+          {/* Left: Temp + Icon */}
+          <View style={styles.weatherLeft}>
+            <View style={[styles.weatherIconBg, { backgroundColor: `${iconColor}25` }]}>
+              {(() => {
+                const Icon = (LucideIcons as any)[weather.icon] || LucideIcons.Cloud;
+                return <Icon size={36} color={iconColor} strokeWidth={2} />;
+              })()}
+            </View>
+            <View style={styles.tempInfo}>
+              <Text style={styles.temperature}>{weather.temperature}°</Text>
+              <Text style={styles.weatherCondition}>{weather.condition}</Text>
+            </View>
           </View>
-          <View style={styles.tempInfo}>
-            <Text style={styles.temperature}>{weather.temperature}°</Text>
-            <Text style={styles.weatherCondition}>{weather.condition}</Text>
-          </View>
-        </View>
 
-        {/* Divider */}
-        <View style={styles.divider} />
+          {/* Divider */}
+          <View style={styles.divider} />
 
-        {/* Right: Location + Advice */}
-        <View style={styles.weatherRight}>
-          <View style={styles.locationRow}>
-            <LucideIcons.MapPin size={13} color={COLORS.primary} strokeWidth={2.5} />
-            <Text style={styles.locationName} numberOfLines={1}>
-              {weather.city}
+          {/* Right: Location + Advice */}
+          <View style={styles.weatherRight}>
+            <View style={styles.locationRow}>
+              <LucideIcons.MapPin size={13} color={COLORS.gold} strokeWidth={2.5} />
+              <Text style={styles.locationName} numberOfLines={1}>
+                {weather.city}
+              </Text>
+            </View>
+            <Text style={styles.weatherAdvice} numberOfLines={2}>
+              {weather.description}
             </Text>
           </View>
-          <Text style={styles.weatherAdvice} numberOfLines={2}>
-            {weather.description}
-          </Text>
         </View>
-      </View>
+      </BlurView>
     </View>
   );
 };
@@ -130,38 +135,42 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    color: "#21100B",
+    fontWeight: "900",
+    color: COLORS.white,
     letterSpacing: -0.3,
   },
   refreshBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
   },
   refreshText: {
     fontSize: 12,
-    color: "#8A9BB8",
-    fontWeight: "500",
+    color: "rgba(255,255,255,0.5)",
+    fontWeight: "600",
   },
   weatherCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
+  },
+  cardContent: {
+    padding: 20,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.08)",
-    shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
     gap: 16,
+  },
+  loadingRow: {
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
   },
   weatherLeft: {
     flexDirection: "row",
@@ -171,7 +180,7 @@ const styles = StyleSheet.create({
   weatherIconBg: {
     width: 58,
     height: 58,
-    borderRadius: 16,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -179,20 +188,20 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   temperature: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#1A1818",
+    fontSize: 34,
+    fontWeight: "900",
+    color: COLORS.white,
     letterSpacing: -1,
   },
   weatherCondition: {
     fontSize: 13,
-    color: "#8A9BB8",
-    fontWeight: "500",
+    color: "rgba(255,255,255,0.55)",
+    fontWeight: "600",
   },
   divider: {
     width: 1,
     height: 50,
-    backgroundColor: "rgba(33, 16, 11, 0.1)",
+    backgroundColor: COLORS.glassBorder,
   },
   weatherRight: {
     flex: 1,
@@ -201,25 +210,26 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
   },
   locationName: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#1A1818",
+    fontWeight: "800",
+    color: COLORS.white,
     flex: 1,
   },
   weatherAdvice: {
     fontSize: 12,
-    color: "#8A9BB8",
-    lineHeight: 16,
+    color: "rgba(255,255,255,0.50)",
+    lineHeight: 17,
+    fontWeight: "500",
   },
   loadingText: {
     fontSize: 14,
-    color: "#8A9BB8",
-    marginLeft: 12,
+    color: "rgba(255,255,255,0.5)",
   },
   errorRow: {
+    padding: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -227,13 +237,15 @@ const styles = StyleSheet.create({
   errorInfo: {},
   errorText: {
     fontSize: 14,
-    color: "#8A9BB8",
+    color: "rgba(255,255,255,0.6)",
+    fontWeight: "600",
   },
   retryText: {
     fontSize: 12,
-    color: COLORS.primary,
+    color: COLORS.gold,
     marginTop: 4,
     textDecorationLine: "underline",
+    fontWeight: "700",
   },
 });
 

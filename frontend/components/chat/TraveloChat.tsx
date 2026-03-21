@@ -7,8 +7,6 @@ import {
   Mic,
   Paperclip,
   Image as ImageIcon,
-  Bot,
-  MessageSquareText,
 } from "lucide-react-native";
 import React, {
   useCallback,
@@ -20,6 +18,7 @@ import {
   Animated,
   Dimensions,
   FlatList,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -292,7 +291,11 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
             <View style={styles.headerLeft}>
               <View style={styles.headerAvatarRing}>
                 <View style={styles.headerAvatar}>
-                  <Bot size={24} color={CHAT_COLORS.white} strokeWidth={2} />
+                  <Image 
+                    source={require("../../assets/images/chat-bot.png")}
+                    style={styles.headerBotImage}
+                    resizeMode="cover"
+                  />
                 </View>
                 <View style={styles.onlineDot} />
               </View>
@@ -498,7 +501,11 @@ export const ChatFAB: React.FC<ChatFABProps> = ({
           end={{ x: 1, y: 1 }}
           style={fabStyles.gradient}
         >
-          <MessageSquareText size={30} color={CHAT_COLORS.white} strokeWidth={2.2} />
+          <Image 
+            source={require("../../assets/images/chat-bot.png")}
+            style={fabStyles.fabBotImage}
+            resizeMode="cover"
+          />
         </LinearGradient>
       </TouchableOpacity>
 
@@ -574,6 +581,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.1)",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  headerBotImage: {
+    width: 40,
+    height: 40,
   },
   headerAvatarText: {
     fontSize: 20,
@@ -725,6 +737,11 @@ const fabStyles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  fabBotImage: {
+    width: 60,
+    height: 60,
   },
   emoji: {
     fontSize: 28,

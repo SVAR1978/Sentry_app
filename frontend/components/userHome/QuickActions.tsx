@@ -1,5 +1,6 @@
 import * as LucideIcons from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -150,19 +151,21 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
     >
       <Animated.View
         style={[
-          styles.card,
+          styles.cardOuter,
           { transform: [{ scale: scaleAnim }] },
         ]}
       >
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: `${action.color}15` },
-          ]}
-        >
-          {Icon && <Icon size={24} color={action.color} strokeWidth={2.5} />}
-        </View>
-        <Text style={styles.cardLabel}>{action.label}</Text>
+        <BlurView intensity={35} tint="light" style={styles.card}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: `${action.color}20` },
+            ]}
+          >
+            {Icon && <Icon size={24} color={action.color} strokeWidth={2.5} />}
+          </View>
+          <Text style={styles.cardLabel}>{action.label}</Text>
+        </BlurView>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -171,7 +174,7 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    marginTop: 24, // Reset to standard spacing
+    marginTop: 8,
     marginBottom: 32,
   },
   sectionHeader: {
@@ -184,19 +187,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "900",
-    color: COLORS.primary,
+    color: COLORS.white,
     letterSpacing: -0.5,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: COLORS.secondary,
-    fontWeight: "700",
   },
   quickActionsGrid: {
     flexDirection: "row",
@@ -205,22 +197,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cardWrapper: {
-    width: (SCREEN_WIDTH - 52) / 2, // 2 items per row
+    width: (SCREEN_WIDTH - 52) / 2,
+  },
+  cardOuter: {
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: COLORS.glassBorder,
   },
   card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 24,
-    padding: 16,
+    padding: 18,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.05)",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
   },
   iconContainer: {
     width: 48,
@@ -231,8 +220,8 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.primary,
+    fontWeight: "800",
+    color: COLORS.white,
     letterSpacing: -0.2,
   },
 });

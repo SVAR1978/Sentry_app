@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, Image, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
-import { Check, CheckCheck, Bot } from "lucide-react-native";
+import { Check, CheckCheck } from "lucide-react-native";
 import {
   CHAT_COLORS,
   ChatMessage,
@@ -57,7 +57,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <View style={styles.avatarColumn}>
           {isLastInGroup ? (
             <View style={styles.avatarSmall}>
-              <Bot size={16} color={CHAT_COLORS.white} strokeWidth={2} />
+              <Image 
+                source={require("../../assets/images/chat-bot.png")}
+                style={styles.botImage}
+                resizeMode="cover"
+              />
             </View>
           ) : (
             <View style={styles.avatarSpacer} />
@@ -144,6 +148,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(140,125,121,0.2)",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  botImage: {
+    width: 28,
+    height: 28,
   },
   avatarEmoji: {
     fontSize: 14,

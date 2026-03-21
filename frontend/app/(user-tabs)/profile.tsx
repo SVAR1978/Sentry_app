@@ -1,4 +1,20 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  ArrowLeft,
+  MoreVertical,
+  Pencil,
+  Wallet,
+  MapPin,
+  Ticket,
+  Globe,
+  CircleHelp,
+  Bell,
+  Lock,
+  CreditCard,
+  LogOut,
+  ChevronRight,
+  Camera,
+} from "lucide-react-native";
+import { BlurView } from "expo-blur";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -6,93 +22,88 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   Alert,
+
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Avatar, Divider, Text } from "react-native-paper";
+import { Avatar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 
-const COLORS = {
-  primary: "#21100B",
-  background: "#F5F1EE",
-  surfaceContainerLow: "#EDE7E3",
-  surfaceContainer: "#FFFFFF",
-  surfaceContainerHigh: "#EDE7E3",
-  surfaceContainerHighest: "#8C7D79",
-  text: "#1A1818",
-  textLight: "#4A4341",
-  textMuted: "#8C7D79",
+const THEME = {
+  background: "#F6F4F0",
+  surface: "#FFFFFF",
+  cardBg: "#F1E8DF",
+  primary: "#8C4B35",
+  secondary: "#C7A27D",
+  accent: "#C89766",
+  text: "#1A1A1A",
+  textMuted: "#8E8E93",
   white: "#FFFFFF",
-  secondary: "#4A4341",
-  accent: "#8C7D79",
+  iconBox: "#EAD8C9",
+  logoutBg: "#F2D8C9",
+  logoutText: "#5C2C22",
+  gold: "#D4BA94",
 };
 
 const MENU_ITEMS = [
   {
-    id: "personal",
-    title: "Personal Information",
-    icon: "account-outline",
-    color: "#62DCA3",
-    subtitle: "Edit your profile",
+    id: "wallet",
+    title: "My Wallet",
+    icon: Wallet,
+    color: THEME.primary,
   },
   {
-    id: "favorites",
-    title: "Saved Places",
-    icon: "heart-outline",
-    color: "#FF385C",
-    subtitle: "View saved destinations",
+    id: "address",
+    title: "My Address",
+    icon: MapPin,
+    color: THEME.primary,
   },
   {
-    id: "history",
-    title: "Travel History",
-    icon: "history",
-    color: "#8B5CF6",
-    subtitle: "Your past journeys",
+    id: "tickets",
+    title: "My Tickets",
+    icon: Ticket,
+    color: THEME.primary,
   },
 ];
 
 const SETTINGS_ITEMS = [
   {
-    id: "notifications",
-    title: "Notifications",
-    icon: "bell-outline",
-    color: "#F59E0B",
-    subtitle: "Manage alerts",
-  },
-  {
-    id: "privacy",
-    title: "Privacy & Security",
-    icon: "shield-check-outline",
-    color: "#62DCA3",
-    subtitle: "Control your data",
-  },
-  {
     id: "language",
-    title: "Language",
-    icon: "translate",
-    color: "#4F8EF7",
-    value: "English",
-    subtitle: "App language",
+    title: "App Language",
+    icon: Globe,
+    color: THEME.textMuted,
   },
   {
     id: "help",
-    title: "Help & Support",
-    icon: "help-circle-outline",
-    color: "#8A9BB8",
-    subtitle: "Get assistance",
+    title: "Help Center",
+    icon: CircleHelp,
+    color: THEME.textMuted,
   },
   {
-    id: "about",
-    title: "About App",
-    icon: "information-outline",
-    color: "#8A9BB8",
-    subtitle: "Version 1.0.0",
+    id: "notifications",
+    title: "Notification Settings",
+    icon: Bell,
+    color: THEME.textMuted,
+  },
+  {
+    id: "privacy",
+    title: "Privacy Preferences",
+    icon: Lock,
+    color: THEME.textMuted,
+  },
+  {
+    id: "payment",
+    title: "Payment Methods",
+    icon: CreditCard,
+    color: THEME.textMuted,
   },
 ];
+
+
 
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();
@@ -118,123 +129,106 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero Header */}
-        <LinearGradient
-          colors={["#EDE7E3", "#F5F1EE"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: Math.max(insets.top, 24) }]}
-        >
-          {/* Background decoration circles */}
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+      
+      {/* Header Overlays */}
+      <View style={[styles.headerActions, { top: Math.max(insets.top, 10) }]}>
+        <TouchableOpacity style={styles.headerBtn}>
+          <ArrowLeft size={22} color={THEME.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Profile</Text>
+        <TouchableOpacity style={styles.headerBtn}>
+          <MoreVertical size={22} color={THEME.text} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Hero Section */}
+        <View style={styles.heroContainer}>
+          <LinearGradient
+            colors={["#3E1911", "#5C2C22", "#8C4B35", "#C89766"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Artistic metallic highlights */}
+          <View style={styles.metallicReflect} />
           <View style={styles.decoCircle1} />
           <View style={styles.decoCircle2} />
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.1)"]}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
 
-          {/* Avatar Section */}
-          <View style={styles.profileSection}>
-            <ProfilePhotoPicker user={user} updateUser={updateUser} />
-            <Text style={styles.userName}>{user?.name || "Guest User"}</Text>
-          </View>
-        </LinearGradient>
-
-        {/* Account Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.menuCard}>
-            {MENU_ITEMS.map((item, index) => (
-              <View key={item.id}>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuPress(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.menuIcon,
-                      { backgroundColor: `${item.color}18` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={20}
-                      color={item.color}
-                    />
-                  </View>
-                  <View style={styles.menuTextGroup}>
-                    <Text style={styles.menuTitle}>{item.title}</Text>
-                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={COLORS.textMuted}
-                  />
-                </TouchableOpacity>
-                {index < MENU_ITEMS.length - 1 && (
-                  <View style={styles.rowDivider} />
-                )}
-              </View>
-            ))}
+        {/* Profile Info Header (Premium Gradient Card) */}
+        <View style={styles.profileHeaderCard}>
+          <LinearGradient
+            colors={["#5C2C22", "#8C4B35", "#C89766"]}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.cardContent}>
+            <View style={styles.avatarContainer}>
+              <ProfilePhotoPicker user={user} updateUser={updateUser} />
+            </View>
+            <View style={styles.userTextContainer}>
+              <Text style={[styles.userName, { color: THEME.white }]}>{user?.name || "Henry Leo"}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Settings Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.menuCard}>
-            {SETTINGS_ITEMS.map((item, index) => (
-              <View key={item.id}>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuPress(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.menuIcon,
-                      { backgroundColor: `${item.color}18` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={20}
-                      color={item.color}
-                    />
-                  </View>
-                  <View style={styles.menuTextGroup}>
-                    <Text style={styles.menuTitle}>{item.title}</Text>
-                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                  </View>
-                  {item.value ? (
-                    <Text style={styles.menuValue}>{item.value}</Text>
-                  ) : null}
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={COLORS.textMuted}
-                  />
-                </TouchableOpacity>
-                {index < SETTINGS_ITEMS.length - 1 && (
-                  <View style={styles.rowDivider} />
-                )}
+        {/* Menu List */}
+        <View style={styles.menuList}>
+          {MENU_ITEMS.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuCard}
+              onPress={() => handleMenuPress(item.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuCardLeft}>
+                <View style={styles.iconBox}>
+                  <item.icon size={22} color={THEME.primary} strokeWidth={2} />
+                </View>
+                <Text style={styles.menuCardText}>{item.title}</Text>
               </View>
-            ))}
+              <ChevronRight size={20} color={THEME.textMuted} />
+            </TouchableOpacity>
+          ))}
+
+          {/* Settings Section Header */}
+          <View style={styles.settingsHeader}>
+            <Text style={styles.settingsHeaderText}>SETTINGS</Text>
           </View>
+
+          {SETTINGS_ITEMS.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuCard}
+              onPress={() => handleMenuPress(item.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuCardLeft}>
+                <View style={styles.iconBox}>
+                  <item.icon size={22} color={THEME.textMuted} strokeWidth={2} />
+                </View>
+                <Text style={styles.menuCardText}>{item.title}</Text>
+              </View>
+              <ChevronRight size={20} color={THEME.textMuted} />
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Logout Button */}
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-            <MaterialCommunityIcons
-              name="logout"
-              size={20}
-              color={COLORS.primary}
-            />
-            <Text style={styles.logoutText}>Sign Out</Text>
+        <View style={styles.logoutContainer}>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+            <LogOut size={20} color={THEME.logoutText} strokeWidth={2.5} />
+            <Text style={styles.logoutBtnText}>Logout</Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </View>
   );
@@ -286,19 +280,19 @@ const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }
           style={styles.avatar}
         />
       ) : (
-        <Avatar.Text
-          size={88}
-          label={user?.name ? user.name.charAt(0).toUpperCase() : "G"}
-          style={[styles.avatar, { backgroundColor: COLORS.primary }]}
-          color={COLORS.white}
-        />
+          <Avatar.Text
+            size={88}
+            label={user?.name ? user.name.charAt(0).toUpperCase() : "H"}
+            style={[styles.avatar, { backgroundColor: THEME.iconBox }]}
+            color={THEME.primary}
+          />
       )}
       <TouchableOpacity 
         style={styles.editAvatarBtn} 
         onPress={pickImage} 
         activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="camera" size={14} color={COLORS.white} />
+        <Pencil size={14} color={THEME.primary} strokeWidth={2.5} />
       </TouchableOpacity>
     </View>
   );
@@ -307,20 +301,55 @@ const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F1EE",
+    backgroundColor: THEME.background,
   },
-  header: {
-    paddingTop: 24,
-    paddingBottom: 0,
-    position: "relative",
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  headerActions: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    height: 60,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: THEME.text,
+  },
+  heroContainer: {
+    height: 240,
+    width: "100%",
     overflow: "hidden",
+  },
+  metallicReflect: {
+    position: "absolute",
+    top: -100,
+    left: -50,
+    width: "150%",
+    height: "200%",
+    backgroundColor: "rgba(212, 186, 148, 0.15)",
+    transform: [{ rotate: "25deg" }],
   },
   decoCircle1: {
     position: "absolute",
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: "rgba(33, 16, 11, 0.03)",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     top: -50,
     right: -60,
   },
@@ -329,179 +358,134 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: "rgba(140, 125, 121, 0.05)",
+    backgroundColor: "rgba(200, 151, 102, 0.2)",
     bottom: 20,
     left: -40,
   },
-  profileSection: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  avatarWrapper: {
-    position: "relative",
-    marginBottom: 14,
-  },
-  avatar: {
-    borderWidth: 3,
-    borderColor: "#21100B",
-  },
-  editAvatarBtn: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#21100B",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#F5F1EE",
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#1A1818",
-    letterSpacing: -0.3,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: "#4A4341",
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  badgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(33, 16, 11, 0.05)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 50,
-    marginTop: 10,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.1)",
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#62DCA3",
-    letterSpacing: 0.3,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginTop: 4,
-    marginHorizontal: 20,
-    backgroundColor: "#EDE7E3",
-    borderRadius: 16,
-    paddingVertical: 16,
-    marginBottom: 0,
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#21100B",
-    letterSpacing: -0.5,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "#4A4341",
-    marginTop: 2,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: "rgba(92, 63, 65, 0.2)",
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#21100B",
-    marginBottom: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  menuCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    overflow: "hidden",
+  profileHeaderCard: {
+    marginTop: -60,
+    marginHorizontal: 16,
+    borderRadius: 24,
+    marginBottom: 32,
     borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.08)",
+    borderColor: "rgba(255, 255, 255, 0.4)",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  menuItem: {
+  cardContent: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    gap: 14,
+    gap: 16,
   },
-  menuIcon: {
-    width: 42,
-    height: 42,
+  avatarContainer: {
+    // container for avatar
+  },
+  avatarWrapper: {
+    position: "relative",
+  },
+  avatar: {
+    borderWidth: 4,
+    borderColor: THEME.white,
+  },
+  editAvatarBtn: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: THEME.white,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: THEME.cardBg,
+  },
+  userTextContainer: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: THEME.text,
+    letterSpacing: -0.5,
+  },
+  designation: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: THEME.textMuted,
+    marginTop: 1,
+  },
+  menuList: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  menuCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: THEME.surface,
+    padding: 20,
+    borderRadius: 20,
+    shadowColor: THEME.text,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  menuCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  iconBox: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
+    backgroundColor: THEME.cardBg,
     justifyContent: "center",
     alignItems: "center",
   },
-  menuTextGroup: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 15,
+  menuCardText: {
+    fontSize: 16,
     fontWeight: "700",
-    color: "#1A1818",
+    color: THEME.text,
   },
-  menuSubtitle: {
-    fontSize: 12,
-    color: "#4A4341",
-    marginTop: 1,
-    fontWeight: "500",
+  settingsHeader: {
+    paddingTop: 16,
+    paddingBottom: 8,
+    paddingHorizontal: 10,
   },
-  menuValue: {
-    fontSize: 13,
-    color: "#4A4341",
-    marginRight: 4,
-    fontWeight: "600",
+  settingsHeaderText: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: THEME.textMuted,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
   },
-  rowDivider: {
-    height: 1,
-    backgroundColor: "rgba(92, 63, 65, 0.1)",
-    marginLeft: 72,
+  logoutContainer: {
+    marginTop: 40,
+    paddingHorizontal: 20,
   },
-  logoutButton: {
+  logoutBtn: {
+    width: "100%",
+    height: 60,
+    backgroundColor: THEME.logoutBg,
+    borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(33, 16, 11, 0.04)",
-    paddingVertical: 16,
-    borderRadius: 50,
     gap: 10,
     borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.1)",
-    marginBottom: 8,
+    borderColor: "rgba(140, 75, 53, 0.1)",
   },
-  logoutText: {
+  logoutBtnText: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#FF385C",
-  },
-  version: {
-    textAlign: "center",
-    fontSize: 12,
-    color: "#8A9BB8",
-    marginVertical: 24,
-    fontWeight: "500",
+    fontWeight: "800",
+    color: THEME.logoutText,
   },
 });

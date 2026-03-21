@@ -1,37 +1,46 @@
 export const COLORS = {
-  // Primary Palette - Earth Tone Sophistication
-  primary: "#21100B",           // Deepest Brown
-  primaryContainer: "#4A4341",  // Graphite
-  onPrimary: "#F2F2F2",         // Bone White
-  
-  // Secondary / Accents
-  secondary: "#8C7D79",         // Neutral Stone
-  accent: "#8C7D79",            // Warm gray for ratings
-  error: "#FF6B6B",             // Functional red
-  success: "#10B981",           // Functional green
+  // Layer 1 – Earthy Gradient Backgrounds
+  gradientStart: "#C7A27D",      // Tan
+  gradientMid: "#8C4B35",        // Warm Sienna
+  gradientEnd: "#3E1911",        // Deep Chocolate
 
-  // Surface Hierarchy
-  background: "#F2F2F2",        // Clean Light Bone
-  surface: "#FFFFFF",           // Pure White surfaces
-  surfaceContainerLow: "#E5E5E5",
-  surfaceContainer: "#F2F2F2",
-  surfaceContainerHigh: "#C2C2C2", // Light Gray (was navy)
-  surfaceContainerHighest: "#8C7D79",
+  // Primary Palette
+  primary: "#3E1911",            // Deep Chocolate
+  primaryContainer: "#5C2C22",   // Deep Rust
+  onPrimary: "#F9EFEB",          // Warm Frosted White
+
+  // Layer 2 – Glassmorphism Surfaces
+  glass: "rgba(241, 232, 223, 0.65)",  // Frosted Off-White
+  glassBorder: "rgba(255, 255, 255, 0.45)",
+  surface: "#FFFFFF",
+  surfaceContainerLow: "#F1E8DF",
+  surfaceContainer: "#F9EFEB",
+  surfaceContainerHigh: "#EAD8C9",
+  surfaceContainerHighest: "#DDB89A",
   surfaceBright: "#FFFFFF",
+  background: "#F6F4F0",
 
-  // Text Colors
-  text: "#1A1818",              // Almost Black (was light)
-  textLight: "#4A4341",         // Dark Graphite
-  textMuted: "#8C7D79",         // Stone Gray
+  // Layer 3 – Typography & Metallic Accents
+  text: "#000000",               // Pitch Black
+  textLight: "#2A1E15",          // Deep Warm Shadow
+  textMuted: "#8E8E93",          // Muted Grey
   white: "#FFFFFF",
 
+  // Metallic Accents
+  gold: "#CFB084",               // Champagne Gold
+  goldLight: "#D4BA94",          // Light Gold
+  goldGlow: "#C89766",           // Golden Illumination
+  silver: "#D3D1CD",             // Silver Metallic
+
+  // Secondary / Accents
+  secondary: "#C7A27D",          // Soft Beige
+  accent: "#C89766",             // Golden Illumination
+  error: "#B02500",
+  success: "#2E7D5B",
+
   // Borders & Outlines
-  border: "#8C7D79",            // Stone
-  divider: "#C2C2C2",           // Light Gray
-  
-  // Legacy compatibility
-  gradientStart: "#21100B",
-  gradientEnd: "#4A4341",
+  border: "#D3D1CD",             // Silver Metallic
+  divider: "#EAD8C9",            // Pale Peach
 };
 
 // Quick Action Types
@@ -53,7 +62,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "1",
     icon: "Hospital",
     label: "Hospital",
-    color: "#21100B",
+    color: "#3E1911",
     type: "call",
     phoneNumber: "102",
     serviceName: "Ambulance Service",
@@ -63,7 +72,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "2",
     icon: "ShieldAlert",
     label: "Police",
-    color: "#4A4341",
+    color: "#5C2C22",
     type: "call",
     phoneNumber: "100",
     serviceName: "Police Emergency",
@@ -73,7 +82,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "3",
     icon: "Siren",
     label: "Emergency",
-    color: "#8C7D79",
+    color: "#8C4B35",
     type: "call",
     phoneNumber: "112",
     serviceName: "National Emergency Service",
@@ -82,7 +91,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "4",
     icon: "PhoneCall",
     label: "Helpline",
-    color: "#4A4341",
+    color: "#CFB084",
     type: "helpline",
   },
 ];
@@ -107,7 +116,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     alternateNumber: "1800-111-363",
     description: "24/7 tourist assistance and information",
     icon: "Info",
-    color: "#4A4341",
+    color: "#CFB084",
     category: "tourist",
   },
   {
@@ -117,7 +126,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     alternateNumber: "181",
     description: "Women in distress can call for immediate help",
     icon: "UserCheck",
-    color: "#8C7D79",
+    color: "#8C4B35",
     category: "safety",
   },
   {
@@ -126,7 +135,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     number: "112",
     description: "Single emergency number for police, fire, ambulance",
     icon: "AlertCircle",
-    color: "#21100B",
+    color: "#3E1911",
     category: "safety",
   },
   {
@@ -135,7 +144,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     number: "14567",
     description: "Support and assistance for senior citizens",
     icon: "Users",
-    color: "#4A4341",
+    color: "#5C2C22",
     category: "safety",
   },
   {
@@ -144,7 +153,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     number: "1098",
     description: "24/7 helpline for children in need",
     icon: "Baby",
-    color: "#8C7D79",
+    color: "#C7A27D",
     category: "safety",
   },
 ];

@@ -3,6 +3,7 @@ import React, { useRef } from "react";
 import {
   Animated,
   FlatList,
+  Image,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -129,7 +130,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <View style={welcomeStyles.avatarWrapper}>
         <View style={welcomeStyles.glowRing}>
           <View style={welcomeStyles.avatar}>
-            <LucideIcons.Bot size={32} color={CHAT_COLORS.white} strokeWidth={2} />
+            <Image 
+              source={require("../../assets/images/chat-bot.png")}
+              style={welcomeStyles.botImage}
+              resizeMode="cover"
+            />
           </View>
         </View>
       </View>
@@ -198,6 +203,11 @@ const welcomeStyles = StyleSheet.create({
     backgroundColor: "rgba(140,125,121,0.12)",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  botImage: {
+    width: 64,
+    height: 64,
   },
   heading: {
     fontSize: 22,

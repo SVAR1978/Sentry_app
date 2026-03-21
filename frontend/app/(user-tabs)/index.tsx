@@ -1,9 +1,9 @@
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef, useState } from "react";
 import { Animated, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import QuickActions from "../../components/userHome/QuickActions";
 import SafetyTips from "../../components/userHome/SafetyTips";
@@ -51,11 +51,18 @@ export default function UserHomeScreen() {
     router.replace("/(auth)/user-login");
   };
 
-
-
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+
+      {/* Layer 1: Full-screen Earthy Gradient Background */}
+      <LinearGradient
+        colors={[COLORS.gradientStart, COLORS.gradientMid, COLORS.gradientEnd]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
@@ -105,26 +112,25 @@ export default function UserHomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
   content: {
     paddingTop: 0,
   },
   noResultsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 40,
     alignItems: "center",
   },
   noResultsText: {
     fontSize: 15,
-    color: COLORS.textMuted,
+    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
-    fontWeight: "500",
+    fontWeight: "600",
   },
 });

@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import React, { useState } from "react";
 import {
   Alert,
@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
+import { COLORS } from "../../constants/userHomeData";
 import { getCurrentLocation } from "../../services/maps/locationService";
 
 const ShareLocation: React.FC = () => {
@@ -76,7 +77,7 @@ const ShareLocation: React.FC = () => {
 
   return (
     <View style={styles.section}>
-      <View style={styles.safetyCard}>
+      <BlurView intensity={30} tint="light" style={styles.safetyCard}>
         <View style={styles.content}>
           <TouchableOpacity
             style={[styles.shareBtn, sharing && styles.shareBtnDisabled]}
@@ -86,19 +87,19 @@ const ShareLocation: React.FC = () => {
           >
             {sharing ? (
               <>
-                <ActivityIndicator size="small" color="#21100B" />
+                <ActivityIndicator size="small" color={COLORS.gold} />
                 <Text style={styles.shareBtnText}>Getting Location...</Text>
               </>
             ) : (
               <>
-                <MaterialCommunityIcons name="share-variant" size={18} color="#21100B" />
+                <MaterialCommunityIcons name="share-variant" size={18} color={COLORS.gold} />
                 <Text style={styles.shareBtnText}>Share My Location</Text>
-                <MaterialCommunityIcons name="arrow-right" size={16} color="#21100B" />
+                <MaterialCommunityIcons name="arrow-right" size={16} color={COLORS.gold} />
               </>
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </BlurView>
     </View>
   );
 };
@@ -109,74 +110,32 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   safetyCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.08)",
-    shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  cardBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  bannerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  shieldIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bannerTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  bannerSub: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 1,
+    borderColor: COLORS.glassBorder,
   },
   content: {
-    padding: 16,
-  },
-  description: {
-    fontSize: 13,
-    color: "#8A9BB8",
-    fontWeight: "500",
-    marginBottom: 16,
-    lineHeight: 18,
+    padding: 18,
   },
   shareBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 13,
+    gap: 10,
+    paddingVertical: 14,
     borderRadius: 50,
-    backgroundColor: "rgba(33, 16, 11, 0.04)",
+    backgroundColor: "rgba(207, 176, 132, 0.15)",
     borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.1)",
+    borderColor: "rgba(207, 176, 132, 0.3)",
   },
   shareBtnDisabled: {
     opacity: 0.6,
   },
   shareBtnText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#21100B",
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.white,
   },
 });
 
