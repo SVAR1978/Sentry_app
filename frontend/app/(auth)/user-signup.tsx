@@ -13,8 +13,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Snackbar, TextInput } from "react-native-paper";
+import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../../store/AuthContext";
 
 const COLORS = {
@@ -34,6 +35,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function UserSignup() {
   const { signup } = useAuth();
+  const insets = useSafeAreaInsets();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [familyPhone, setFamilyPhone] = useState("");
@@ -153,7 +155,8 @@ export default function UserSignup() {
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
+    <View style={styles.safeContainer}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -164,10 +167,10 @@ export default function UserSignup() {
           showsVerticalScrollIndicator={false}
         >
           {/* Gradient Background Header */}
-          <LinearGradient
-            colors={["#E0F2FE", "#F0F9FF"]}
-            style={styles.headerGradient}
-          >
+        <LinearGradient
+          colors={["#E0F2FE", "#F0F9FF"]}
+          style={[styles.headerGradient, { paddingTop: Math.max(insets.top, 48) }]}
+        >
             {/* Logo & Icon */}
             <View style={styles.logoContainer}>
               <View style={styles.shieldIcon}>
@@ -352,7 +355,7 @@ export default function UserSignup() {
       >
         {snackbarMessage}
       </Snackbar>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -371,7 +374,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerGradient: {
-    paddingVertical: 48,
+    paddingBottom: 48,
     paddingHorizontal: 20,
     alignItems: "center",
     marginBottom: 32,

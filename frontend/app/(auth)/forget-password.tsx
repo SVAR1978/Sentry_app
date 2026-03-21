@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -11,20 +12,20 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Text, TextInput } from "react-native-paper";
 
 const COLORS = {
-  primary: "#1E40AF",
-  accent: "#14B8A6",
-  error: "#FF6B6B",
-  warning: "#F59E0B",
+  primary: "#21100B",
+  accent: "#8C7D79",
+  error: "#D93636",
+  warning: "#D97706",
   success: "#10B981",
-  background: "#F8FAFC",
-  text: "#1F2937",
-  textLight: "#6B7280",
+  background: "#F5F1EE",
+  text: "#1A1818",
+  textLight: "#4A4341",
   white: "#FFFFFF",
-  border: "#E5E7EB",
+  border: "#EDE7E3",
 };
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -38,6 +39,7 @@ interface PasswordStrength {
 }
 
 export default function ForgotPassword() {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -224,7 +226,8 @@ export default function ForgotPassword() {
   const stepNumber = step === "email" ? 1 : step === "verification" ? 2 : 3;
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
+    <View style={styles.safeContainer}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -235,10 +238,10 @@ export default function ForgotPassword() {
           showsVerticalScrollIndicator={false}
         >
           {/* Gradient Background Header */}
-          <LinearGradient
-            colors={["#E0F2FE", "#F0F9FF"]}
-            style={styles.headerGradient}
-          >
+        <LinearGradient
+          colors={["#EDE7E3", "#F5F1EE"]}
+          style={[styles.headerGradient, { paddingTop: Math.max(insets.top, 32) }]}
+        >
             {/* Back Button */}
             <TouchableOpacity
               style={styles.backButtonHeader}
@@ -598,7 +601,7 @@ export default function ForgotPassword() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -617,7 +620,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerGradient: {
-    paddingVertical: 32,
+    paddingBottom: 32,
     paddingHorizontal: 20,
     alignItems: "center",
     marginBottom: 24,

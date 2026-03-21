@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -12,17 +13,17 @@ import {
   View,
 } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ROLES, UserRole } from "../../types/rbac";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const COLORS = {
-  primary: "#1E40AF",
-  accent: "#14B8A6",
-  background: "#F8FAFC",
-  text: "#1F2937",
-  textLight: "#6B7280",
+  primary: "#21100B",
+  accent: "#8C7D79",
+  background: "#F5F1EE",
+  text: "#1A1818",
+  textLight: "#4A4341",
   white: "#FFFFFF",
   success: "#10B981",
 };
@@ -37,6 +38,7 @@ export default function RoleSelectionScreen({
   selectedEmail,
 }: RoleSelectionScreenProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -116,7 +118,8 @@ export default function RoleSelectionScreen({
   );
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
+    <View style={styles.safeContainer}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -124,8 +127,8 @@ export default function RoleSelectionScreen({
       >
         {/* Gradient Background Header */}
         <LinearGradient
-          colors={["#E0F2FE", "#F0F9FF"]}
-          style={styles.headerGradient}
+          colors={["#EDE7E3", "#F5F1EE"]}
+          style={[styles.headerGradient, { paddingTop: Math.max(insets.top, 60) }]}
         >
           {/* Logo & Icon */}
           <Animated.View
@@ -297,7 +300,7 @@ export default function RoleSelectionScreen({
           )}
         </Animated.View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -313,7 +316,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerGradient: {
-    paddingVertical: 60,
+    paddingBottom: 60,
     paddingHorizontal: 20,
     alignItems: "center",
     marginBottom: 40,

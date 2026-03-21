@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#DAE2FD",
+    color: "#21100B",
     letterSpacing: -0.3,
   },
   refreshBtn: {
@@ -150,13 +150,18 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   weatherCard: {
-    backgroundColor: "#171F33",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: 16,
+    padding: 18,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(92, 63, 65, 0.12)",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
     gap: 16,
   },
   weatherLeft: {
@@ -177,7 +182,7 @@ const styles = StyleSheet.create({
   temperature: {
     fontSize: 32,
     fontWeight: "800",
-    color: "#DAE2FD",
+    color: "#1A1818",
     letterSpacing: -1,
   },
   weatherCondition: {
@@ -188,7 +193,7 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 50,
-    backgroundColor: "rgba(92, 63, 65, 0.2)",
+    backgroundColor: "rgba(33, 16, 11, 0.1)",
   },
   weatherRight: {
     flex: 1,
@@ -202,7 +207,7 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#DAE2FD",
+    color: "#1A1818",
     flex: 1,
   },
   weatherAdvice: {

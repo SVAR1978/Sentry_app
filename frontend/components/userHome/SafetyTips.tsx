@@ -13,15 +13,7 @@ import {
 import { ActivityIndicator, Text } from "react-native-paper";
 import { getCurrentLocation } from "../../services/maps/locationService";
 
-const TIPS = [
-  { icon: "map-marker-radius", text: "Share live location with family" },
-  { icon: "phone-check", text: "Keep emergency contacts saved offline" },
-  { icon: "shield-home", text: "Note local police station address" },
-  { icon: "card-account-details", text: "Keep copy of ID documents separately" },
-  { icon: "earth", text: "Store embassy contact for abroad travel" },
-];
-
-const SafetyTips: React.FC = () => {
+const ShareLocation: React.FC = () => {
   const [sharing, setSharing] = useState(false);
 
   const handleShareLocation = async () => {
@@ -56,7 +48,7 @@ const SafetyTips: React.FC = () => {
             onPress: async () => {
               try {
                 await Share.share({
-                  message: `📍 I'm sharing my live location!\n\nView on map: ${googleMapsUrl}`,
+                  message: `I'm sharing my live location!\n\nView on map: ${googleMapsUrl}`,
                   title: "My Current Location",
                 });
               } catch (error) {}
@@ -84,67 +76,28 @@ const SafetyTips: React.FC = () => {
 
   return (
     <View style={styles.section}>
-      {/* Section Header */}
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>Safety Tips</Text>
-          <Text style={styles.sectionSubtitle}>Stay safe while traveling</Text>
-        </View>
-      </View>
-
-      {/* Safety Card */}
       <View style={styles.safetyCard}>
-        {/* Header Banner */}
-        <LinearGradient
-          colors={["#FF385C", "#CC1A3A"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.cardBanner}
-        >
-          <View style={styles.bannerLeft}>
-            <View style={styles.shieldIcon}>
-              <MaterialCommunityIcons name="shield-check" size={24} color="#FF385C" />
-            </View>
-            <View>
-              <Text style={styles.bannerTitle}>Travel Safety</Text>
-              <Text style={styles.bannerSub}>5 essential tips</Text>
-            </View>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
-        </LinearGradient>
-
-        {/* Tips List */}
-        <View style={styles.tipsList}>
-          {TIPS.map((tip, index) => (
-            <View key={index} style={styles.tipRow}>
-              <View style={styles.tipIconWrap}>
-                <MaterialCommunityIcons name={tip.icon as any} size={16} color="#62DCA3" />
-              </View>
-              <Text style={styles.tipText}>{tip.text}</Text>
-            </View>
-          ))}
+        <View style={styles.content}>
+          <TouchableOpacity
+            style={[styles.shareBtn, sharing && styles.shareBtnDisabled]}
+            onPress={handleShareLocation}
+            disabled={sharing}
+            activeOpacity={0.85}
+          >
+            {sharing ? (
+              <>
+                <ActivityIndicator size="small" color="#21100B" />
+                <Text style={styles.shareBtnText}>Getting Location...</Text>
+              </>
+            ) : (
+              <>
+                <MaterialCommunityIcons name="share-variant" size={18} color="#21100B" />
+                <Text style={styles.shareBtnText}>Share My Location</Text>
+                <MaterialCommunityIcons name="arrow-right" size={16} color="#21100B" />
+              </>
+            )}
+          </TouchableOpacity>
         </View>
-
-        {/* Share Location Button */}
-        <TouchableOpacity
-          style={[styles.shareBtn, sharing && styles.shareBtnDisabled]}
-          onPress={handleShareLocation}
-          disabled={sharing}
-          activeOpacity={0.85}
-        >
-          {sharing ? (
-            <>
-              <ActivityIndicator size="small" color="#FF385C" />
-              <Text style={styles.shareBtnText}>Getting Location...</Text>
-            </>
-          ) : (
-            <>
-              <MaterialCommunityIcons name="share-variant" size={18} color="#FF385C" />
-              <Text style={styles.shareBtnText}>Share My Location</Text>
-              <MaterialCommunityIcons name="arrow-right" size={16} color="#FF385C" />
-            </>
-          )}
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -155,30 +108,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 24,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#DAE2FD",
-    letterSpacing: -0.3,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: "#8A9BB8",
-    fontWeight: "500",
-    marginTop: 2,
-  },
   safetyCard: {
-    backgroundColor: "#171F33",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(92, 63, 65, 0.15)",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
   },
   cardBanner: {
     flexDirection: "row",
@@ -209,28 +149,14 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.7)",
     marginTop: 1,
   },
-  tipsList: {
+  content: {
     padding: 16,
-    gap: 12,
   },
-  tipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  tipIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: "rgba(98, 220, 163, 0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  tipText: {
+  description: {
     fontSize: 13,
-    color: "#DAE2FD",
+    color: "#8A9BB8",
     fontWeight: "500",
-    flex: 1,
+    marginBottom: 16,
     lineHeight: 18,
   },
   shareBtn: {
@@ -238,13 +164,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 16,
     paddingVertical: 13,
     borderRadius: 50,
-    backgroundColor: "rgba(255, 56, 92, 0.12)",
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
     borderWidth: 1.5,
-    borderColor: "rgba(255, 56, 92, 0.3)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   shareBtnDisabled: {
     opacity: 0.6,
@@ -252,8 +176,8 @@ const styles = StyleSheet.create({
   shareBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FF385C",
+    color: "#21100B",
   },
 });
 
-export default SafetyTips;
+export default ShareLocation;

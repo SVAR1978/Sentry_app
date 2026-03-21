@@ -222,8 +222,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
   },
   accentRing: {
     position: "absolute",
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     right: -3,
     bottom: -3,
     borderRadius: 23,
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   quickActionLabel: {
     fontSize: 12,

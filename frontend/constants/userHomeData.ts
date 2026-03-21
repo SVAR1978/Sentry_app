@@ -1,238 +1,38 @@
 export const COLORS = {
-  // Primary Palette - Airbnb-inspired Deep Navy + Coral
-  primary: "#FF385C",           // Coral/Airbnb Red - main accent
-  primaryDim: "#FFB2B6",        // Soft coral for secondary use
-  primaryContainer: "#FF5169",  // Slightly lighter coral for CTAs
-  secondary: "#62DCA3",         // Safety Green - "All Clear" signal
-  accent: "#F59E0B",            // Warm amber for ratings/warnings
-  error: "#FF4444",             // Error/danger red
+  // Primary Palette - Earth Tone Sophistication
+  primary: "#21100B",           // Deepest Brown
+  primaryContainer: "#4A4341",  // Graphite
+  onPrimary: "#F2F2F2",         // Bone White
+  
+  // Secondary / Accents
+  secondary: "#8C7D79",         // Neutral Stone
+  accent: "#8C7D79",            // Warm gray for ratings
+  error: "#FF6B6B",             // Functional red
+  success: "#10B981",           // Functional green
 
-  // Surface Hierarchy (Dark Navy Theme)
-  background: "#0B1326",        // Level 0 - Deep navy base canvas
-  surface: "#0B1326",           // Same as background
-  surfaceContainerLow: "#131B2E", // Level 1 - Section grouping
-  surfaceContainer: "#171F33",  // Container base
-  surfaceContainerHigh: "#222A3D", // Level 2 - Nav bars, active surfaces
-  surfaceContainerHighest: "#2D3449", // Level 3 - Priority cards
-  surfaceBright: "#31394D",     // Glassmorphism elements
+  // Surface Hierarchy
+  background: "#F2F2F2",        // Clean Light Bone
+  surface: "#FFFFFF",           // Pure White surfaces
+  surfaceContainerLow: "#E5E5E5",
+  surfaceContainer: "#F2F2F2",
+  surfaceContainerHigh: "#C2C2C2", // Light Gray (was navy)
+  surfaceContainerHighest: "#8C7D79",
+  surfaceBright: "#FFFFFF",
 
   // Text Colors
-  text: "#DAE2FD",              // Primary text (on dark backgrounds)
-  textLight: "#E5BDBE",         // Secondary/subtitle text
-  textMuted: "#8A9BB8",         // Muted text, placeholders
-  white: "#FFFFFF",             // Pure white for high-contrast cards
+  text: "#1A1818",              // Almost Black (was light)
+  textLight: "#4A4341",         // Dark Graphite
+  textMuted: "#8C7D79",         // Stone Gray
+  white: "#FFFFFF",
 
   // Borders & Outlines
-  border: "rgba(92, 63, 65, 0.15)", // Ghost border (outline_variant @ 15%)
-  divider: "rgba(92, 63, 65, 0.08)", // Subtle divider
-
+  border: "#8C7D79",            // Stone
+  divider: "#C2C2C2",           // Light Gray
+  
   // Legacy compatibility
-  gradientStart: "#FF385C",
-  gradientEnd: "#FF5169",
+  gradientStart: "#21100B",
+  gradientEnd: "#4A4341",
 };
-
-export const FEATURED_DESTINATIONS = [
-  {
-    id: "1",
-    name: "Taj Mahal",
-    location: "Agra, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.9,
-    category: "Heritage",
-  },
-  {
-    id: "2",
-    name: "Red Fort",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.8,
-    category: "Heritage",
-  },
-  {
-    id: "3",
-    name: "India Gate",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.7,
-    category: "Monument",
-  },
-  {
-    id: "4",
-    name: "Qutub Minar",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.6,
-    category: "Heritage",
-  },
-  {
-    id: "5",
-    name: "Jama Masjid",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.5,
-    category: "Religious",
-  },
-  {
-    id: "6",
-    name: "Humayun's Tomb",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.7,
-    category: "Heritage",
-  },
-  {
-    id: "7",
-    name: "Lal Qila (Red Fort)",
-    location: "Old Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.8,
-    category: "Heritage",
-  },
-  {
-    id: "8",
-    name: "Chandni Chowk",
-    location: "Old Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.4,
-    category: "Market",
-  },
-  {
-    id: "9",
-    name: "Rashtrapati Bhavan",
-    location: "New Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.6,
-    category: "Heritage",
-  },
-  {
-    id: "10",
-    name: "Parliament House",
-    location: "New Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.5,
-    category: "Heritage",
-  },
-  {
-    id: "11",
-    name: "National Museum",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.6,
-    category: "Museum",
-  },
-  {
-    id: "12",
-    name: "Delhi Zoo",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.3,
-    category: "Nature",
-  },
-  {
-    id: "13",
-    name: "Lodhi Gardens",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.5,
-    category: "Nature",
-  },
-  {
-    id: "14",
-    name: "Birla Mandir",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.5,
-    category: "Religious",
-  },
-  {
-    id: "15",
-    name: "Lotus Temple",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.7,
-    category: "Religious",
-  },
-  {
-    id: "16",
-    name: "Swaminarayan Akshardham",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.8,
-    category: "Religious",
-  },
-  {
-    id: "17",
-    name: "Dilli Haat",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.4,
-    category: "Market",
-  },
-  {
-    id: "18",
-    name: "Connaught Place",
-    location: "New Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.5,
-    category: "Market",
-  },
-  {
-    id: "19",
-    name: "Khan Market",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.3,
-    category: "Market",
-  },
-  {
-    id: "20",
-    name: "Lakshminarayan Temple",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.4,
-    category: "Religious",
-  },
-  {
-    id: "21",
-    name: "Safdarjung Tomb",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.4,
-    category: "Heritage",
-  },
-  {
-    id: "22",
-    name: "Agrasen ki Baoli",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.2,
-    category: "Heritage",
-  },
-  {
-    id: "23",
-    name: "Purana Qila",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=400",
-    rating: 4.5,
-    category: "Heritage",
-  },
-  {
-    id: "24",
-    name: "Raj Ghat",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400",
-    rating: 4.3,
-    category: "Monument",
-  },
-  {
-    id: "25",
-    name: "Smriti Van",
-    location: "Delhi, India",
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400",
-    rating: 4.2,
-    category: "Monument",
-  },
-];
 
 // Quick Action Types
 export type QuickActionType = "call" | "helpline" | "navigate";
@@ -253,7 +53,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "1",
     icon: "hospital-building",
     label: "Hospital",
-    color: "#FF385C",
+    color: "#21100B",
     type: "call",
     phoneNumber: "102",
     serviceName: "Ambulance Service",
@@ -263,7 +63,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "2",
     icon: "police-badge",
     label: "Police",
-    color: "#4F8EF7",
+    color: "#4A4341",
     type: "call",
     phoneNumber: "100",
     serviceName: "Police Emergency",
@@ -273,7 +73,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "3",
     icon: "car-emergency",
     label: "Emergency",
-    color: "#F59E0B",
+    color: "#8C7D79",
     type: "call",
     phoneNumber: "112",
     serviceName: "National Emergency Service",
@@ -282,7 +82,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     id: "4",
     icon: "phone",
     label: "Helpline",
-    color: "#62DCA3",
+    color: "#4A4341",
     type: "helpline",
   },
 ];
@@ -307,7 +107,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     alternateNumber: "1800-111-363",
     description: "24/7 tourist assistance and information",
     icon: "information",
-    color: "#8B5CF6",
+    color: "#4A4341",
     category: "tourist",
   },
   {
@@ -317,7 +117,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     alternateNumber: "181",
     description: "Women in distress can call for immediate help",
     icon: "shield-account",
-    color: "#EC4899",
+    color: "#8C7D79",
     category: "safety",
   },
   {
@@ -326,7 +126,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     number: "112",
     description: "Single emergency number for police, fire, ambulance",
     icon: "alert-circle",
-    color: "#EF4444",
+    color: "#21100B",
     category: "safety",
   },
   {
@@ -335,7 +135,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     number: "14567",
     description: "Support and assistance for senior citizens",
     icon: "account-heart",
-    color: "#6366F1",
+    color: "#4A4341",
     category: "safety",
   },
   {
@@ -344,89 +144,7 @@ export const HELPLINE_NUMBERS: HelplineItem[] = [
     number: "1098",
     description: "24/7 helpline for children in need",
     icon: "baby-face",
-    color: "#F59E0B",
+    color: "#8C7D79",
     category: "safety",
-  },
-  {
-    id: "h6",
-    name: "Railway Helpline",
-    number: "139",
-    description: "Railway inquiries, complaints and emergencies",
-    icon: "train",
-    color: "#3B82F6",
-    category: "transport",
-  },
-  {
-    id: "h7",
-    name: "Road Accident Emergency",
-    number: "1073",
-    description: "Highway patrol and road accident assistance",
-    icon: "car-emergency",
-    color: "#F97316",
-    category: "transport",
-  },
-  {
-    id: "h8",
-    name: "Medical Helpline",
-    number: "104",
-    description: "Health information and medical advice",
-    icon: "medical-bag",
-    color: "#10B981",
-    category: "medical",
-  },
-  {
-    id: "h9",
-    name: "Ambulance Service",
-    number: "102",
-    alternateNumber: "108",
-    description: "Government ambulance and emergency medical service",
-    icon: "ambulance",
-    color: "#EF4444",
-    category: "medical",
-  },
-  {
-    id: "h10",
-    name: "Fire Brigade",
-    number: "101",
-    description: "Fire and rescue services",
-    icon: "fire-truck",
-    color: "#DC2626",
-    category: "safety",
-  },
-  {
-    id: "h11",
-    name: "Anti-Poison Helpline",
-    number: "1066",
-    description: "Poison control center for emergencies",
-    icon: "bottle-tonic-skull",
-    color: "#7C3AED",
-    category: "medical",
-  },
-  {
-    id: "h12",
-    name: "Cyber Crime Helpline",
-    number: "1930",
-    description: "Report cyber fraud and online crimes",
-    icon: "shield-bug",
-    color: "#0EA5E9",
-    category: "safety",
-  },
-  {
-    id: "h13",
-    name: "Delhi Metro Helpline",
-    number: "155370",
-    description: "Metro rail assistance and lost & found",
-    icon: "subway-variant",
-    color: "#3B82F6",
-    category: "transport",
-  },
-  {
-    id: "h14",
-    name: "Delhi Traffic Police",
-    number: "1095",
-    description: "Traffic violations and road assistance",
-    icon: "traffic-cone",
-    color: "#F59E0B",
-    category: "transport",
   },
 ];

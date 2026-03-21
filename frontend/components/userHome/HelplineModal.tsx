@@ -289,7 +289,7 @@ const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
                   number: "112",
                   description: "Single emergency number for all services",
                   icon: "alert-circle",
-                  color: "#EF4444",
+                  color: "#D93636",
                   category: "safety",
                 })
               }
@@ -404,11 +404,13 @@ const styles = StyleSheet.create({
   helplineItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.background,
+    backgroundColor: "#FFFFFF",
     paddingVertical: 14,
     paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.06)",
   },
   helplineIcon: {
     width: 48,
@@ -424,24 +426,25 @@ const styles = StyleSheet.create({
   helplineName: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.text,
+    color: "#1A1818",
     marginBottom: 2,
   },
   helplineDescription: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: "#4A4341",
     lineHeight: 16,
   },
   alternateNumber: {
     fontSize: 11,
-    color: COLORS.textLight,
+    color: "#4A4341",
     marginTop: 2,
     fontStyle: "italic",
+    opacity: 0.7,
   },
   helplineNumber: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.surface,
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,

@@ -24,7 +24,8 @@ import MapView, {
     Region,
 } from "react-native-maps";
 import { ActivityIndicator, FAB, Icon, Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Map Components
 import {
@@ -77,6 +78,7 @@ import {
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function MapScreen() {
+  const insets = useSafeAreaInsets();
   // Get route params (from QuickActions)
   const params = useLocalSearchParams<{ filter?: string }>();
 
@@ -625,17 +627,19 @@ export default function MapScreen() {
   // ===================================================================
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}>
+        <StatusBar style="dark" translucent backgroundColor="transparent" />
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Finding your location...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const showDirections = !!selectedPlace;
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <View style={styles.container}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <View style={styles.mapContainer}>
         {/* ── MAP ── */}
         <MapView
@@ -737,7 +741,7 @@ export default function MapScreen() {
 
         {/* ── FILTERS (hide during directions) ── */}
         {!showDirections && (
-          <View style={styles.filterContainer}>
+          <View style={[styles.filterContainer, { top: insets.top + 70 }]}>
             <MapFilterBar
               selectedFilter={selectedFilter}
               onFilterChange={setSelectedFilter}
@@ -753,6 +757,7 @@ export default function MapScreen() {
             style={[
               styles.riskIndicator,
               {
+                top: insets.top + 130,
                 backgroundColor:
                   currentRiskZone.level === "high"
                     ? "#FEE2E2"
@@ -811,7 +816,7 @@ export default function MapScreen() {
         {!showDirections && (
           <View style={styles.locationCard}>
             <View style={styles.locationInfo}>
-              <Icon source="crosshairs-gps" size={22} color={COLORS.primary} />
+              <Icon source="crosshairs-gps" size={22} color="#21100B" />
               <View style={styles.locationText}>
                 <Text style={styles.locationTitle}>Current Location</Text>
                 <Text style={styles.locationSubtitle} numberOfLines={1}>
@@ -855,7 +860,7 @@ export default function MapScreen() {
 
         {/* ── LOADING ROUTE OVERLAY ── */}
         {loadingRoute && (
-          <View style={styles.routeLoadingOverlay}>
+          <View style={[styles.routeLoadingOverlay, { top: insets.top + 76 }]}>
             <ActivityIndicator size="small" color="#fff" />
             <Text style={styles.routeLoadingText}>Finding route...</Text>
           </View>
@@ -878,7 +883,7 @@ export default function MapScreen() {
         {/* ── STOP NAVIGATION BUTTON (when navigating) ── */}
         {isNavigating && (
           <TouchableOpacity
-            style={styles.stopNavButton}
+            style={[styles.stopNavButton, { top: insets.top + 76 }]}
             onPress={handleStopNavigation}
             activeOpacity={0.8}
           >
@@ -982,25 +987,24 @@ export default function MapScreen() {
           </Animated.View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: "#F5F1EE" },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F5F1EE",
   },
-  loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textLight },
+  loadingText: { marginTop: 16, fontSize: 16, color: "#4A4341" },
   mapContainer: { flex: 1 },
   map: { flex: 1 },
 
   filterContainer: {
     position: "absolute",
-    top: 70,
     left: 0,
     right: 0,
     zIndex: 15,
@@ -1008,7 +1012,6 @@ const styles = StyleSheet.create({
 
   riskIndicator: {
     position: "absolute",
-    top: 130,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
@@ -1026,7 +1029,7 @@ const styles = StyleSheet.create({
     bottom: 220,
     left: 16,
     right: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 14,
     flexDirection: "row",
@@ -1037,18 +1040,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: "rgba(33, 16, 11, 0.08)",
   },
   locationInfo: { flexDirection: "row", alignItems: "center", flex: 1 },
   locationText: { marginLeft: 12, flex: 1 },
-  locationTitle: { fontSize: 14, fontWeight: "600", color: COLORS.text },
-  locationSubtitle: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
+  locationTitle: { fontSize: 14, fontWeight: "600", color: "#1A1818" },
+  locationSubtitle: { fontSize: 12, color: "#4A4341", marginTop: 2 },
   speedBadge: {
     backgroundColor: "#10B981",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
   },
-  speedText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  speedText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
 
   fabContainer: {
     position: "absolute",
@@ -1056,13 +1061,12 @@ const styles = StyleSheet.create({
     bottom: 240,
     gap: 12,
   },
-  fab: { backgroundColor: "#fff", elevation: 4 },
-  fabPanic: { backgroundColor: "#EF4444" },
-  fabFollow: { backgroundColor: "#10B981" },
+  fab: { backgroundColor: "#FFFFFF", elevation: 4 },
+  fabPanic: { backgroundColor: "#D93636" },
+  fabFollow: { backgroundColor: "#21100B" },
 
   routeLoadingOverlay: {
     position: "absolute",
-    top: 76,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
@@ -1080,7 +1084,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -1089,6 +1093,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(33, 16, 11, 0.08)",
   },
   nearbyHeader: {
     flexDirection: "row",
@@ -1096,11 +1102,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  nearbyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
+  nearbyTitle: { fontSize: 16, fontWeight: "700", color: "#1A1818" },
   trackingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#D1FAE5",
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1110,9 +1116,9 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#10B981",
+    backgroundColor: "#21100B",
   },
-  trackingText: { fontSize: 11, fontWeight: "600", color: "#059669" },
+  trackingText: { fontSize: 11, fontWeight: "600", color: "#21100B" },
   nearbyItems: { gap: 10 },
   nearbyItem: {
     flexDirection: "row",
@@ -1129,8 +1135,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   nearbyInfo: { flex: 1, marginLeft: 12 },
-  nearbyName: { fontSize: 14, fontWeight: "600", color: COLORS.text },
-  nearbyDistance: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
+  nearbyName: { fontSize: 14, fontWeight: "600", color: "#1A1818" },
+  nearbyDistance: { fontSize: 12, color: "#4A4341", marginTop: 2 },
   nearbyLoading: {
     flexDirection: "row",
     alignItems: "center",
@@ -1148,17 +1154,16 @@ const styles = StyleSheet.create({
   
   stopNavButton: {
     position: "absolute",
-    top: 76,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EF4444",
+    backgroundColor: "#21100B",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     gap: 8,
     elevation: 8,
-    shadowColor: "#EF4444",
+    shadowColor: "#21100B",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

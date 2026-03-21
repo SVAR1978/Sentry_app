@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
@@ -10,22 +11,22 @@ import {
     View,
 } from "react-native";
 import { Avatar, Divider, Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 
 const COLORS = {
-  primary: "#FF385C",
-  background: "#0B1326",
-  surfaceContainerLow: "#131B2E",
-  surfaceContainer: "#171F33",
-  surfaceContainerHigh: "#222A3D",
-  surfaceContainerHighest: "#2D3449",
-  text: "#DAE2FD",
-  textLight: "#E5BDBE",
-  textMuted: "#8A9BB8",
+  primary: "#21100B",
+  background: "#F5F1EE",
+  surfaceContainerLow: "#EDE7E3",
+  surfaceContainer: "#FFFFFF",
+  surfaceContainerHigh: "#EDE7E3",
+  surfaceContainerHighest: "#8C7D79",
+  text: "#1A1818",
+  textLight: "#4A4341",
+  textMuted: "#8C7D79",
   white: "#FFFFFF",
-  secondary: "#62DCA3",
-  accent: "#F59E0B",
+  secondary: "#4A4341",
+  accent: "#8C7D79",
 };
 
 const MENU_ITEMS = [
@@ -93,6 +94,7 @@ const SETTINGS_ITEMS = [
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -113,14 +115,15 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero Header */}
         <LinearGradient
-          colors={["#0B1326", "#1A1F3C", "#0F1729"]}
+          colors={["#EDE7E3", "#F5F1EE"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.header}
+          style={[styles.header, { paddingTop: Math.max(insets.top, 24) }]}
         >
           {/* Background decoration circles */}
           <View style={styles.decoCircle1} />
@@ -270,16 +273,15 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>Sentry v1.0.0 • Made with ❤️ in India</Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1326",
+    backgroundColor: "#F5F1EE",
   },
   header: {
     paddingTop: 24,
@@ -292,7 +294,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: "rgba(255, 56, 92, 0.06)",
+    backgroundColor: "rgba(33, 16, 11, 0.03)",
     top: -50,
     right: -60,
   },
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: "rgba(98, 220, 163, 0.05)",
+    backgroundColor: "rgba(140, 125, 121, 0.05)",
     bottom: 20,
     left: -40,
   },
@@ -316,7 +318,7 @@ const styles = StyleSheet.create({
   },
   avatar: {
     borderWidth: 3,
-    borderColor: "#FF385C",
+    borderColor: "#21100B",
   },
   editAvatarBtn: {
     position: "absolute",
@@ -325,35 +327,35 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "#FF385C",
+    backgroundColor: "#21100B",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#0B1326",
+    borderColor: "#F5F1EE",
   },
   userName: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#DAE2FD",
+    color: "#1A1818",
     letterSpacing: -0.3,
   },
   userEmail: {
     fontSize: 13,
-    color: "#8A9BB8",
+    color: "#4A4341",
     marginTop: 4,
     fontWeight: "500",
   },
   badgeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(98, 220, 163, 0.12)",
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 50,
     marginTop: 10,
     gap: 6,
     borderWidth: 1,
-    borderColor: "rgba(98, 220, 163, 0.2)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   badgeText: {
     fontSize: 12,
@@ -367,7 +369,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 4,
     marginHorizontal: 20,
-    backgroundColor: "#131B2E",
+    backgroundColor: "#EDE7E3",
     borderRadius: 16,
     paddingVertical: 16,
     marginBottom: 0,
@@ -379,12 +381,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#DAE2FD",
+    color: "#21100B",
     letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 11,
-    color: "#8A9BB8",
+    color: "#4A4341",
     marginTop: 2,
     fontWeight: "600",
     textTransform: "uppercase",
@@ -402,17 +404,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#8A9BB8",
+    color: "#21100B",
     marginBottom: 12,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   menuCard: {
-    backgroundColor: "#171F33",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(92, 63, 65, 0.12)",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
   },
   menuItem: {
     flexDirection: "row",
@@ -433,17 +435,17 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#DAE2FD",
+    color: "#1A1818",
   },
   menuSubtitle: {
     fontSize: 12,
-    color: "#8A9BB8",
+    color: "#4A4341",
     marginTop: 1,
     fontWeight: "500",
   },
   menuValue: {
     fontSize: 13,
-    color: "#8A9BB8",
+    color: "#4A4341",
     marginRight: 4,
     fontWeight: "600",
   },
@@ -456,12 +458,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 56, 92, 0.08)",
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
     paddingVertical: 16,
     borderRadius: 50,
     gap: 10,
     borderWidth: 1.5,
-    borderColor: "rgba(255, 56, 92, 0.2)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
     marginBottom: 8,
   },
   logoutText: {

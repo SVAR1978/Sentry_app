@@ -3,15 +3,15 @@ import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 const COLORS = {
-  primary: "#FF385C",
-  background: "#0B1326",
-  surfaceContainerHigh: "#222A3D",
-  surfaceBright: "#31394D",
-  text: "#DAE2FD",
-  textMuted: "#8A9BB8",
+  primary: "#21100B",    // Deep Brown
+  background: "#F2F2F2", // Bone White
+  surfaceContainerHigh: "#C2C2C2", // Light Gray
+  surfaceBright: "#FFFFFF",
+  text: "#1A1818",       // Almost Black
+  textMuted: "#8C7D79",  // Stone Gray
   white: "#FFFFFF",
-  border: "rgba(92, 63, 65, 0.2)",
-  error: "#FF385C",
+  border: "#8C7D79",     // Stone
+  error: "#FF6B6B",
 };
 
 export default function UserTabsLayout() {

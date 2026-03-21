@@ -1,13 +1,14 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../store/AuthContext";
 
 const COLORS = {
-  primary: "#1E40AF",
-  background: "#F8FAFC",
-  text: "#1F2937",
+  primary: "#21100B",
+  background: "#F5F1EE",
+  text: "#1A1818",
 };
 
 export default function Index() {

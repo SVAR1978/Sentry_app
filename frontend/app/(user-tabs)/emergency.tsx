@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
@@ -22,16 +23,16 @@ import { useAuth } from "../../store/AuthContext";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const COLORS = {
-  primary: "#FF385C",
-  background: "#0B1326",
-  surfaceContainerLow: "#131B2E",
-  surfaceContainer: "#171F33",
-  surfaceContainerHigh: "#222A3D",
-  text: "#DAE2FD",
-  textMuted: "#8A9BB8",
+  primary: "#21100B",
+  background: "#F5F1EE",
+  surfaceContainerLow: "#EDE7E3",
+  surfaceContainer: "#FFFFFF",
+  surfaceContainerHigh: "#EDE7E3",
+  text: "#1A1818",
+  textMuted: "#8C7D79",
   white: "#FFFFFF",
-  secondary: "#62DCA3",
-  accent: "#F59E0B",
+  secondary: "#4A4341",
+  accent: "#8C7D79",
 };
 
 const EMERGENCY_CONTACTS = [
@@ -159,10 +160,11 @@ export default function EmergencyScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={["#0B1326", "#2D0A14", "#1A0810"]}
+          colors={["#EDE7E3", "#F5F1EE"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
@@ -186,7 +188,7 @@ export default function EmergencyScreen() {
           >
             <View style={styles.sosButtonRing}>
               <LinearGradient
-                colors={sosActive ? ["#7F1D1D", "#991B1B"] : ["#FF385C", "#CC1A3A"]}
+                colors={sosActive ? ["#21100B", "#4A4341"] : ["#21100B", "#1A1818"]}
                 style={styles.sosGradient}
               >
                 <MaterialCommunityIcons name="alert" size={56} color={COLORS.white} />
@@ -375,7 +377,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: "rgba(255, 56, 92, 0.07)",
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
     top: -60,
     right: -60,
   },
@@ -386,21 +388,21 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: "rgba(255, 56, 92, 0.12)",
+    backgroundColor: "rgba(33, 16, 11, 0.08)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1.5,
-    borderColor: "rgba(255, 56, 92, 0.2)",
+    borderColor: "rgba(33, 16, 11, 0.15)",
   },
   headerTitle: {
     fontSize: 26,
     fontWeight: "800",
-    color: COLORS.white,
+    color: "#21100B",
     letterSpacing: -0.4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "rgba(218, 226, 253, 0.5)",
+    color: "#8C7D79",
     marginTop: 4,
     fontWeight: "500",
   },
@@ -412,11 +414,11 @@ const styles = StyleSheet.create({
     width: 190,
     height: 190,
     borderRadius: 95,
-    backgroundColor: "rgba(255, 56, 92, 0.08)",
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1.5,
-    borderColor: "rgba(255, 56, 92, 0.2)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   sosButtonOuterActive: {
     backgroundColor: "rgba(255, 56, 92, 0.15)",
@@ -428,11 +430,11 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 80,
     overflow: "hidden",
-    shadowColor: "#FF385C",
+    shadowColor: "#21100B",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 16,
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 12,
   },
   sosGradient: {
     flex: 1,
@@ -482,18 +484,18 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 56, 92, 0.1)",
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 50,
     gap: 4,
     borderWidth: 1,
-    borderColor: "rgba(255, 56, 92, 0.2)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   addText: {
     fontSize: 13,
     fontWeight: "700",
-    color: COLORS.primary,
+    color: "#21100B",
   },
   contactsGrid: {
     flexDirection: "row",
@@ -659,7 +661,7 @@ const styles = StyleSheet.create({
   shareButtonText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0B1326",
+    color: COLORS.white,
     letterSpacing: 0.2,
   },
   modalOverlay: {
@@ -670,13 +672,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: "#1A2340",
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     padding: 24,
     width: "100%",
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: "rgba(92, 63, 65, 0.2)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   modalHeader: {
     flexDirection: "row",
