@@ -1,24 +1,52 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  ShieldAlert,
+  AlertTriangle,
+  Plus,
+  User,
+  Phone,
+  XCircle,
+  Check,
+  Share2,
+  X,
+  Radio,
+  MapPin,
+  Clock,
+  CheckCircle,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+} from "lucide-react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-    Alert,
-    Dimensions,
-    Linking,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    Vibration,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Vibration,
+  View,
 } from "react-native";
-import { Button, Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Text } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
+import sosService, {
+  SOSAlertPayload,
+  DeliveryLogEntry,
+  AlertStatus,
+} from "../../services/sos/sosAlertService";
+import { AddContactModal } from "../../components/emergency/AddContactModal";
+import { SafetyTips } from "../../components/emergency/SafetyTips";
+import { CustomAlertModal, AlertConfig } from "../../components/emergency/CustomAlertModal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -33,16 +61,10 @@ const COLORS = {
   white: "#FFFFFF",
   secondary: "#4A4341",
   accent: "#8C7D79",
+  success: "#10B981",
+  error: "#D93636",
+  warning: "#D97706",
 };
-
-const EMERGENCY_CONTACTS = [
-  { id: "1", name: "Police", number: "100", icon: "police-badge", color: "#4F8EF7" },
-  { id: "2", name: "Ambulance", number: "108", icon: "ambulance", color: "#FF385C" },
-  { id: "3", name: "Fire", number: "101", icon: "fire", color: "#F59E0B" },
-  { id: "4", name: "Women Helpline", number: "1091", icon: "account-heart", color: "#EC4899" },
-  { id: "5", name: "Tourist Helpline", number: "1363", icon: "airplane", color: "#62DCA3" },
-  { id: "6", name: "Child Helpline", number: "1098", icon: "baby-face", color: "#8B5CF6" },
-];
 
 const SAFETY_TIPS = [
   "Share your live location with family",
@@ -59,8 +81,55 @@ interface FamilyContact {
   relationship: string;
 }
 
+// ─── STATUS BADGE COMPONENT ────────────────────────────
+
+const StatusBadge = ({ status }: { status: AlertStatus }) => {
+  const map: Record<AlertStatus, { color: string; label: string }> = {
+    PENDING: { color: COLORS.warning, label: "PENDING" },
+    SENDING: { color: COLORS.warning, label: "SENDING" },
+    SENT: { color: COLORS.success, label: "DISPATCHED" },
+    FAILED: { color: COLORS.error, label: "FAILED" },
+    ACKNOWLEDGED: { color: COLORS.success, label: "ACKNOWLEDGED" },
+    RESOLVED: { color: COLORS.secondary, label: "RESOLVED" },
+  };
+  const { color, label } = map[status] || map.PENDING;
+
+  return (
+    <View style={[statusStyles.badge, { backgroundColor: `${color}18` }]}>
+      <View style={[statusStyles.dot, { backgroundColor: color }]} />
+      <Text style={[statusStyles.badgeText, { color }]}>{label}</Text>
+    </View>
+  );
+};
+
+// ─── DELIVERY LOG ITEM COMPONENT ───────────────────────
+
+const LogItem = ({ entry }: { entry: DeliveryLogEntry }) => {
+  const colorMap: Record<string, string> = {
+    info: COLORS.textMuted,
+    success: COLORS.success,
+    error: COLORS.error,
+    warning: COLORS.warning,
+  };
+  const iconColor = colorMap[entry.status] || COLORS.textMuted;
+
+  return (
+    <View style={statusStyles.logItem}>
+      <Text style={[statusStyles.logTime, { color: iconColor }]}>
+        [{entry.timestamp}]
+      </Text>
+      <Text style={[statusStyles.logMessage, { color: COLORS.text }]}>
+        {entry.message}
+      </Text>
+    </View>
+  );
+};
+
+// ─── MAIN COMPONENT ────────────────────────────────────
+
 export default function EmergencyScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [sosActive, setSosActive] = useState(false);
   const [familyContacts, setFamilyContacts] = useState<FamilyContact[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -68,49 +137,146 @@ export default function EmergencyScreen() {
   const [newContactPhone, setNewContactPhone] = useState("");
   const [newContactRelation, setNewContactRelation] = useState("");
 
+  // ─── SOS DISPATCH STATE ────────────────────────────
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [alertPayload, setAlertPayload] = useState<SOSAlertPayload | null>(null);
+  const [isDispatching, setIsDispatching] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // ─── SYSTEM ALERTS STATE ───────────────────────────
+  const [alertConfig, setAlertConfig] = useState<AlertConfig>({
+    visible: false,
+    type: "info",
+    title: "",
+    message: "",
+  });
+
+  const hideAlert = () => setAlertConfig((prev) => ({ ...prev, visible: false }));
+
+  // ─── PULSE ANIMATION FOR ACTIVE SOS ────────────────
+  useEffect(() => {
+    if (sosActive) {
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+      return () => animation.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [sosActive]);
+
+  // ─── SUBSCRIBE TO SOS SERVICE UPDATES ──────────────
+  useEffect(() => {
+    const unsubscribe = sosService.subscribe((payload) => {
+      setAlertPayload({ ...payload });
+      // Auto-scroll delivery log
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+    return unsubscribe;
+  }, []);
+
+  // ─── SOS HANDLER ───────────────────────────────────
+
   const handleSOS = () => {
     Vibration.vibrate([0, 500, 200, 500, 200, 500]);
     setSosActive(true);
-
-    Alert.alert(
-      " SOS Activated",
-      "Emergency alert will be sent to your emergency contacts with your current location.\n\nDo you want to proceed?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => setSosActive(false),
-        },
-        {
-          text: "Send Alert",
-          style: "destructive",
-          onPress: () => {
-            setTimeout(() => {
-              Alert.alert("Alert Sent ✓", "Your emergency contacts have been notified with your current location.");
-              setSosActive(false);
-            }, 1500);
-          },
-        },
-      ]
-    );
+    setShowDispatchModal(true);
   };
+
+  const confirmAndDispatch = async () => {
+    if (isDispatching) return;
+    setIsDispatching(true);
+
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+      const contacts = familyContacts.map((c) => ({
+        name: c.name,
+        phone: c.phone,
+        relationship: c.relationship,
+      }));
+
+      // If no contacts, dispatch to emergency services directly
+      if (contacts.length === 0) {
+        await sosService.quickDispatchToEmergency(
+          user?.id || "UNKNOWN",
+          user?.name || "Sentry User"
+        );
+      } else {
+        await sosService.dispatch(
+          user?.id || "UNKNOWN",
+          user?.name || "Sentry User",
+          contacts
+        );
+      }
+    } catch (err) {
+      console.error("[SOS] Dispatch error:", err);
+    } finally {
+      setIsDispatching(false);
+    }
+  };
+
+  const cancelSOS = () => {
+    sosService.clear();
+    setSosActive(false);
+    setShowDispatchModal(false);
+    setAlertPayload(null);
+  };
+
+  const resolveSOS = async () => {
+    await sosService.resolve();
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setTimeout(() => {
+      setSosActive(false);
+      setShowDispatchModal(false);
+      setAlertPayload(null);
+    }, 1200);
+  };
+
+  // ─── CONTACT HANDLERS ─────────────────────────────
 
   const handleCall = async (number: string, name: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(`Call ${name}?`, `${number}`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Call Now",
-        onPress: async () => {
-          try {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            await Linking.openURL(`tel:${number}`);
-          } catch (error) {
-            Alert.alert("Unable to Open Dialer", `Please dial ${number} manually.`, [{ text: "OK" }]);
-          }
-        },
+    setAlertConfig({
+      visible: true,
+      type: "confirm",
+      title: `Call ${name}?`,
+      message: `${number}`,
+      confirmText: "Call Now",
+      cancelText: "Cancel",
+      onCancel: hideAlert,
+      onConfirm: async () => {
+        hideAlert();
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await Linking.openURL(`tel:${number}`);
+        } catch (error) {
+          setTimeout(() => {
+            setAlertConfig({
+              visible: true,
+              type: "error",
+              title: "Unable to Open Dialer",
+              message: `Please dial ${number} manually.`,
+              confirmText: "Okay",
+              onConfirm: hideAlert,
+            });
+          }, 500);
+        }
       },
-    ]);
+    });
   };
 
   const handleAddFamilyContact = async () => {
@@ -119,8 +285,28 @@ export default function EmergencyScreen() {
   };
 
   const handleSaveContact = async () => {
-    if (!newContactName.trim()) { Alert.alert("Invalid Input", "Please enter a valid name."); return; }
-    if (!newContactPhone.trim()) { Alert.alert("Invalid Input", "Please enter a valid phone number."); return; }
+    if (!newContactName.trim()) {
+      setAlertConfig({
+        visible: true,
+        type: "error",
+        title: "Invalid Input",
+        message: "Please enter a valid name.",
+        confirmText: "Okay",
+        onConfirm: hideAlert,
+      });
+      return;
+    }
+    if (!newContactPhone.trim()) {
+      setAlertConfig({
+        visible: true,
+        type: "error",
+        title: "Invalid Input",
+        message: "Please enter a valid phone number.",
+        confirmText: "Okay",
+        onConfirm: hideAlert,
+      });
+      return;
+    }
 
     const newContact: FamilyContact = {
       id: Date.now().toString(),
@@ -135,92 +321,75 @@ export default function EmergencyScreen() {
     setNewContactPhone("");
     setNewContactRelation("");
     setShowAddModal(false);
-    Alert.alert("Contact Added ✓", `${newContactName} has been added to your emergency contacts.`);
+    
+    setAlertConfig({
+      visible: true,
+      type: "success",
+      title: "Contact Added",
+      message: `${newContactName} has been added to your emergency contacts.`,
+      confirmText: "Continue",
+      onConfirm: hideAlert,
+    });
   };
 
   const handleCancelAddContact = () => {
-    setNewContactName(""); setNewContactPhone(""); setNewContactRelation("");
+    setNewContactName("");
+    setNewContactPhone("");
+    setNewContactRelation("");
     setShowAddModal(false);
   };
 
   const handleDeleteContact = async (contactId: string, contactName: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert("Delete Contact", `Are you sure you want to remove ${contactName} from emergency contacts?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          setFamilyContacts(familyContacts.filter((c) => c.id !== contactId));
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        },
+    setAlertConfig({
+      visible: true,
+      type: "confirm",
+      title: "Delete Contact",
+      message: `Are you sure you want to remove ${contactName} from emergency contacts?`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      onCancel: hideAlert,
+      onConfirm: async () => {
+        hideAlert();
+        setFamilyContacts(familyContacts.filter((c) => c.id !== contactId));
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       },
-    ]);
+    });
   };
 
+  // ─── RENDER ────────────────────────────────────────
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={styles.container}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <LinearGradient
-          colors={["#EDE7E3", "#F5F1EE"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <View style={styles.headerDecoCircle} />
-          <View style={styles.shieldContainer}>
-            <View style={styles.shieldBg}>
-              <MaterialCommunityIcons name="shield-alert" size={36} color={COLORS.primary} />
-            </View>
-          </View>
-          <Text style={styles.headerTitle}>Emergency SOS</Text>
-          <Text style={styles.headerSubtitle}>Your safety is our priority</Text>
-        </LinearGradient>
+        <View style={{ height: insets.top + 20 }} />
 
         {/* SOS Button */}
         <View style={styles.sosContainer}>
-          <TouchableOpacity
-            style={[styles.sosButtonOuter, sosActive && styles.sosButtonOuterActive]}
-            onPress={handleSOS}
-            activeOpacity={0.85}
-          >
-            <View style={styles.sosButtonRing}>
-              <LinearGradient
-                colors={sosActive ? ["#21100B", "#4A4341"] : ["#21100B", "#1A1818"]}
-                style={styles.sosGradient}
-              >
-                <MaterialCommunityIcons name="alert" size={56} color={COLORS.white} />
-                <Text style={styles.sosText}>{sosActive ? "SENDING..." : "SOS"}</Text>
-                <Text style={styles.sosSubtext}>{sosActive ? "Please wait" : "Tap for emergency"}</Text>
-              </LinearGradient>
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <TouchableOpacity
+              style={[styles.sosButtonOuter, sosActive && styles.sosButtonOuterActive]}
+              onPress={handleSOS}
+              activeOpacity={0.85}
+            >
+              <View style={styles.sosButtonRing}>
+                <LinearGradient
+                  colors={sosActive ? ["#D93636", "#A32020"] : ["#21100B", "#1A1818"]}
+                  style={styles.sosGradient}
+                >
+                  <AlertTriangle size={56} color={COLORS.white} />
+                  <Text style={styles.sosText}>{sosActive ? "ACTIVE" : "SOS"}</Text>
+                </LinearGradient>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+          {sosActive && (
+            <View style={styles.activeIndicator}>
+              <Radio size={14} color={COLORS.error} />
+              <Text style={styles.activeIndicatorText}>Alert is active</Text>
             </View>
-          </TouchableOpacity>
-          <Text style={styles.sosHint}>Hold for 3 seconds to activate silent SOS</Text>
-        </View>
-
-        {/* Emergency Contacts */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Emergency Numbers</Text>
-          </View>
-          <View style={styles.contactsGrid}>
-            {EMERGENCY_CONTACTS.map((contact) => (
-              <TouchableOpacity
-                key={contact.id}
-                style={styles.contactCard}
-                onPress={() => handleCall(contact.number, contact.name)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.contactIcon, { backgroundColor: `${contact.color}18` }]}>
-                  <MaterialCommunityIcons name={contact.icon as any} size={26} color={contact.color} />
-                </View>
-                <Text style={styles.contactName}>{contact.name}</Text>
-                <Text style={[styles.contactNumber, { color: contact.color }]}>{contact.number}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          )}
         </View>
 
         {/* Family Contacts */}
@@ -228,7 +397,7 @@ export default function EmergencyScreen() {
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Family Contacts</Text>
             <TouchableOpacity style={styles.addBtn} onPress={handleAddFamilyContact}>
-              <MaterialCommunityIcons name="plus" size={16} color={COLORS.primary} />
+              <Plus size={16} color={COLORS.primary} strokeWidth={3} />
               <Text style={styles.addText}>Add</Text>
             </TouchableOpacity>
           </View>
@@ -236,10 +405,12 @@ export default function EmergencyScreen() {
           {familyContacts.length === 0 ? (
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconBg}>
-                <MaterialCommunityIcons name="account-group" size={28} color={COLORS.textMuted} />
+                <User size={28} color={COLORS.textMuted} />
               </View>
               <Text style={styles.emptyTitle}>No Emergency Contacts</Text>
-              <Text style={styles.emptySubtitle}>Tap + Add to create your emergency contacts</Text>
+              <Text style={styles.emptySubtitle}>
+                Tap + Add to create your emergency contacts
+              </Text>
             </View>
           ) : (
             familyContacts.map((contact) => (
@@ -250,161 +421,457 @@ export default function EmergencyScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.familyContactIconBg}>
-                    <MaterialCommunityIcons name="account" size={22} color={COLORS.secondary} />
+                    <User size={22} color={COLORS.secondary} />
                   </View>
                   <View style={styles.familyContactInfo}>
                     <Text style={styles.familyContactName}>{contact.name}</Text>
-                    <Text style={styles.familyContactRelation}>{contact.relationship}</Text>
-                    <Text style={styles.familyContactPhone}>{contact.phone}</Text>
                   </View>
                   <View style={styles.callIconButton}>
-                    <MaterialCommunityIcons name="phone" size={20} color={COLORS.secondary} />
+                    <Phone size={20} color={COLORS.secondary} />
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => handleDeleteContact(contact.id, contact.name)}
                 >
-                  <MaterialCommunityIcons name="close-circle" size={20} color={COLORS.primary} />
+                  <XCircle size={20} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
             ))
           )}
         </View>
 
-        {/* Safety Tips */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Safety Tips</Text>
-          <View style={styles.tipsCard}>
-            {SAFETY_TIPS.map((tip, index) => (
-              <View key={index} style={[styles.tipItem, index === SAFETY_TIPS.length - 1 && { borderBottomWidth: 0 }]}>
-                <View style={styles.tipCheckmark}>
-                  <MaterialCommunityIcons name="check" size={14} color={COLORS.secondary} />
-                </View>
-                <Text style={styles.tipText}>{tip}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        {/* Safety Tips Component */}
+        <SafetyTips tips={SAFETY_TIPS} colors={COLORS} />
 
         {/* Share Location */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.shareButton}
-            onPress={() => Alert.alert("Share Location", "Location sharing feature")}
+            onPress={() => {
+              setAlertConfig({
+                visible: true,
+                type: "info",
+                title: "Share Location",
+                message: "Location sharing feature is currently unavailable.",
+                confirmText: "Okay",
+                onConfirm: hideAlert,
+              });
+            }}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="share-variant" size={20} color={COLORS.white} />
+            <Share2 size={20} color={COLORS.white} />
             <Text style={styles.shareButtonText}>Share Live Location</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Add Contact Modal */}
-      <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={handleCancelAddContact}>
-        <Pressable style={styles.modalOverlay} onPress={handleCancelAddContact}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Emergency Contact</Text>
-              <TouchableOpacity onPress={handleCancelAddContact}>
-                <MaterialCommunityIcons name="close" size={22} color={COLORS.textMuted} />
-              </TouchableOpacity>
+      {/* Add Contact Modal Component */}
+      <AddContactModal
+        visible={showAddModal}
+        onClose={handleCancelAddContact}
+        onSave={handleSaveContact}
+        name={newContactName}
+        setName={setNewContactName}
+        phone={newContactPhone}
+        setPhone={setNewContactPhone}
+        relationship={newContactRelation}
+        setRelationship={setNewContactRelation}
+        colors={COLORS}
+      />
+
+      {/* Custom Universal Alert Modal */}
+      <CustomAlertModal config={alertConfig} colors={COLORS} />
+
+      {/* ─── SOS DISPATCH MODAL ──────────────────────── */}
+      <Modal visible={showDispatchModal} transparent animationType="slide" onRequestClose={cancelSOS}>
+        <View style={dispatchStyles.fullscreen}>
+          <LinearGradient
+            colors={["#1A1818", "#21100B"]}
+            style={[dispatchStyles.container, { paddingTop: insets.top + 20 }]}
+          >
+            {/* Design Decorations */}
+            <View style={dispatchStyles.headerDecoCircle} />
+
+            {/* Header Content */}
+            <View style={dispatchStyles.header}>
+              <View style={dispatchStyles.shieldContainer}>
+                <View style={[dispatchStyles.shieldBg, { borderColor: COLORS.error + '40' }]}>
+                  <Radio size={28} color={COLORS.error} />
+                </View>
+              </View>
+              <View style={dispatchStyles.headerTextContainer}>
+                <Text style={dispatchStyles.headerTitle}>SOS DISPATCH</Text>
+                <Text style={dispatchStyles.headerSubtitle}>Real-time Emergency Routing</Text>
+              </View>
+              <View style={dispatchStyles.headerRight}>
+                {alertPayload && <StatusBadge status={alertPayload.status} />}
+              </View>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter contact name"
-                value={newContactName}
-                onChangeText={setNewContactName}
-                placeholderTextColor={COLORS.textMuted}
-              />
+            {/* Alert Card */}
+            <View style={dispatchStyles.alertCard}>
+              {/* Alert ID and Time */}
+              {alertPayload ? (
+                <>
+                  <View style={dispatchStyles.alertRow}>
+                    <View style={dispatchStyles.alertLabel}>
+                      <ShieldAlert size={14} color={COLORS.textMuted} />
+                      <Text style={dispatchStyles.alertLabelText}>ALERT ID</Text>
+                    </View>
+                    <Text style={dispatchStyles.alertValue}>{alertPayload.alertId}</Text>
+                  </View>
+
+                  <View style={dispatchStyles.divider} />
+
+                  <View style={dispatchStyles.alertRow}>
+                    <View style={dispatchStyles.alertLabel}>
+                      <Clock size={14} color={COLORS.textMuted} />
+                      <Text style={dispatchStyles.alertLabelText}>TIMESTAMP</Text>
+                    </View>
+                    <Text style={dispatchStyles.alertValue}>
+                      {new Date(alertPayload.timestamp).toLocaleString("en-IN")}
+                    </Text>
+                  </View>
+
+                  <View style={dispatchStyles.divider} />
+
+                  <View style={dispatchStyles.alertRow}>
+                    <View style={dispatchStyles.alertLabel}>
+                      <MapPin size={14} color={COLORS.textMuted} />
+                      <Text style={dispatchStyles.alertLabelText}>LOCATION</Text>
+                    </View>
+                    <Text style={dispatchStyles.alertValue} numberOfLines={2}>
+                      {alertPayload.location
+                        ? alertPayload.location.address ||
+                        `${alertPayload.location.latitude.toFixed(4)}, ${alertPayload.location.longitude.toFixed(4)}`
+                        : "Acquiring..."}
+                    </Text>
+                  </View>
+
+                  <View style={dispatchStyles.divider} />
+
+                  <View style={dispatchStyles.alertRow}>
+                    <View style={dispatchStyles.alertLabel}>
+                      <User size={14} color={COLORS.textMuted} />
+                      <Text style={dispatchStyles.alertLabelText}>CONTACTS</Text>
+                    </View>
+                    <Text style={dispatchStyles.alertValue}>
+                      {alertPayload.destinations.length} recipient(s)
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={dispatchStyles.preDispatch}>
+                  <AlertTriangle size={48} color={COLORS.error} />
+                  <Text style={dispatchStyles.preDispatchTitle}>Ready to Dispatch</Text>
+                  <Text style={dispatchStyles.preDispatchSubtitle}>
+                    {familyContacts.length > 0
+                      ? `Alert will be sent to ${familyContacts.length} contact(s)`
+                      : "No contacts saved — alert will go to Emergency Services (112)"}
+                  </Text>
+                </View>
+              )}
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Phone Number *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="+91 98765 43210"
-                value={newContactPhone}
-                onChangeText={setNewContactPhone}
-                keyboardType="phone-pad"
-                placeholderTextColor={COLORS.textMuted}
-              />
-            </View>
+            {/* Delivery Log */}
+            {alertPayload && alertPayload.deliveryLog.length > 0 && (
+              <View style={dispatchStyles.logSection}>
+                <Text style={dispatchStyles.logTitle}>Delivery Log</Text>
+                <ScrollView
+                  ref={scrollViewRef}
+                  style={dispatchStyles.logScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {alertPayload.deliveryLog.map((entry, i) => (
+                    <LogItem key={i} entry={entry} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Relationship</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Father, Mother, Friend, etc."
-                value={newContactRelation}
-                onChangeText={setNewContactRelation}
-                placeholderTextColor={COLORS.textMuted}
-              />
+            {/* Action Buttons */}
+            <View style={[dispatchStyles.buttonsContainer, { paddingBottom: insets.bottom + 16 }]}>
+              {!alertPayload ? (
+                <>
+                  <TouchableOpacity
+                    style={dispatchStyles.dispatchButton}
+                    onPress={confirmAndDispatch}
+                    activeOpacity={0.85}
+                  >
+                    {isDispatching ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <AlertTriangle size={20} color={COLORS.white} />
+                    )}
+                    <Text style={dispatchStyles.dispatchButtonText}>
+                      {isDispatching ? "DISPATCHING..." : "CONFIRM & DISPATCH"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={dispatchStyles.cancelDispatchButton}
+                    onPress={cancelSOS}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={dispatchStyles.cancelDispatchText}>Cancel</Text>
+                  </TouchableOpacity>
+                </>
+              ) : alertPayload.status === "RESOLVED" ? (
+                <TouchableOpacity
+                  style={[dispatchStyles.dispatchButton, { backgroundColor: COLORS.success }]}
+                  onPress={cancelSOS}
+                  activeOpacity={0.85}
+                >
+                  <CheckCircle size={20} color={COLORS.white} />
+                  <Text style={dispatchStyles.dispatchButtonText}>Done — You&apos;re Safe</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[dispatchStyles.dispatchButton, { backgroundColor: COLORS.success }]}
+                    onPress={resolveSOS}
+                    activeOpacity={0.85}
+                  >
+                    <CheckCircle size={20} color={COLORS.white} />
+                    <Text style={dispatchStyles.dispatchButtonText}>I'm Safe — Resolve</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={dispatchStyles.cancelDispatchButton}
+                    onPress={cancelSOS}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={dispatchStyles.cancelDispatchText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancelAddContact}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveContact}>
-                <Text style={styles.saveButtonText}>Add Contact</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
+          </LinearGradient>
+        </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
+
+// ─── DISPATCH MODAL STYLES ─────────────────────────────
+
+const statusStyles = StyleSheet.create({
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 50,
+    gap: 6,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  logItem: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+  },
+  logTime: {
+    fontSize: 11,
+    fontWeight: "600",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
+  logMessage: {
+    fontSize: 12,
+    fontWeight: "500",
+    flex: 1,
+    lineHeight: 17,
+  },
+});
+
+const dispatchStyles = StyleSheet.create({
+  fullscreen: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 28,
+    gap: 16,
+    zIndex: 2,
+  },
+  headerDecoCircle: {
+    position: "absolute",
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: "rgba(255, 54, 54, 0.05)",
+    top: -100,
+    right: -80,
+  },
+  shieldContainer: {
+    shadowColor: COLORS.error,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  shieldBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 54, 54, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+  },
+  headerTextContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.white,
+    letterSpacing: 1.5,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  headerRight: {
+    justifyContent: "center",
+  },
+  alertCard: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  alertRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  alertLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minWidth: 110,
+  },
+  alertLabelText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.textMuted,
+    letterSpacing: 1,
+  },
+  alertValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.white,
+    flex: 1,
+    textAlign: "right",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    marginVertical: 4,
+  },
+  preDispatch: {
+    alignItems: "center",
+    paddingVertical: 20,
+    gap: 12,
+  },
+  preDispatchTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: COLORS.white,
+    letterSpacing: -0.5,
+  },
+  preDispatchSubtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    lineHeight: 20,
+    fontWeight: "500",
+    paddingHorizontal: 20,
+  },
+  logSection: {
+    marginTop: 20,
+    flex: 1,
+  },
+  logTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: COLORS.textMuted,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 12,
+  },
+  logScroll: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: 16,
+    padding: 12,
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  buttonsContainer: {
+    paddingTop: 20,
+    gap: 12,
+  },
+  dispatchButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.error,
+    paddingVertical: 18,
+    borderRadius: 50,
+    gap: 12,
+    shadowColor: COLORS.error,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  dispatchButtonText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.white,
+    letterSpacing: 1,
+  },
+  cancelDispatchButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  cancelDispatchText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.textMuted,
+  },
+});
+
+// ─── MAIN SCREEN STYLES ────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  header: {
-    alignItems: "center",
-    paddingVertical: 32,
-    paddingBottom: 28,
-    position: "relative",
-    overflow: "hidden",
-  },
-  headerDecoCircle: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "rgba(33, 16, 11, 0.05)",
-    top: -60,
-    right: -60,
-  },
-  shieldContainer: {
-    marginBottom: 14,
-  },
-  shieldBg: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: "rgba(33, 16, 11, 0.08)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.15)",
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#21100B",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#8C7D79",
-    marginTop: 4,
-    fontWeight: "500",
   },
   sosContainer: {
     alignItems: "center",
@@ -421,9 +888,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(33, 16, 11, 0.1)",
   },
   sosButtonOuterActive: {
-    backgroundColor: "rgba(255, 56, 92, 0.15)",
-    borderColor: "rgba(255, 56, 92, 0.4)",
-    transform: [{ scale: 0.97 }],
+    backgroundColor: "rgba(217, 54, 54, 0.15)",
+    borderColor: "rgba(217, 54, 54, 0.4)",
   },
   sosButtonRing: {
     width: 160,
@@ -448,26 +914,24 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     letterSpacing: 2,
   },
-  sosSubtext: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.7)",
-    fontWeight: "500",
-    letterSpacing: 0.3,
-  },
-  sosHint: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+  activeIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginTop: 16,
-    textAlign: "center",
-    paddingHorizontal: 40,
-    fontWeight: "500",
+    backgroundColor: "rgba(217, 54, 54, 0.08)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 50,
+  },
+  activeIndicatorText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.error,
   },
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
-  },
-  sectionHeader: {
-    marginBottom: 14,
   },
   sectionHeaderRow: {
     flexDirection: "row",
@@ -496,41 +960,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#21100B",
-  },
-  contactsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  contactCard: {
-    width: (SCREEN_WIDTH - 60) / 3,
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: 18,
-    padding: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(92, 63, 65, 0.12)",
-  },
-  contactIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  contactName: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.text,
-    textAlign: "center",
-    letterSpacing: 0.2,
-  },
-  contactNumber: {
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: 3,
-    letterSpacing: 0.5,
   },
   emptyCard: {
     backgroundColor: COLORS.surfaceContainer,
@@ -581,7 +1010,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: "rgba(98, 220, 163, 0.12)",
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -609,44 +1038,13 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "rgba(98, 220, 163, 0.12)",
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
   },
   deleteButton: {
     padding: 6,
-  },
-  tipsCard: {
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(92, 63, 65, 0.12)",
-  },
-  tipItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(92, 63, 65, 0.08)",
-    gap: 12,
-  },
-  tipCheckmark: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: "rgba(98, 220, 163, 0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  tipText: {
-    fontSize: 13,
-    color: COLORS.text,
-    flex: 1,
-    fontWeight: "500",
-    lineHeight: 18,
   },
   shareButton: {
     flexDirection: "row",
@@ -663,83 +1061,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.white,
     letterSpacing: 0.2,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 24,
-    width: "100%",
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.1)",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.text,
-    letterSpacing: -0.3,
-  },
-  inputContainer: {
-    marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.textMuted,
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "rgba(92, 63, 65, 0.25)",
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 15,
-    color: COLORS.text,
-    backgroundColor: COLORS.surfaceContainerHigh,
-    fontWeight: "500",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 50,
-    alignItems: "center",
-    backgroundColor: COLORS.surfaceContainerHigh,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.textMuted,
-  },
-  saveButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 50,
-    alignItems: "center",
-    backgroundColor: COLORS.primary,
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.white,
   },
 });
