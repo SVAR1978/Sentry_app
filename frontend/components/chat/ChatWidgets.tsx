@@ -3,6 +3,7 @@ import React, { useRef } from "react";
 import {
   Animated,
   FlatList,
+  Image,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -14,7 +15,6 @@ import {
   WELCOME_FEATURES,
   QuickChip,
 } from "../../constants/chatData";
-import { COLORS } from "../../constants/userHomeData";
 
 // ============ QUICK REPLY CHIPS ============
 
@@ -77,9 +77,11 @@ const ChipButton: React.FC<ChipButtonProps> = ({ chip, onPress }) => {
       <Animated.View
         style={[chipStyles.chip, { transform: [{ scale: scaleAnim }] }]}
       >
-        {Icon && (
-          <Icon size={16} color={CHAT_COLORS.chipText} strokeWidth={2.5} />
-        )}
+        <View style={chipStyles.chipIconBg}>
+          {Icon && (
+            <Icon size={14} color="#21100B" strokeWidth={2.5} />
+          )}
+        </View>
         <Text style={chipStyles.chipLabel}>{chip.label}</Text>
       </Animated.View>
     </TouchableOpacity>
@@ -88,9 +90,10 @@ const ChipButton: React.FC<ChipButtonProps> = ({ chip, onPress }) => {
 
 const chipStyles = StyleSheet.create({
   wrapper: {
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: CHAT_COLORS.separator,
+    borderTopColor: "rgba(33, 16, 11, 0.06)",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
   },
   list: {
     paddingHorizontal: 16,
@@ -99,18 +102,33 @@ const chipStyles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    height: 36,
+    gap: 8,
+    height: 38,
     paddingHorizontal: 16,
+    paddingRight: 18,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: CHAT_COLORS.chipBorder,
-    backgroundColor: CHAT_COLORS.chipBg,
+    borderColor: "rgba(33, 16, 11, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  chipIconBg: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   chipLabel: {
     fontSize: 13,
-    fontWeight: "600",
-    color: CHAT_COLORS.chipText,
+    fontWeight: "700",
+    color: "#21100B",
+    letterSpacing: -0.2,
   },
 });
 
@@ -129,15 +147,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <View style={welcomeStyles.avatarWrapper}>
         <View style={welcomeStyles.glowRing}>
           <View style={welcomeStyles.avatar}>
-            <LucideIcons.Bot size={32} color={CHAT_COLORS.white} strokeWidth={2} />
+            <Image
+              source={require("../../assets/images/chat-bot.png")}
+              style={{ width: 64, height: 64, borderRadius: 32 }}
+              resizeMode="cover"
+            />
           </View>
         </View>
       </View>
 
       {/* Text */}
-      <Text style={welcomeStyles.heading}>Hi, I'm Travelo! 👋</Text>
+      <Text style={welcomeStyles.heading}>Hi, I'm Travelo!</Text>
       <Text style={welcomeStyles.subtext}>
-        Your personal travel guide. Ask me anything!
+        Your personal AI travel assistant.{"\n"}Ask me anything about destinations, hotels & more!
       </Text>
 
       {/* Feature grid */}
@@ -151,14 +173,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               activeOpacity={0.7}
               onPress={() => onFeaturePress(feature)}
             >
-              {Icon && (
-                <Icon
-                  size={24}
-                  color={CHAT_COLORS.accent}
-                  strokeWidth={2}
-                  style={welcomeStyles.featureIcon}
-                />
-              )}
+              <View style={welcomeStyles.featureIconBg}>
+                {Icon && (
+                  <Icon
+                    size={22}
+                    color="#3E1911"
+                    strokeWidth={2}
+                  />
+                )}
+              </View>
               <Text style={welcomeStyles.featureLabel}>{feature.label}</Text>
               <Text style={welcomeStyles.featureDesc}>{feature.description}</Text>
             </TouchableOpacity>
@@ -174,44 +197,46 @@ const welcomeStyles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 20,
   },
   avatarWrapper: {
     marginBottom: 20,
   },
   glowRing: {
-    padding: 16,
-    borderRadius: 80,
+    padding: 6,
+    borderRadius: 48,
     borderWidth: 2,
-    borderColor: "rgba(140,125,121,0.2)",
-    shadowColor: CHAT_COLORS.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
     elevation: 4,
   },
   avatar: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "rgba(140,125,121,0.12)",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
   },
   heading: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#21100B",
     marginBottom: 8,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   subtext: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(33, 16, 11, 0.5)",
     textAlign: "center",
     marginBottom: 28,
-    fontWeight: "500",
+    fontWeight: "600",
+    lineHeight: 20,
   },
   featureGrid: {
     flexDirection: "row",
@@ -221,27 +246,41 @@ const welcomeStyles = StyleSheet.create({
     width: "100%",
   },
   featureCard: {
-    width: "45%",
-    backgroundColor: "#111111",
+    width: "46%",
+    backgroundColor: "rgba(255, 255, 255, 0.65)",
     borderWidth: 1,
-    borderColor: "#222222",
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderColor: "rgba(33, 16, 11, 0.06)",
+    borderRadius: 20,
+    paddingVertical: 18,
     paddingHorizontal: 14,
     alignItems: "center",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  featureIcon: {
-    marginBottom: 8,
+  featureIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(33, 16, 11, 0.06)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
   },
   featureLabel: {
     fontSize: 14,
     fontWeight: "800",
-    color: CHAT_COLORS.white,
+    color: "#21100B",
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   featureDesc: {
     fontSize: 11,
-    color: CHAT_COLORS.mutedText,
+    color: "rgba(33, 16, 11, 0.45)",
     textAlign: "center",
     fontWeight: "500",
   },
@@ -275,18 +314,21 @@ const separatorStyles = StyleSheet.create({
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: CHAT_COLORS.separator,
+    backgroundColor: "rgba(33, 16, 11, 0.06)",
   },
   pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(33, 16, 11, 0.06)",
     marginHorizontal: 8,
   },
   text: {
     fontSize: 11,
-    color: CHAT_COLORS.mutedText,
-    fontWeight: "600",
+    color: "rgba(33, 16, 11, 0.4)",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });

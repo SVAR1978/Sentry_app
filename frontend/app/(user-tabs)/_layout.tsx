@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Home, Compass, ShieldAlert, Map as MapIcon, User } from "lucide-react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   Platform,
@@ -16,6 +16,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import TraveloChat, { ChatFAB } from "../../components/chat/TraveloChat";
 
 const { width } = Dimensions.get("window");
 const TAB_BAR_WIDTH = width * 0.92;
@@ -25,7 +26,7 @@ const SOS_FLOAT = 24;
 
 const COLORS = {
   primary: "#21100B",    
-  accent: "#FF385C",     
+  accent: "#C51E3A",     
   text: "#1A1818",       
   textMuted: "#8C7D79",  
   white: "#FFFFFF",
@@ -222,25 +223,38 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function UserTabsLayout() {
+  const [chatVisible, setChatVisible] = useState(false);
+
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          position: "absolute",
-          backgroundColor: "transparent",
-          borderTopWidth: 0,
-          elevation: 0,
-        },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: "Home" }} />
-      <Tabs.Screen name="explore" options={{ title: "Explore" }} />
-      <Tabs.Screen name="emergency" options={{ title: "SOS Bar" }} />
-      <Tabs.Screen name="map" options={{ title: "Map" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
-    </Tabs>
+    <>
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: {
+            position: "absolute",
+            backgroundColor: "transparent",
+            borderTopWidth: 0,
+            elevation: 0,
+          },
+        }}
+      >
+        <Tabs.Screen name="index" options={{ title: "Home" }} />
+        <Tabs.Screen name="explore" options={{ title: "Explore" }} />
+        <Tabs.Screen name="emergency" options={{ title: "SOS Bar" }} />
+        <Tabs.Screen name="map" options={{ title: "Map" }} />
+        <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      </Tabs>
+
+      {!chatVisible && (
+        <ChatFAB onPress={() => setChatVisible(true)} hasUnread />
+      )}
+
+      <TraveloChat
+        visible={chatVisible}
+        onClose={() => setChatVisible(false)}
+      />
+    </>
   );
 }
 

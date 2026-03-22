@@ -520,7 +520,7 @@ export default function EmergencyScreen() {
             >
               <View style={styles.sosButtonRing}>
                 <LinearGradient
-                  colors={sosActive ? ["#D93636", "#A32020"] : ["#21100B", "#1A1818"]}
+                  colors={sosActive ? ["#D93636", "#A32020"] : ["#3E1911", "#1A1818"]}
                   style={styles.sosGradient}
                 >
                   <AlertTriangle size={56} color={COLORS.white} />

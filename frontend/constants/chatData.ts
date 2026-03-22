@@ -1,53 +1,54 @@
 import { COLORS } from "./userHomeData";
 
-// ============ CHAT THEME ============
+// ============ CHAT THEME — Premium Glassmorphic + Metallic ============
 
 export const CHAT_COLORS = {
-  // Deep dark theme background
-  windowBg: "#000000",
-  headerGradientStart: COLORS.primary,
-  headerGradientEnd: COLORS.primaryContainer,
+  // Light glassmorphism background
+  windowBg: "rgba(242, 242, 242, 0.92)",
+  headerGradientStart: "#21100B",
+  headerGradientEnd: "#3E1911",
 
-  // Bubbles
-  botBubbleBg: "#1A1A1A",
-  botBubbleBorder: "rgba(255,255,255,0.1)",
-  botText: "#FFFFFF",
-  userBubbleStart: COLORS.primary,
-  userBubbleEnd: COLORS.primaryContainer,
+  // Bubbles — Glass style
+  botBubbleBg: "rgba(255, 255, 255, 0.72)",
+  botBubbleBorder: "rgba(33, 16, 11, 0.08)",
+  botText: "#1A1818",
+  userBubbleStart: "#21100B",
+  userBubbleEnd: "#3E1911",
   userText: "#FFFFFF",
 
-  // Input
-  inputBg: "#121212",
-  inputBorder: "rgba(255,255,255,0.15)",
-  inputText: "#FFFFFF",
-  inputPlaceholder: "rgba(255,255,255,0.4)",
+  // Input — Frosted
+  inputBg: "rgba(255, 255, 255, 0.65)",
+  inputBorder: "rgba(33, 16, 11, 0.12)",
+  inputText: "#1A1818",
+  inputPlaceholder: "rgba(33, 16, 11, 0.4)",
 
   // Accents
   accent: COLORS.accent,
-  accentGlow: "rgba(140,125,121,0.3)",
-  mutedText: "rgba(255,255,255,0.5)",
-  timestamp: "rgba(255,255,255,0.4)",
+  accentGlow: "rgba(140, 125, 121, 0.25)",
+  mutedText: "rgba(33, 16, 11, 0.45)",
+  timestamp: "rgba(33, 16, 11, 0.35)",
 
-  // Chips
-  chipBg: "#1A1A1A",
-  chipBorder: "rgba(255,255,255,0.15)",
-  chipText: "#FFFFFF",
+  // Chips — Glassmorphic pills
+  chipBg: "rgba(255, 255, 255, 0.6)",
+  chipBorder: "rgba(33, 16, 11, 0.1)",
+  chipText: "#21100B",
 
   // Status
   online: "#10B981",
-  sent: "rgba(255,255,255,0.4)",
-  seen: COLORS.accent,
+  sent: "rgba(33, 16, 11, 0.35)",
+  seen: "#10B981",
 
   // Misc
-  separator: "rgba(255,255,255,0.08)",
+  separator: "rgba(33, 16, 11, 0.06)",
   white: "#FFFFFF",
-  overlay: "rgba(0,0,0,0.7)",
+  overlay: "rgba(0, 0, 0, 0.55)",
 };
 
 // ============ BOT IDENTITY ============
 
 export const BOT_INFO = {
   name: "Travelo AI",
+  subtitle: "Always online",
   icon: "Bot", // Lucide icon name
 };
 

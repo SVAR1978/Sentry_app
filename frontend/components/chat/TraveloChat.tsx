@@ -28,7 +28,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -281,6 +283,8 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
             },
           ]}
         >
+          <BlurView intensity={90} tint="light" style={StyleSheet.absoluteFillObject} />
+          
           {/* ========== HEADER ========== */}
           <LinearGradient
             colors={[CHAT_COLORS.headerGradientStart, CHAT_COLORS.headerGradientEnd]}
@@ -292,13 +296,13 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
             <View style={styles.headerLeft}>
               <View style={styles.headerAvatarRing}>
                 <View style={styles.headerAvatar}>
-                  <Bot size={24} color={CHAT_COLORS.white} strokeWidth={2} />
+                  <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="cover" />
                 </View>
                 <View style={styles.onlineDot} />
               </View>
               <View style={styles.headerInfo}>
                 <Text style={styles.headerName}>{BOT_INFO.name}</Text>
-                {/* <Text style={styles.headerSubtitle}>{BOT_INFO.subtitle}</Text> */}
+                <Text style={styles.headerSubtitle}>{BOT_INFO.subtitle}</Text>
               </View>
             </View>
 
@@ -498,7 +502,7 @@ export const ChatFAB: React.FC<ChatFABProps> = ({
           end={{ x: 1, y: 1 }}
           style={fabStyles.gradient}
         >
-          <MessageSquareText size={30} color={CHAT_COLORS.white} strokeWidth={2.2} />
+          <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 60, height: 60, borderRadius: 30 }} resizeMode="cover" />
         </LinearGradient>
       </TouchableOpacity>
 
@@ -533,7 +537,7 @@ const styles = StyleSheet.create({
   },
   chatWindow: {
     height: SCREEN_HEIGHT * 0.85,
-    backgroundColor: CHAT_COLORS.windowBg,
+    backgroundColor: "rgba(255, 255, 255, 0.75)", // glassmorphism semi-transparent base
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     overflow: "hidden",
@@ -568,10 +572,10 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.15)",
   },
   headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -637,7 +641,7 @@ const styles = StyleSheet.create({
   // Body
   body: {
     flex: 1,
-    backgroundColor: CHAT_COLORS.windowBg,
+    backgroundColor: "transparent",
   },
   messageList: {
     paddingTop: 8,
@@ -651,8 +655,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: CHAT_COLORS.separator,
-    backgroundColor: "rgba(255,255,255,0.02)",
+    borderTopColor: "rgba(33, 16, 11, 0.06)",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
     gap: 6,
   },
   inputLeftIcons: {
@@ -699,7 +703,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   sendBtnDisabled: {
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(33, 16, 11, 0.06)",
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -738,9 +742,9 @@ const fabStyles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: "#FF3B30",
+    backgroundColor: "#C51E3A",
     borderWidth: 2,
-    borderColor: CHAT_COLORS.windowBg,
+    borderColor: "#FFFFFF",
   },
 });
 

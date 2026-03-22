@@ -9,7 +9,6 @@ import QuickActions from "../../components/userHome/QuickActions";
 import SafetyTips from "../../components/userHome/SafetyTips";
 import UserHeader from "../../components/userHome/UserHeader";
 import WeatherWidget from "../../components/userHome/WeatherWidget";
-import TraveloChat, { ChatFAB } from "../../components/chat/TraveloChat";
 import {
     COLORS,
     QUICK_ACTIONS,
@@ -19,7 +18,6 @@ import { useAuth } from "../../store/AuthContext";
 export default function UserHomeScreen() {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [chatVisible, setChatVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -88,16 +86,6 @@ export default function UserHomeScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* AI Chat FAB */}
-      {!chatVisible && (
-        <ChatFAB onPress={() => setChatVisible(true)} hasUnread />
-      )}
-
-      {/* AI Chat Modal */}
-      <TraveloChat
-        visible={chatVisible}
-        onClose={() => setChatVisible(false)}
-      />
     </View>
   );
 }
