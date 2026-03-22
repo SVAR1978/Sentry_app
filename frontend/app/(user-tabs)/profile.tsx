@@ -1,9 +1,21 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { 
+  Wallet, 
+  MapPin, 
+  Ticket, 
+  Languages, 
+  HelpCircle, 
+  Bell, 
+  LogOut, 
+  ArrowLeft, 
+  MoreVertical, 
+  Edit2,
+  ChevronRight 
+} from "lucide-react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React from "react";
 import {
   Alert,
   Platform,
@@ -12,85 +24,57 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Avatar, Divider, Text } from "react-native-paper";
+import { Avatar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 
+// Leveraging design tokens derived from userHomeData.ts
 const COLORS = {
   primary: "#21100B",
-  background: "#F5F1EE",
-  surfaceContainerLow: "#EDE7E3",
-  surfaceContainer: "#FFFFFF",
-  surfaceContainerHigh: "#EDE7E3",
-  surfaceContainerHighest: "#8C7D79",
-  text: "#1A1818",
-  textLight: "#4A4341",
-  textMuted: "#8C7D79",
+  primaryContainer: "#4A4341",
+  background: "#F2F2F2",
   white: "#FFFFFF",
-  secondary: "#4A4341",
-  accent: "#8C7D79",
+  secondary: "#8C7D79",
+  textPrimary: "#1A1818",
+  textSecondary: "#8C7D79",
+  danger: "#FF6B6B",
+  cardBorder: "rgba(33, 16, 11, 0.05)",
+  cardShadow: "#21100B",
 };
 
-const MENU_ITEMS = [
+const ACCOUNT_ITEMS = [
   {
-    id: "personal",
-    title: "Personal Information",
-    icon: "account-outline",
-    color: "#62DCA3",
-    subtitle: "Edit your profile",
+    id: "wallet",
+    title: "My Wallet",
+    icon: Wallet,
   },
   {
-    id: "favorites",
-    title: "Saved Places",
-    icon: "heart-outline",
-    color: "#FF385C",
-    subtitle: "View saved destinations",
+    id: "address",
+    title: "My Address",
+    icon: MapPin,
   },
   {
-    id: "history",
-    title: "Travel History",
-    icon: "history",
-    color: "#8B5CF6",
-    subtitle: "Your past journeys",
+    id: "tickets",
+    title: "My Tickets",
+    icon: Ticket,
   },
 ];
 
 const SETTINGS_ITEMS = [
   {
-    id: "notifications",
-    title: "Notifications",
-    icon: "bell-outline",
-    color: "#F59E0B",
-    subtitle: "Manage alerts",
-  },
-  {
-    id: "privacy",
-    title: "Privacy & Security",
-    icon: "shield-check-outline",
-    color: "#62DCA3",
-    subtitle: "Control your data",
-  },
-  {
     id: "language",
-    title: "Language",
-    icon: "translate",
-    color: "#4F8EF7",
-    value: "English",
-    subtitle: "App language",
+    title: "App Language",
+    icon: Languages,
   },
   {
     id: "help",
-    title: "Help & Support",
-    icon: "help-circle-outline",
-    color: "#8A9BB8",
-    subtitle: "Get assistance",
+    title: "Help Center",
+    icon: HelpCircle,
   },
   {
-    id: "about",
-    title: "About App",
-    icon: "information-outline",
-    color: "#8A9BB8",
-    subtitle: "Version 1.0.0",
+    id: "notifications",
+    title: "Notification Settings",
+    icon: Bell,
   },
 ];
 
@@ -118,123 +102,73 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero Header */}
-        <LinearGradient
-          colors={["#EDE7E3", "#F5F1EE"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: Math.max(insets.top, 24) }]}
-        >
-          {/* Background decoration circles */}
-          <View style={styles.decoCircle1} />
-          <View style={styles.decoCircle2} />
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+      
+      {/* Hero Header matching UserHeader.tsx style */}
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.primaryContainer]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}
+      >
+        <View style={styles.headerSpacer} />
 
-          {/* Avatar Section */}
-          <View style={styles.profileSection}>
-            <ProfilePhotoPicker user={user} updateUser={updateUser} />
-            <Text style={styles.userName}>{user?.name || "Guest User"}</Text>
+        <View style={styles.heroSection}>
+          <Text style={styles.headerTitle}>My Profile</Text>
+        </View>
+
+        <View style={styles.profileSection}>
+          <ProfilePhotoPicker user={user} updateUser={updateUser} />
+          <View style={styles.userNameContainer}>
+            <Text style={styles.userName}>{user?.name || "Vilash Kumar"}</Text>
           </View>
-        </LinearGradient>
+        </View>
+      </LinearGradient>
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Account Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.menuCard}>
-            {MENU_ITEMS.map((item, index) => (
-              <View key={item.id}>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuPress(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.menuIcon,
-                      { backgroundColor: `${item.color}18` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={20}
-                      color={item.color}
-                    />
+          {ACCOUNT_ITEMS.map((item) => (
+            <TouchableOpacity key={item.id} onPress={() => handleMenuPress(item.id)} activeOpacity={0.7} style={styles.cardWrapper}>
+              <View style={styles.card}>
+                <View style={styles.cardLeft}>
+                  <View style={styles.cardIconBox}>
+                    <item.icon size={22} color={COLORS.primaryContainer} strokeWidth={2} />
                   </View>
-                  <View style={styles.menuTextGroup}>
-                    <Text style={styles.menuTitle}>{item.title}</Text>
-                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={COLORS.textMuted}
-                  />
-                </TouchableOpacity>
-                {index < MENU_ITEMS.length - 1 && (
-                  <View style={styles.rowDivider} />
-                )}
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                </View>
+                <ChevronRight size={20} color={COLORS.textSecondary} />
               </View>
-            ))}
-          </View>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Settings Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.menuCard}>
-            {SETTINGS_ITEMS.map((item, index) => (
-              <View key={item.id}>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuPress(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.menuIcon,
-                      { backgroundColor: `${item.color}18` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={20}
-                      color={item.color}
-                    />
+          {SETTINGS_ITEMS.map((item) => (
+            <TouchableOpacity key={item.id} onPress={() => handleMenuPress(item.id)} activeOpacity={0.7} style={styles.cardWrapper}>
+              <View style={styles.card}>
+                <View style={styles.cardLeft}>
+                  <View style={styles.cardIconBox}>
+                    <item.icon size={22} color={COLORS.primaryContainer} strokeWidth={2} />
                   </View>
-                  <View style={styles.menuTextGroup}>
-                    <Text style={styles.menuTitle}>{item.title}</Text>
-                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                  </View>
-                  {item.value ? (
-                    <Text style={styles.menuValue}>{item.value}</Text>
-                  ) : null}
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={COLORS.textMuted}
-                  />
-                </TouchableOpacity>
-                {index < SETTINGS_ITEMS.length - 1 && (
-                  <View style={styles.rowDivider} />
-                )}
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                </View>
+                <ChevronRight size={20} color={COLORS.textSecondary} />
               </View>
-            ))}
-          </View>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Logout Button */}
-        <View style={styles.section}>
+        <View style={styles.logoutSection}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-            <MaterialCommunityIcons
-              name="logout"
-              size={20}
-              color={COLORS.primary}
-            />
+            <LogOut size={18} color={COLORS.danger} strokeWidth={2.5} />
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </View>
   );
@@ -245,7 +179,7 @@ export default function ProfileScreen() {
 // ------------------------------------------------------------------
 const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }) => {
   const pickImage = async () => {
-    // 1. Request Media Library Permissions built into the Phone OS
+    // 1. Request Media Library Permissions
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -261,7 +195,7 @@ const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false, // Skip buggy crop screen to avoid invisible 'save' buttons
+        allowsEditing: false, 
         aspect: [1, 1],
         quality: 0.8,
       });
@@ -279,26 +213,28 @@ const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }
 
   return (
     <View style={styles.avatarWrapper}>
-      {user?.avatar ? (
-        <Avatar.Image
-          size={88}
-          source={{ uri: user.avatar }}
-          style={styles.avatar}
-        />
-      ) : (
-        <Avatar.Text
-          size={88}
-          label={user?.name ? user.name.charAt(0).toUpperCase() : "G"}
-          style={[styles.avatar, { backgroundColor: COLORS.primary }]}
-          color={COLORS.white}
-        />
-      )}
+      <View style={styles.avatarBorder}>
+        {user?.avatar ? (
+          <Avatar.Image
+            size={72}
+            source={{ uri: user.avatar }}
+            style={styles.avatar}
+          />
+        ) : (
+          <Avatar.Text
+            size={72}
+            label={user?.name ? user.name.charAt(0).toUpperCase() : "V"}
+            style={[styles.avatar, { backgroundColor: "rgba(255,255,255,0.1)" }]}
+            color={COLORS.white}
+          />
+        )}
+      </View>
       <TouchableOpacity 
         style={styles.editAvatarBtn} 
         onPress={pickImage} 
         activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="camera" size={14} color={COLORS.white} />
+        <Edit2 size={12} color={COLORS.primary} strokeWidth={3} />
       </TouchableOpacity>
     </View>
   );
@@ -307,201 +243,152 @@ const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F1EE",
+    backgroundColor: COLORS.white,
   },
   header: {
-    paddingTop: 24,
-    paddingBottom: 0,
-    position: "relative",
+    paddingBottom: 48,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     overflow: "hidden",
   },
-  decoCircle1: {
-    position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(33, 16, 11, 0.03)",
-    top: -50,
-    right: -60,
+  headerSpacer: {
+    height: 24,
+    width: "100%",
   },
-  decoCircle2: {
-    position: "absolute",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(140, 125, 121, 0.05)",
-    bottom: 20,
-    left: -40,
+  heroSection: {
+    paddingHorizontal: 24,
+    marginBottom: 8,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "900",
+    color: COLORS.white,
+    letterSpacing: -1,
   },
   profileSection: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    marginTop: 16,
+    gap: 16,
   },
   avatarWrapper: {
     position: "relative",
-    marginBottom: 14,
+  },
+  avatarBorder: {
+    padding: 3,
+    borderRadius: 45,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.15)",
   },
   avatar: {
-    borderWidth: 3,
-    borderColor: "#21100B",
+    backgroundColor: "transparent",
   },
   editAvatarBtn: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#21100B",
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.white,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#F5F1EE",
+    elevation: 3,
+    shadowColor: COLORS.cardShadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  userNameContainer: {
+    justifyContent: "center",
   },
   userName: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#1A1818",
-    letterSpacing: -0.3,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: "#4A4341",
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  badgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(33, 16, 11, 0.05)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 50,
-    marginTop: 10,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.1)",
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#62DCA3",
-    letterSpacing: 0.3,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginTop: 4,
-    marginHorizontal: 20,
-    backgroundColor: "#EDE7E3",
-    borderRadius: 16,
-    paddingVertical: 16,
-    marginBottom: 0,
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#21100B",
+    color: COLORS.white,
     letterSpacing: -0.5,
   },
-  statLabel: {
-    fontSize: 11,
-    color: "#4A4341",
-    marginTop: 2,
+  userEmail: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
     fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    marginTop: 2,
   },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: "rgba(92, 63, 65, 0.2)",
+  scrollContent: {
+    paddingTop: 16,
+    paddingBottom: 100,
   },
   section: {
     paddingHorizontal: 20,
     marginTop: 24,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#21100B",
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+    marginBottom: 16,
+  },
+  cardWrapper: {
     marginBottom: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1,
   },
-  menuCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.08)",
-  },
-  menuItem: {
+  card: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
-    gap: 14,
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    shadowColor: COLORS.cardShadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  menuIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+  cardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  cardIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
   },
-  menuTextGroup: {
-    flex: 1,
-  },
-  menuTitle: {
+  cardTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1A1818",
+    color: COLORS.primary,
+    letterSpacing: -0.2,
   },
-  menuSubtitle: {
-    fontSize: 12,
-    color: "#4A4341",
-    marginTop: 1,
-    fontWeight: "500",
-  },
-  menuValue: {
-    fontSize: 13,
-    color: "#4A4341",
-    marginRight: 4,
-    fontWeight: "600",
-  },
-  rowDivider: {
-    height: 1,
-    backgroundColor: "rgba(92, 63, 65, 0.1)",
-    marginLeft: 72,
+  logoutSection: {
+    marginTop: 32,
+    paddingHorizontal: 20,
+    alignItems: "center",
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(33, 16, 11, 0.04)",
-    paddingVertical: 16,
+    paddingVertical: 14,
+    width: "100%",
     borderRadius: 50,
-    gap: 10,
+    gap: 8,
     borderWidth: 1.5,
     borderColor: "rgba(33, 16, 11, 0.1)",
-    marginBottom: 8,
   },
   logoutText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#FF385C",
-  },
-  version: {
-    textAlign: "center",
-    fontSize: 12,
-    color: "#8A9BB8",
-    marginVertical: 24,
-    fontWeight: "500",
+    color: COLORS.danger,
   },
 });
+
+
