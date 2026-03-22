@@ -1,13 +1,21 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as LucideIcons from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { ActivityIndicator, Card, Text } from "react-native-paper";
+import { ActivityIndicator, Text } from "react-native-paper";
 import { COLORS } from "../../constants/userHomeData";
 import {
-    getCachedWeather,
-    WeatherData,
+  getCachedWeather,
+  WeatherData,
 } from "../../services/api/weatherService";
 import { getCurrentLocation } from "../../services/maps/locationService";
+
+const getIconColor = (icon: string) => {
+  if (icon.includes("Sun")) return "#F59E0B";
+  if (icon.includes("Cloud") && !icon.includes("Rain") && !icon.includes("Bolt")) return "#8A9BB8";
+  if (icon.includes("Rain") || icon.includes("Bolt")) return "#4F8EF7";
+  if (icon.includes("Snowflake")) return "#60A5FA";
+  return "#F59E0B";
+};
 
 const WeatherWidget: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -18,19 +26,16 @@ const WeatherWidget: React.FC = () => {
     try {
       setLoading(true);
       setError(false);
-
       const location = await getCurrentLocation();
       if (!location) {
         setError(true);
         setLoading(false);
         return;
       }
-
       const weatherData = await getCachedWeather(location);
       setWeather(weatherData);
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching weather:", err);
       setError(true);
       setLoading(false);
     }
@@ -40,23 +45,13 @@ const WeatherWidget: React.FC = () => {
     fetchWeather();
   }, []);
 
-  const getIconColor = (icon: string) => {
-    if (icon.includes("sunny")) return "#F59E0B";
-    if (icon.includes("cloudy")) return "#6B7280";
-    if (icon.includes("rainy") || icon.includes("lightning")) return "#3B82F6";
-    if (icon.includes("snowy")) return "#60A5FA";
-    return "#F59E0B";
-  };
-
   if (loading) {
     return (
       <View style={styles.section}>
-        <Card style={styles.weatherCard}>
-          <Card.Content style={styles.weatherContent}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Loading weather...</Text>
-          </Card.Content>
-        </Card>
+        <View style={styles.weatherCard}>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading weather...</Text>
+        </View>
       </View>
     );
   }
@@ -64,61 +59,64 @@ const WeatherWidget: React.FC = () => {
   if (error || !weather) {
     return (
       <View style={styles.section}>
-        <Card style={styles.weatherCard}>
-          <Card.Content style={styles.weatherContent}>
-            <MaterialCommunityIcons
-              name="weather-cloudy-alert"
-              size={48}
-              color="#6B7280"
-            />
-            <View style={styles.errorContainer}>
+        <View style={styles.weatherCard}>
+          <View style={styles.errorRow}>
+            <LucideIcons.CloudAlert size={36} color="#8A9BB8" strokeWidth={2} />
+            <View style={styles.errorInfo}>
               <Text style={styles.errorText}>Weather unavailable</Text>
               <TouchableOpacity onPress={fetchWeather}>
                 <Text style={styles.retryText}>Tap to retry</Text>
               </TouchableOpacity>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </View>
       </View>
     );
   }
 
+  const iconColor = getIconColor(weather.icon);
+
   return (
     <View style={styles.section}>
-      <Card style={styles.weatherCard}>
-        <Card.Content style={styles.weatherContent}>
-          <View style={styles.weatherLeft}>
-            <MaterialCommunityIcons
-              name={weather.icon as any}
-              size={48}
-              color={getIconColor(weather.icon)}
-            />
-            <View style={styles.weatherInfo}>
-              <Text style={styles.temperature}>{weather.temperature}°C</Text>
-              <Text style={styles.weatherCondition}>{weather.condition}</Text>
-            </View>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Current Weather</Text>
+        <TouchableOpacity onPress={fetchWeather} style={styles.refreshBtn}>
+          <LucideIcons.RefreshCw size={14} color={COLORS.textMuted} strokeWidth={2.5} />
+          <Text style={styles.refreshText}>Refresh</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.weatherCard}>
+        {/* Left: Temp + Icon */}
+        <View style={styles.weatherLeft}>
+          <View style={[styles.weatherIconBg, { backgroundColor: `${iconColor}20` }]}>
+            {(() => {
+              const Icon = (LucideIcons as any)[weather.icon] || LucideIcons.Cloud;
+              return <Icon size={36} color={iconColor} strokeWidth={2} />;
+            })()}
           </View>
-          <View style={styles.weatherRight}>
+          <View style={styles.tempInfo}>
+            <Text style={styles.temperature}>{weather.temperature}°</Text>
+            <Text style={styles.weatherCondition}>{weather.condition}</Text>
+          </View>
+        </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Right: Location + Advice */}
+        <View style={styles.weatherRight}>
+          <View style={styles.locationRow}>
+            <LucideIcons.MapPin size={13} color={COLORS.primary} strokeWidth={2.5} />
             <Text style={styles.locationName} numberOfLines={1}>
               {weather.city}
             </Text>
-            <Text style={styles.weatherAdvice} numberOfLines={2}>
-              {weather.description}
-            </Text>
-            <TouchableOpacity
-              onPress={fetchWeather}
-              style={styles.refreshButton}
-            >
-              <MaterialCommunityIcons
-                name="refresh"
-                size={14}
-                color={COLORS.textLight}
-              />
-              <Text style={styles.refreshText}>Refresh</Text>
-            </TouchableOpacity>
           </View>
-        </Card.Content>
-      </Card>
+          <Text style={styles.weatherAdvice} numberOfLines={2}>
+            {weather.description}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 };
@@ -126,79 +124,116 @@ const WeatherWidget: React.FC = () => {
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 32,
   },
-  weatherCard: {
-    borderRadius: 20,
-    elevation: 2,
-    marginBottom: 20,
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
-  weatherContent: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#21100B",
+    letterSpacing: -0.3,
+  },
+  refreshBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: 8,
+    gap: 4,
+  },
+  refreshText: {
+    fontSize: 12,
+    color: "#8A9BB8",
+    fontWeight: "500",
+  },
+  weatherCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+    gap: 16,
   },
   weatherLeft: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
-  weatherInfo: {
-    marginLeft: 12,
+  weatherIconBg: {
+    width: 58,
+    height: 58,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tempInfo: {
+    gap: 2,
   },
   temperature: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.text,
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#1A1818",
+    letterSpacing: -1,
   },
   weatherCondition: {
-    fontSize: 14,
-    color: COLORS.textLight,
+    fontSize: 13,
+    color: "#8A9BB8",
+    fontWeight: "500",
+  },
+  divider: {
+    width: 1,
+    height: 50,
+    backgroundColor: "rgba(33, 16, 11, 0.1)",
   },
   weatherRight: {
-    alignItems: "flex-end",
     flex: 1,
-    marginLeft: 8,
+    gap: 6,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   locationName: {
     fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.text,
+    fontWeight: "700",
+    color: "#1A1818",
+    flex: 1,
   },
   weatherAdvice: {
     fontSize: 12,
-    color: COLORS.primary,
-    marginTop: 4,
-    textAlign: "right",
+    color: "#8A9BB8",
+    lineHeight: 16,
   },
   loadingText: {
-    marginLeft: 12,
     fontSize: 14,
-    color: COLORS.textLight,
-  },
-  errorContainer: {
+    color: "#8A9BB8",
     marginLeft: 12,
-    alignItems: "flex-start",
   },
+  errorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  errorInfo: {},
   errorText: {
     fontSize: 14,
-    color: COLORS.textLight,
+    color: "#8A9BB8",
   },
   retryText: {
     fontSize: 12,
     color: COLORS.primary,
     marginTop: 4,
     textDecorationLine: "underline",
-  },
-  refreshButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6,
-    gap: 4,
-  },
-  refreshText: {
-    fontSize: 11,
-    color: COLORS.textLight,
   },
 });
 

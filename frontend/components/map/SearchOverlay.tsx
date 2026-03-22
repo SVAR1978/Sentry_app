@@ -11,6 +11,7 @@ import {
     SearchResult,
     searchTouristPlaces,
 } from "../../services/maps/placesService";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface SearchOverlayProps {
   onSelectPlace: (place: SearchResult) => void;
@@ -19,6 +20,7 @@ interface SearchOverlayProps {
 export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   onSelectPlace,
 }) => {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,7 +89,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { top: insets.top + 12 }]}>
       <Searchbar
         placeholder="Search tourist places in India..."
         onChangeText={handleSearch}
@@ -140,7 +142,6 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 12,
     left: 16,
     right: 16,
     zIndex: 30,

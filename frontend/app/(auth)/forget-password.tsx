@@ -1,30 +1,41 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, Text, TextInput } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Snackbar, TextInput, ActivityIndicator } from "react-native-paper";
+import { ChevronLeft, Check, Circle } from "lucide-react-native";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const COLORS = {
-  primary: "#1E40AF",
-  accent: "#14B8A6",
-  error: "#FF6B6B",
-  warning: "#F59E0B",
+  headerDark: "#21100B",
+  headerMid: "#38302E",
+  background: "#F5F1EE",
+  surface: "#FFFFFF",
+  primary: "#21100B",
+  accent: "#38302E",
+  error: "#D93636",
+  warning: "#D97706",
   success: "#10B981",
-  background: "#F8FAFC",
-  text: "#1F2937",
-  textLight: "#6B7280",
+  textPrimary: "#1A1818",
+  textSecondary: "#8C7D79",
+  textLight: "#4A4341",
+  border: "#EDE7E3",
   white: "#FFFFFF",
-  border: "#E5E7EB",
 };
 
 type Step = "email" | "verification" | "reset-password";
@@ -36,17 +47,19 @@ interface PasswordStrength {
 }
 
 export default function ForgotPassword() {
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [secureText, setSecureText] = useState({
-    password: true,
-    confirm: true,
-  });
+  const [secureText, setSecureText] = useState({ password: true, confirm: true });
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarIsError, setSnackbarIsError] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   const passwordRequirements = {
@@ -66,193 +79,174 @@ export default function ForgotPassword() {
 
   const shakeAnimation = () => {
     Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 100,
-        useNativeDriver: true,
-      }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 8, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 80, useNativeDriver: true }),
     ]).start();
   };
 
+  // ── Validations ──
   const validateEmail = () => {
-    const newErrors: Record<string, string | undefined> = {};
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Please enter a valid email";
-    }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      shakeAnimation();
-      return false;
-    }
+    const e: Record<string, string | undefined> = {};
+    if (!email.trim()) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Please enter a valid email";
+    setErrors(e);
+    if (Object.keys(e).length > 0) { shakeAnimation(); return false; }
     return true;
   };
 
   const validateVerificationCode = () => {
-    const newErrors: Record<string, string | undefined> = {};
-    if (!verificationCode.trim()) {
-      newErrors.code = "Verification code is required";
-    } else if (verificationCode.length < 4) {
-      newErrors.code = "Code must be at least 4 digits";
-    } else if (verificationCode.length > 6) {
-      newErrors.code = "Code must not exceed 6 digits";
-    }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      shakeAnimation();
-      return false;
-    }
+    const e: Record<string, string | undefined> = {};
+    if (!verificationCode.trim()) e.code = "Verification code is required";
+    else if (verificationCode.length < 4) e.code = "Code must be at least 4 digits";
+    else if (verificationCode.length > 6) e.code = "Code must not exceed 6 digits";
+    setErrors(e);
+    if (Object.keys(e).length > 0) { shakeAnimation(); return false; }
     return true;
   };
 
   const validatePasswordReset = () => {
-    const newErrors: Record<string, string | undefined> = {};
-    if (!newPassword.trim()) {
-      newErrors.password = "Password is required";
-    } else if (!Object.values(passwordRequirements).every(Boolean)) {
-      newErrors.password = "Password does not meet requirements";
-    }
-    if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      shakeAnimation();
-      return false;
-    }
+    const e: Record<string, string | undefined> = {};
+    if (!newPassword.trim()) e.password = "Password is required";
+    else if (!Object.values(passwordRequirements).every(Boolean)) e.password = "Password does not meet requirements";
+    if (newPassword !== confirmPassword) e.confirmPassword = "Passwords do not match";
+    setErrors(e);
+    if (Object.keys(e).length > 0) { shakeAnimation(); return false; }
     return true;
   };
 
+  // ── Handlers ──
   const handleSendCode = async () => {
     if (!validateEmail()) return;
-    setLoading(true);
-    setErrors({});
+    setLoading(true); setErrors({});
     try {
-      // TODO: Call your API to send reset code
-      // Example: await sendPasswordResetCode(email);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch(`${BACKEND_URL}/auth/forgot-password`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to send verification code");
       setStep("verification");
-    } catch (error) {
-      setErrors({ email: "Failed to send verification code" });
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    } catch (error: any) {
+      setSnackbarIsError(true);
+      setSnackbarMessage(error.message || "Failed to send verification code");
+      setSnackbarVisible(true);
       shakeAnimation();
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleVerifyCode = async () => {
     if (!validateVerificationCode()) return;
-    setLoading(true);
-    setErrors({});
+    setLoading(true); setErrors({});
     try {
-      // TODO: Call your API to verify code
-      // Example: await verifyResetCode(email, verificationCode);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch(`${BACKEND_URL}/auth/verify-code`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: verificationCode }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Invalid verification code");
       setStep("reset-password");
-    } catch (error) {
-      setErrors({ code: "Invalid verification code. Please try again." });
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    } catch (error: any) {
+      setSnackbarIsError(true);
+      setSnackbarMessage(error.message || "Invalid verification code");
+      setSnackbarVisible(true);
       shakeAnimation();
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleResetPassword = async () => {
     if (!validatePasswordReset()) return;
-    setLoading(true);
-    setErrors({});
+    setLoading(true); setErrors({});
     try {
-      // TODO: Call your API to reset password
-      // Example: await resetPassword(email, newPassword, verificationCode);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      router.replace("/(auth)/role-selection");
-    } catch (error) {
-      setErrors({ general: "Failed to reset password. Please try again." });
+      const response = await fetch(`${BACKEND_URL}/auth/reset-password`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: verificationCode, newPassword }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to reset password");
+      setSnackbarIsError(false);
+      setSnackbarMessage("Password reset successfully!");
+      setSnackbarVisible(true);
+      setTimeout(() => router.replace("/(auth)/user-login"), 1200);
+    } catch (error: any) {
+      setSnackbarIsError(true);
+      setSnackbarMessage(error.message || "Failed to reset password");
+      setSnackbarVisible(true);
       shakeAnimation();
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const passwordStrength = getPasswordStrength();
   const stepNumber = step === "email" ? 1 : step === "verification" ? 2 : 3;
 
+  const getStepHeadline = () => {
+    if (step === "email") return "Forgot\nPassword?";
+    if (step === "verification") return "Verify\nCode";
+    return "New\nPassword";
+  };
+
+  const getStepSubtitle = () => {
+    if (step === "email") return "Enter your email to receive a reset code";
+    if (step === "verification") return "Enter the code we sent to your email";
+    return "Create a strong new password";
+  };
+
   return (
-    <SafeAreaView style={styles.safeContainer}>
+    <View style={styles.container}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.content}
+          ref={scrollRef}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Gradient Background Header */}
+          {/* ──── Dark Header ──── */}
           <LinearGradient
-            colors={["#E0F2FE", "#F0F9FF"]}
-            style={styles.headerGradient}
+            colors={[COLORS.headerDark, COLORS.headerMid]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.header, { paddingTop: insets.top + 12 }]}
           >
+            <View style={styles.blob1} />
+            <View style={styles.blob2} />
+
             {/* Back Button */}
             <TouchableOpacity
-              style={styles.backButtonHeader}
+              style={styles.backButton}
               onPress={() => router.back()}
               disabled={loading}
+              activeOpacity={0.7}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={24}
-                color={COLORS.primary}
-              />
+              <ChevronLeft size={24} color={COLORS.white} strokeWidth={2.5} />
             </TouchableOpacity>
 
-            {/* Icon */}
-            <View style={styles.iconContainer}>
-              <View style={styles.lockIcon}>
-                <MaterialCommunityIcons
-                  name="lock-reset"
-                  size={50}
-                  color={COLORS.primary}
-                />
-              </View>
+            {/* App Logo */}
+            <View style={styles.logoWrapper}>
+              <Image
+                source={require("../../assets/images/sentry-3.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
 
-            {/* Headline */}
-            <Text style={styles.headline}>Reset Password</Text>
-            <Text style={styles.subheadline}>
-              {step === "email"
-                ? "Enter your email to receive a code"
-                : step === "verification"
-                  ? "Verify your code"
-                  : "Create a new password"}
-            </Text>
-
-            {/* Step Indicator */}
-            <View style={styles.stepIndicator}>
+            {/* Step Indicator Dots */}
+            <View style={styles.stepRow}>
               {[1, 2, 3].map((num) => (
                 <View
                   key={num}
                   style={[
                     styles.stepDot,
                     {
-                      backgroundColor:
-                        num <= stepNumber ? COLORS.primary : COLORS.border,
+                      backgroundColor: num <= stepNumber ? COLORS.white : "rgba(255,255,255,0.25)",
+                      width: num === stepNumber ? 24 : 8,
                     },
                   ]}
                 />
@@ -260,430 +254,401 @@ export default function ForgotPassword() {
             </View>
           </LinearGradient>
 
-          {/* Form Container */}
-          <Animated.View
-            style={[
-              styles.formContainer,
-              { transform: [{ translateX: shakeAnim }] },
-            ]}
-          >
-            {/* Step 1: Email */}
-            {step === "email" && (
-              <>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    label="Email Address"
-                    value={email}
-                    onChangeText={(value) => {
-                      setEmail(value);
-                      if (errors.email)
-                        setErrors({ ...errors, email: undefined });
-                    }}
-                    placeholder="you@example.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    editable={!loading}
-                    style={styles.input}
-                    left={<TextInput.Icon icon="email-outline" />}
-                    error={!!errors.email}
-                  />
-                  {errors.email && (
-                    <Text style={styles.errorText}>{errors.email}</Text>
-                  )}
-                </View>
+          {/* ──── White Form Section ──── */}
+          <View style={styles.formSection}>
+            <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
+              {/* Dynamic Headline */}
+              <Text style={styles.headline}>{getStepHeadline()}</Text>
+              <Text style={styles.subtitle}>{getStepSubtitle()}</Text>
 
-                <Text style={styles.helperText}>
-                  We'll send you a verification code to this email address.
-                </Text>
+              {/* ── Step 1: Email ── */}
+              {step === "email" && (
+                <>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Email Address</Text>
+                    <TextInput
+                      value={email}
+                      onChangeText={(v) => {
+                        setEmail(v);
+                        if (errors.email) setErrors({ ...errors, email: undefined });
+                      }}
+                      placeholder="you@example.com"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      editable={!loading}
+                      style={styles.input}
+                      underlineColor={COLORS.border}
+                      activeUnderlineColor={COLORS.accent}
+                      error={!!errors.email}
+                      mode="flat"
+                    />
+                    {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                  </View>
 
-                <Button
-                  mode="contained"
-                  onPress={handleSendCode}
-                  loading={loading}
-                  disabled={loading}
-                  style={styles.primaryButton}
-                  contentStyle={styles.buttonContent}
-                  labelStyle={styles.buttonLabel}
-                >
-                  {loading ? "Sending..." : "Send Verification Code"}
-                </Button>
-              </>
-            )}
+                  <Text style={styles.helperText}>
+                    We'll send a verification code to this email address.
+                  </Text>
 
-            {/* Step 2: Verification Code */}
-            {step === "verification" && (
-              <>
-                <View style={styles.codeContainer}>
-                  <MaterialCommunityIcons
-                    name="email-open-outline"
-                    size={32}
-                    color={COLORS.primary}
-                  />
-                  <Text style={styles.codeSubtitle}>Code sent to</Text>
-                  <Text style={styles.emailDisplay}>{email}</Text>
-                </View>
+                  <TouchableOpacity
+                    style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
+                    activeOpacity={0.85}
+                    onPress={handleSendCode}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={COLORS.white} size={22} />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>SEND CODE</Text>
+                    )}
+                  </TouchableOpacity>
 
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    label="Verification Code"
-                    value={verificationCode}
-                    onChangeText={(value) => {
-                      const numericValue = value.replace(/[^0-9]/g, "");
-                      setVerificationCode(numericValue);
-                      if (errors.code)
-                        setErrors({ ...errors, code: undefined });
-                    }}
-                    placeholder="000000"
-                    keyboardType="number-pad"
-                    editable={!loading}
-                    maxLength={6}
-                    style={[styles.input, styles.codeInput]}
-                    left={<TextInput.Icon icon="shield-check-outline" />}
-                    error={!!errors.code}
-                  />
-                  {errors.code && (
-                    <Text style={styles.errorText}>{errors.code}</Text>
-                  )}
-                </View>
+                  <TouchableOpacity
+                    style={styles.backLink}
+                    onPress={() => router.back()}
+                    disabled={loading}
+                  >
+                    <Text style={styles.backLinkText}>← Back to Sign In</Text>
+                  </TouchableOpacity>
+                </>
+              )}
 
-                <Text style={styles.helperText}>
-                  Enter the 6-digit code we sent to your email.
-                </Text>
+              {/* ── Step 2: Verification Code ── */}
+              {step === "verification" && (
+                <>
+                  <View style={styles.codeSentBox}>
+                    <Text style={styles.codeSentLabel}>Code sent to</Text>
+                    <Text style={styles.codeSentEmail}>{email}</Text>
+                  </View>
 
-                <Button
-                  mode="contained"
-                  onPress={handleVerifyCode}
-                  loading={loading}
-                  disabled={loading || verificationCode.length < 4}
-                  style={styles.primaryButton}
-                  contentStyle={styles.buttonContent}
-                  labelStyle={styles.buttonLabel}
-                >
-                  {loading ? "Verifying..." : "Verify Code"}
-                </Button>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Verification Code</Text>
+                    <TextInput
+                      value={verificationCode}
+                      onChangeText={(v) => {
+                        const numericValue = v.replace(/[^0-9]/g, "");
+                        setVerificationCode(numericValue);
+                        if (errors.code) setErrors({ ...errors, code: undefined });
+                      }}
+                      placeholder="000000"
+                      keyboardType="number-pad"
+                      editable={!loading}
+                      maxLength={6}
+                      style={[styles.input, styles.codeInput]}
+                      underlineColor={COLORS.border}
+                      activeUnderlineColor={COLORS.accent}
+                      error={!!errors.code}
+                      mode="flat"
+                    />
+                    {errors.code && <Text style={styles.errorText}>{errors.code}</Text>}
+                  </View>
 
-                <Button
-                  onPress={() => {
-                    setStep("email");
-                    setVerificationCode("");
-                    setErrors({});
-                  }}
-                  mode="text"
-                  disabled={loading}
-                  style={styles.textButton}
-                  labelStyle={styles.textButtonLabel}
-                >
-                  ← Back to Email
-                </Button>
-              </>
-            )}
+                  <TouchableOpacity
+                    style={[styles.primaryButton, (loading || verificationCode.length < 4) && styles.primaryButtonDisabled]}
+                    activeOpacity={0.85}
+                    onPress={handleVerifyCode}
+                    disabled={loading || verificationCode.length < 4}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={COLORS.white} size={22} />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>VERIFY CODE</Text>
+                    )}
+                  </TouchableOpacity>
 
-            {/* Step 3: Reset Password */}
-            {step === "reset-password" && (
-              <>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    label="New Password"
-                    value={newPassword}
-                    onChangeText={(value) => {
-                      setNewPassword(value);
-                      if (errors.password)
-                        setErrors({ ...errors, password: undefined });
-                    }}
-                    placeholder="Create a strong password"
-                    secureTextEntry={secureText.password}
-                    editable={!loading}
-                    style={styles.input}
-                    left={<TextInput.Icon icon="lock-outline" />}
-                    right={
-                      <TextInput.Icon
-                        icon={
-                          secureText.password
-                            ? "eye-off-outline"
-                            : "eye-outline"
-                        }
-                        onPress={() =>
-                          setSecureText((prev) => ({
-                            ...prev,
-                            password: !prev.password,
-                          }))
-                        }
-                      />
-                    }
-                    error={!!errors.password}
-                  />
-                  {errors.password && (
-                    <Text style={styles.errorText}>{errors.password}</Text>
-                  )}
+                  <TouchableOpacity
+                    style={styles.backLink}
+                    onPress={() => { setStep("email"); setVerificationCode(""); setErrors({}); }}
+                    disabled={loading}
+                  >
+                    <Text style={styles.backLinkText}>← Back to Email</Text>
+                  </TouchableOpacity>
+                </>
+              )}
 
-                  {/* Password Strength Indicator */}
-                  {newPassword && (
-                    <View style={styles.strengthContainer}>
-                      <View style={styles.strengthBar}>
-                        <View
-                          style={[
-                            styles.strengthFill,
-                            {
-                              flex: passwordStrength.score,
-                              backgroundColor: passwordStrength.color,
-                            },
-                          ]}
+              {/* ── Step 3: Reset Password ── */}
+              {step === "reset-password" && (
+                <>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>New Password</Text>
+                    <TextInput
+                      value={newPassword}
+                      onChangeText={(v) => {
+                        setNewPassword(v);
+                        if (errors.password) setErrors({ ...errors, password: undefined });
+                      }}
+                      placeholder="Create a strong password"
+                      secureTextEntry={secureText.password}
+                      editable={!loading}
+                      style={styles.input}
+                      underlineColor={COLORS.border}
+                      activeUnderlineColor={COLORS.accent}
+                      right={
+                        <TextInput.Icon
+                          icon={secureText.password ? "eye-off-outline" : "eye-outline"}
+                          onPress={() => setSecureText((p) => ({ ...p, password: !p.password }))}
                         />
-                        <View
-                          style={{
-                            flex: 3 - passwordStrength.score,
-                            backgroundColor: COLORS.border,
-                          }}
-                        />
+                      }
+                      error={!!errors.password}
+                      mode="flat"
+                    />
+                    {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
+                    {/* Password Strength */}
+                    {newPassword.length > 0 && (
+                      <View style={styles.strengthContainer}>
+                        <View style={styles.strengthBar}>
+                          <View style={[styles.strengthFill, { flex: passwordStrength.score, backgroundColor: passwordStrength.color }]} />
+                          <View style={{ flex: 3 - passwordStrength.score, backgroundColor: COLORS.border }} />
+                        </View>
+                        <Text style={[styles.strengthLabel, { color: passwordStrength.color }]}>{passwordStrength.text}</Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.strengthText,
-                          { color: passwordStrength.color },
-                        ]}
-                      >
-                        {passwordStrength.text}
-                      </Text>
+                    )}
+
+                    {/* Requirements */}
+                    <View style={styles.requirementsBox}>
+                      {[
+                        { text: "Min 8 characters", met: passwordRequirements.minLength },
+                        { text: "Uppercase letter", met: passwordRequirements.hasUppercase },
+                        { text: "Number", met: passwordRequirements.hasNumber },
+                        { text: "Special character", met: passwordRequirements.hasSpecial },
+                      ].map((req, idx) => (
+                        <View key={idx} style={styles.reqItem}>
+                          {req.met ? (
+                            <Check size={14} color={COLORS.success} strokeWidth={3} />
+                          ) : (
+                            <Circle size={14} color={COLORS.border} strokeWidth={2} />
+                          )}
+                          <Text style={[styles.reqText, { color: req.met ? COLORS.success : COLORS.textSecondary }]}>
+                            {req.text}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Confirm Password</Text>
+                    <TextInput
+                      value={confirmPassword}
+                      onChangeText={(v) => {
+                        setConfirmPassword(v);
+                        if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
+                      }}
+                      placeholder="Re-enter your password"
+                      secureTextEntry={secureText.confirm}
+                      editable={!loading}
+                      style={styles.input}
+                      underlineColor={COLORS.border}
+                      activeUnderlineColor={COLORS.accent}
+                      right={
+                        <TextInput.Icon
+                          icon={secureText.confirm ? "eye-off-outline" : "eye-outline"}
+                          onPress={() => setSecureText((p) => ({ ...p, confirm: !p.confirm }))}
+                        />
+                      }
+                      error={!!errors.confirmPassword}
+                      mode="flat"
+                    />
+                    {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+                  </View>
+
+                  {errors.general && (
+                    <View style={styles.alertBox}>
+                      <Text style={styles.alertText}>{errors.general}</Text>
                     </View>
                   )}
 
-                  {/* Requirements */}
-                  <View style={styles.requirementsContainer}>
-                    {[
-                      {
-                        text: "Min 8 characters",
-                        met: passwordRequirements.minLength,
-                      },
-                      {
-                        text: "Uppercase letter",
-                        met: passwordRequirements.hasUppercase,
-                      },
-                      { text: "Number", met: passwordRequirements.hasNumber },
-                      {
-                        text: "Special character",
-                        met: passwordRequirements.hasSpecial,
-                      },
-                    ].map((req, idx) => (
-                      <View key={idx} style={styles.requirementItem}>
-                        <MaterialCommunityIcons
-                          name={req.met ? "check-circle" : "circle-outline"}
-                          size={16}
-                          color={req.met ? COLORS.success : COLORS.border}
-                        />
-                        <Text
-                          style={[
-                            styles.requirementText,
-                            {
-                              color: req.met
-                                ? COLORS.success
-                                : COLORS.textLight,
-                            },
-                          ]}
-                        >
-                          {req.text}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryButton,
+                      (loading || !Object.values(passwordRequirements).every(Boolean)) && styles.primaryButtonDisabled,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={handleResetPassword}
+                    disabled={loading || !Object.values(passwordRequirements).every(Boolean)}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={COLORS.white} size={22} />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>RESET PASSWORD</Text>
+                    )}
+                  </TouchableOpacity>
 
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    label="Confirm Password"
-                    value={confirmPassword}
-                    onChangeText={(value) => {
-                      setConfirmPassword(value);
-                      if (errors.confirmPassword)
-                        setErrors({ ...errors, confirmPassword: undefined });
-                    }}
-                    placeholder="Re-enter your password"
-                    secureTextEntry={secureText.confirm}
-                    editable={!loading}
-                    style={styles.input}
-                    left={<TextInput.Icon icon="lock-check-outline" />}
-                    right={
-                      <TextInput.Icon
-                        icon={
-                          secureText.confirm ? "eye-off-outline" : "eye-outline"
-                        }
-                        onPress={() =>
-                          setSecureText((prev) => ({
-                            ...prev,
-                            confirm: !prev.confirm,
-                          }))
-                        }
-                      />
-                    }
-                    error={!!errors.confirmPassword}
-                  />
-                  {errors.confirmPassword && (
-                    <Text style={styles.errorText}>
-                      {errors.confirmPassword}
-                    </Text>
-                  )}
-                </View>
-
-                {errors.general && (
-                  <View style={styles.alertBox}>
-                    <MaterialCommunityIcons
-                      name="alert-circle"
-                      size={20}
-                      color={COLORS.error}
-                    />
-                    <Text style={styles.alertText}>{errors.general}</Text>
-                  </View>
-                )}
-
-                <Button
-                  mode="contained"
-                  onPress={handleResetPassword}
-                  loading={loading}
-                  disabled={
-                    loading ||
-                    !Object.values(passwordRequirements).every(Boolean)
-                  }
-                  style={styles.primaryButton}
-                  contentStyle={styles.buttonContent}
-                  labelStyle={styles.buttonLabel}
-                >
-                  {loading ? "Resetting..." : "Reset Password"}
-                </Button>
-
-                <Button
-                  onPress={() => {
-                    setStep("verification");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                    setErrors({});
-                  }}
-                  mode="text"
-                  disabled={loading}
-                  style={styles.textButton}
-                  labelStyle={styles.textButtonLabel}
-                >
-                  ← Back to Verification
-                </Button>
-              </>
-            )}
-          </Animated.View>
+                  <TouchableOpacity
+                    style={styles.backLink}
+                    onPress={() => { setStep("verification"); setNewPassword(""); setConfirmPassword(""); setErrors({}); }}
+                    disabled={loading}
+                  >
+                    <Text style={styles.backLinkText}>← Back to Verification</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={4000}
+        style={{ backgroundColor: snackbarIsError ? COLORS.error : COLORS.success }}
+      >
+        {snackbarMessage}
+      </Snackbar>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeContainer: {
+  container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
   },
-  container: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
   },
-  content: {
-    paddingBottom: 40,
-  },
-  headerGradient: {
-    paddingVertical: 32,
-    paddingHorizontal: 20,
+
+  /* ── Header ── */
+  header: {
+    paddingBottom: 24,
+    paddingHorizontal: 24,
     alignItems: "center",
-    marginBottom: 24,
+    overflow: "hidden",
+    position: "relative",
   },
-  backButtonHeader: {
+  blob1: {
+    position: "absolute",
+    top: -60,
+    right: -60,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+  },
+  blob2: {
+    position: "absolute",
+    bottom: 30,
+    left: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+  },
+  backButton: {
     alignSelf: "flex-start",
     padding: 8,
     marginBottom: 16,
   },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  lockIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  logoWrapper: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
     backgroundColor: COLORS.white,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: "hidden",
   },
-  headline: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 8,
+  logoImage: {
+    width: 72,
+    height: 72,
   },
-  subheadline: {
-    fontSize: 16,
-    color: COLORS.textLight,
-    marginBottom: 16,
-  },
-  stepIndicator: {
+  stepRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
+    alignItems: "center",
   },
   stepDot: {
-    width: 8,
     height: 8,
     borderRadius: 4,
   },
-  formContainer: {
-    paddingHorizontal: 20,
+
+  /* ── Form Section ── */
+  formSection: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 48,
   },
-  inputWrapper: {
-    marginBottom: 16,
+  headline: {
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 36,
+    color: COLORS.textPrimary,
+    letterSpacing: -1,
+    lineHeight: 42,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    marginBottom: 28,
+    lineHeight: 22,
+  },
+  inputGroup: {
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
+    backgroundColor: "transparent",
+    fontSize: 16,
+    paddingHorizontal: 0,
   },
   codeInput: {
-    fontSize: 20,
-    letterSpacing: 6,
+    fontSize: 22,
+    letterSpacing: 8,
     textAlign: "center",
   },
   errorText: {
+    fontFamily: "PlusJakartaSans_500Medium",
     color: COLORS.error,
     fontSize: 12,
-    marginTop: 6,
-    marginLeft: 4,
-    fontWeight: "500",
+    marginTop: 4,
   },
   helperText: {
+    fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 13,
-    color: COLORS.textLight,
-    marginBottom: 16,
-    marginTop: -8,
-  },
-  codeContainer: {
-    alignItems: "center",
+    color: COLORS.textSecondary,
     marginBottom: 24,
+    marginTop: -8,
+    lineHeight: 18,
+  },
+  codeSentBox: {
+    alignItems: "center",
     padding: 16,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+    borderRadius: 14,
+    marginBottom: 24,
   },
-  codeSubtitle: {
+  codeSentLabel: {
+    fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 13,
-    color: COLORS.textLight,
-    marginTop: 8,
+    color: COLORS.textSecondary,
   },
-  emailDisplay: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.primary,
+  codeSentEmail: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 15,
+    color: COLORS.textPrimary,
     marginTop: 4,
   },
   strengthContainer: {
     marginTop: 12,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   strengthBar: {
     height: 4,
@@ -696,61 +661,69 @@ const styles = StyleSheet.create({
   strengthFill: {
     height: "100%",
   },
-  strengthText: {
+  strengthLabel: {
+    fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 12,
-    fontWeight: "600",
   },
-  requirementsContainer: {
-    marginTop: 12,
-    padding: 12,
+  requirementsBox: {
+    marginTop: 8,
+    padding: 14,
     backgroundColor: COLORS.background,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: 12,
   },
-  requirementItem: {
+  reqItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     marginBottom: 8,
   },
-  requirementText: {
+  reqText: {
+    fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 13,
   },
   alertBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 12,
-    backgroundColor: `${COLORS.error}15`,
-    borderRadius: 10,
+    padding: 14,
+    backgroundColor: `${COLORS.error}10`,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: `${COLORS.error}30`,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   alertText: {
+    fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 13,
     color: COLORS.error,
-    flex: 1,
   },
   primaryButton: {
-    marginBottom: 12,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    backgroundColor: COLORS.accent,
+    borderRadius: 14,
+    height: 58,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 20,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  buttonContent: {
-    paddingVertical: 12,
+  primaryButtonDisabled: {
+    opacity: 0.5,
   },
-  buttonLabel: {
+  primaryButtonText: {
+    fontFamily: "PlusJakartaSans_700Bold",
     fontSize: 16,
-    fontWeight: "600",
+    color: COLORS.white,
+    letterSpacing: 1.5,
   },
-  textButton: {
-    marginBottom: 16,
+  backLink: {
+    alignItems: "center",
+    paddingVertical: 8,
   },
-  textButtonLabel: {
+  backLinkText: {
+    fontFamily: "PlusJakartaSans_700Bold",
     fontSize: 14,
-    color: COLORS.primary,
-    fontWeight: "600",
+    color: COLORS.accent,
   },
 });

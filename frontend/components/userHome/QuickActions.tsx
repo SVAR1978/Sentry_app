@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as LucideIcons from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
@@ -24,7 +24,6 @@ interface QuickActionsProps {
 const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
   const [helplineModalVisible, setHelplineModalVisible] = useState(false);
 
-  // ✅ Updated: Direct call (no double confirmation)
   const handleEmergencyCall = useCallback(async (action: QuickAction) => {
     if (!action.phoneNumber) return;
 
@@ -36,7 +35,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
       );
       await Linking.openURL(phoneNumber);
     } catch (error) {
-      // Only show alert if opening the dialer actually fails
       Alert.alert(
         "Unable to Open Dialer",
         `Please dial ${action.phoneNumber} manually.`,
@@ -45,7 +43,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
     }
   }, []);
 
-  // ✅ Keep Map Redirection
   const handleFindNearest = useCallback((action: QuickAction) => {
     if (!action.mapFilter) return;
 
@@ -91,14 +88,21 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
 
   return (
     <>
-      <View style={styles.quickActions}>
-        {actions.map((action) => (
-          <QuickActionButton
-            key={action.id}
-            action={action}
-            onPress={() => handleActionPress(action)}
-          />
-        ))}
+      <View style={styles.container}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>Emergency Services</Text>
+          </View>
+        </View>
+        <View style={styles.quickActionsGrid}>
+          {actions.map((action) => (
+            <QuickActionCard
+              key={action.id}
+              action={action}
+              onPress={() => handleActionPress(action)}
+            />
+          ))}
+        </View>
       </View>
 
       <HelplineModal
@@ -109,12 +113,12 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
   );
 };
 
-interface QuickActionButtonProps {
+interface QuickActionCardProps {
   action: QuickAction;
   onPress: () => void;
 }
 
-const QuickActionButton: React.FC<QuickActionButtonProps> = ({
+const QuickActionCard: React.FC<QuickActionCardProps> = ({
   action,
   onPress,
 }) => {
@@ -122,10 +126,8 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.92,
+      toValue: 0.95,
       useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
     }).start();
   };
 
@@ -133,10 +135,10 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
     }).start();
   };
+
+  const Icon = (LucideIcons as any)[action.icon];
 
   return (
     <TouchableOpacity
@@ -144,49 +146,94 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={styles.quickActionItem}
+      style={styles.cardWrapper}
     >
       <Animated.View
         style={[
-          styles.quickActionIcon,
-          { backgroundColor: `${action.color}15` },
+          styles.card,
           { transform: [{ scale: scaleAnim }] },
         ]}
       >
-        <MaterialCommunityIcons
-          name={action.icon as any}
-          size={28}
-          color={action.color}
-        />
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: `${action.color}15` },
+          ]}
+        >
+          {Icon && <Icon size={24} color={action.color} strokeWidth={2.5} />}
+        </View>
+        <Text style={styles.cardLabel}>{action.label}</Text>
       </Animated.View>
-      <Text style={styles.quickActionLabel}>{action.label}</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  quickActions: {
+  container: {
+    paddingHorizontal: 20,
+    marginTop: 24, // Reset to standard spacing
+    marginBottom: 32,
+  },
+  sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  quickActionItem: {
     alignItems: "center",
-    width: (SCREEN_WIDTH - 80) / 4,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
-  quickActionIcon: {
-    width: 60,
-    height: 60,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: COLORS.secondary,
+    fontWeight: "700",
+  },
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  cardWrapper: {
+    width: (SCREEN_WIDTH - 52) / 2, // 2 items per row
+  },
+  card: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(33, 16, 11, 0.05)",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
   },
-  quickActionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.text,
-    textAlign: "center",
+  cardLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.primary,
+    letterSpacing: -0.2,
   },
 });
 

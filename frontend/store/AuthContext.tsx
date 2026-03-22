@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { AuthContextType, Permission, ROLES, User } from "../types/rbac";
 
-const BACKEND_URL = "https://sentry-app.onrender.com";
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -11,9 +11,6 @@ const STORAGE_KEYS = {
   TOKEN: "@sentryapp:token",
   REMEMBER_ME: "@sentryapp:remember_me",
 };
-
-
-
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -32,7 +29,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const savedUser = await AsyncStorage.getItem(STORAGE_KEYS.USER);
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
 
-      console.log("Loading user from storage:", { savedUser, token }); // Debug log
+
 
       if (savedUser && token) {
         setUser(JSON.parse(savedUser));
@@ -50,14 +47,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signup = async (name: string, email: string, phone: string, password: string) => {
+  const signup = async (name: string, email: string, phone: string, password: string, role: string) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/signup`, {
+      const response = await fetch(`${BACKEND_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone, password }),
+        body: JSON.stringify({ name, email, phone, password, role }),
       });
 
       const data = await response.json();
@@ -81,6 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
 
       setUser(authenticatedUser);
+      return authenticatedUser;
     } catch (error) {
       throw error;
     } finally {
@@ -90,7 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (email: string, password: string, rememberMe = false) => {
     setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/signin`, {
+      const response = await fetch(`${BACKEND_URL}/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -119,6 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       setUser(authenticatedUser);
+      return authenticatedUser;
     } catch (error) {
       throw error;
     } finally {

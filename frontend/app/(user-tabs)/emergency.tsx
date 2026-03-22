@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
@@ -15,60 +16,32 @@ import {
     Vibration,
     View,
 } from "react-native";
-import { Button, Card, Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const COLORS = {
-  primary: "#EF4444",
-  secondary: "#F59E0B",
-  background: "#FEF2F2",
-  surface: "#FFFFFF",
-  text: "#1F2937",
-  textLight: "#6B7280",
+  primary: "#21100B",
+  background: "#F5F1EE",
+  surfaceContainerLow: "#EDE7E3",
+  surfaceContainer: "#FFFFFF",
+  surfaceContainerHigh: "#EDE7E3",
+  text: "#1A1818",
+  textMuted: "#8C7D79",
   white: "#FFFFFF",
-  success: "#10B981",
+  secondary: "#4A4341",
+  accent: "#8C7D79",
 };
 
 const EMERGENCY_CONTACTS = [
-  {
-    id: "1",
-    name: "Police",
-    number: "100",
-    icon: "police-badge",
-    color: "#3B82F6",
-  },
-  {
-    id: "2",
-    name: "Ambulance",
-    number: "108",
-    icon: "ambulance",
-    color: "#EF4444",
-  },
+  { id: "1", name: "Police", number: "100", icon: "police-badge", color: "#4F8EF7" },
+  { id: "2", name: "Ambulance", number: "108", icon: "ambulance", color: "#FF385C" },
   { id: "3", name: "Fire", number: "101", icon: "fire", color: "#F59E0B" },
-  {
-    id: "4",
-    name: "Women Helpline",
-    number: "1091",
-    icon: "account-heart",
-    color: "#EC4899",
-  },
-  {
-    id: "5",
-    name: "Tourist Helpline",
-    number: "1363",
-    icon: "airplane",
-    color: "#10B981",
-  },
-  {
-    id: "6",
-    name: "Child Helpline",
-    number: "1098",
-    icon: "baby-face",
-    color: "#8B5CF6",
-  },
+  { id: "4", name: "Women Helpline", number: "1091", icon: "account-heart", color: "#EC4899" },
+  { id: "5", name: "Tourist Helpline", number: "1363", icon: "airplane", color: "#62DCA3" },
+  { id: "6", name: "Child Helpline", number: "1098", icon: "baby-face", color: "#8B5CF6" },
 ];
 
 const SAFETY_TIPS = [
@@ -100,7 +73,7 @@ export default function EmergencyScreen() {
     setSosActive(true);
 
     Alert.alert(
-      "🚨 SOS Activated",
+      " SOS Activated",
       "Emergency alert will be sent to your emergency contacts with your current location.\n\nDo you want to proceed?",
       [
         {
@@ -112,39 +85,28 @@ export default function EmergencyScreen() {
           text: "Send Alert",
           style: "destructive",
           onPress: () => {
-            // Simulate sending emergency alert
             setTimeout(() => {
-              Alert.alert(
-                "Alert Sent ✓",
-                "Your emergency contacts have been notified with your current location.",
-              );
+              Alert.alert("Alert Sent ✓", "Your emergency contacts have been notified with your current location.");
               setSosActive(false);
             }, 1500);
           },
         },
-      ],
+      ]
     );
   };
 
   const handleCall = async (number: string, name: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
     Alert.alert(`Call ${name}?`, `${number}`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Call Now",
         onPress: async () => {
           try {
-            await Haptics.notificationAsync(
-              Haptics.NotificationFeedbackType.Success
-            );
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             await Linking.openURL(`tel:${number}`);
           } catch (error) {
-            Alert.alert(
-              "Unable to Open Dialer",
-              `Please dial ${number} manually.`,
-              [{ text: "OK" }]
-            );
+            Alert.alert("Unable to Open Dialer", `Please dial ${number} manually.`, [{ text: "OK" }]);
           }
         },
       },
@@ -157,14 +119,8 @@ export default function EmergencyScreen() {
   };
 
   const handleSaveContact = async () => {
-    if (!newContactName.trim()) {
-      Alert.alert("Invalid Input", "Please enter a valid name.");
-      return;
-    }
-    if (!newContactPhone.trim()) {
-      Alert.alert("Invalid Input", "Please enter a valid phone number.");
-      return;
-    }
+    if (!newContactName.trim()) { Alert.alert("Invalid Input", "Please enter a valid name."); return; }
+    if (!newContactPhone.trim()) { Alert.alert("Invalid Input", "Please enter a valid phone number."); return; }
 
     const newContact: FamilyContact = {
       id: Date.now().toString(),
@@ -172,66 +128,53 @@ export default function EmergencyScreen() {
       phone: newContactPhone.trim(),
       relationship: newContactRelation.trim() || "Contact",
     };
-    
+
     setFamilyContacts([...familyContacts, newContact]);
-    await Haptics.notificationAsync(
-      Haptics.NotificationFeedbackType.Success
-    );
-    
-    // Reset form
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setNewContactName("");
     setNewContactPhone("");
     setNewContactRelation("");
     setShowAddModal(false);
-    
-    Alert.alert(
-      "Contact Added ✓",
-      `${newContactName} has been added to your emergency contacts.`
-    );
+    Alert.alert("Contact Added ✓", `${newContactName} has been added to your emergency contacts.`);
   };
 
   const handleCancelAddContact = () => {
-    setNewContactName("");
-    setNewContactPhone("");
-    setNewContactRelation("");
+    setNewContactName(""); setNewContactPhone(""); setNewContactRelation("");
     setShowAddModal(false);
   };
 
   const handleDeleteContact = async (contactId: string, contactName: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    Alert.alert(
-      "Delete Contact",
-      `Are you sure you want to remove ${contactName} from emergency contacts?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setFamilyContacts(familyContacts.filter(c => c.id !== contactId));
-            await Haptics.notificationAsync(
-              Haptics.NotificationFeedbackType.Success
-            );
-          },
+    Alert.alert("Delete Contact", `Are you sure you want to remove ${contactName} from emergency contacts?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setFamilyContacts(familyContacts.filter((c) => c.id !== contactId));
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={[COLORS.primary, "#DC2626"]}
+          colors={["#EDE7E3", "#F5F1EE"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          <MaterialCommunityIcons
-            name="shield-alert"
-            size={40}
-            color={COLORS.white}
-          />
+          <View style={styles.headerDecoCircle} />
+          <View style={styles.shieldContainer}>
+            <View style={styles.shieldBg}>
+              <MaterialCommunityIcons name="shield-alert" size={36} color={COLORS.primary} />
+            </View>
+          </View>
           <Text style={styles.headerTitle}>Emergency SOS</Text>
           <Text style={styles.headerSubtitle}>Your safety is our priority</Text>
         </LinearGradient>
@@ -239,58 +182,42 @@ export default function EmergencyScreen() {
         {/* SOS Button */}
         <View style={styles.sosContainer}>
           <TouchableOpacity
-            style={[styles.sosButton, sosActive && styles.sosButtonActive]}
+            style={[styles.sosButtonOuter, sosActive && styles.sosButtonOuterActive]}
             onPress={handleSOS}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            <LinearGradient
-              colors={
-                sosActive ? ["#991B1B", "#7F1D1D"] : [COLORS.primary, "#DC2626"]
-              }
-              style={styles.sosGradient}
-            >
-              <MaterialCommunityIcons
-                name="alert"
-                size={64}
-                color={COLORS.white}
-              />
-              <Text style={styles.sosText}>
-                {sosActive ? "SENDING..." : "SOS"}
-              </Text>
-              <Text style={styles.sosSubtext}>
-                {sosActive ? "Please wait" : "Tap for emergency"}
-              </Text>
-            </LinearGradient>
+            <View style={styles.sosButtonRing}>
+              <LinearGradient
+                colors={sosActive ? ["#21100B", "#4A4341"] : ["#21100B", "#1A1818"]}
+                style={styles.sosGradient}
+              >
+                <MaterialCommunityIcons name="alert" size={56} color={COLORS.white} />
+                <Text style={styles.sosText}>{sosActive ? "SENDING..." : "SOS"}</Text>
+                <Text style={styles.sosSubtext}>{sosActive ? "Please wait" : "Tap for emergency"}</Text>
+              </LinearGradient>
+            </View>
           </TouchableOpacity>
-          <Text style={styles.sosHint}>
-            Press and hold for 3 seconds to activate silent SOS
-          </Text>
+          <Text style={styles.sosHint}>Hold for 3 seconds to activate silent SOS</Text>
         </View>
 
         {/* Emergency Contacts */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+          </View>
           <View style={styles.contactsGrid}>
             {EMERGENCY_CONTACTS.map((contact) => (
               <TouchableOpacity
                 key={contact.id}
                 style={styles.contactCard}
                 onPress={() => handleCall(contact.number, contact.name)}
+                activeOpacity={0.8}
               >
-                <View
-                  style={[
-                    styles.contactIcon,
-                    { backgroundColor: `${contact.color}15` },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={contact.icon as any}
-                    size={28}
-                    color={contact.color}
-                  />
+                <View style={[styles.contactIcon, { backgroundColor: `${contact.color}18` }]}>
+                  <MaterialCommunityIcons name={contact.icon as any} size={26} color={contact.color} />
                 </View>
                 <Text style={styles.contactName}>{contact.name}</Text>
-                <Text style={styles.contactNumber}>{contact.number}</Text>
+                <Text style={[styles.contactNumber, { color: contact.color }]}>{contact.number}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -298,77 +225,49 @@ export default function EmergencyScreen() {
 
         {/* Family Contacts */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Family Contacts</Text>
-            <TouchableOpacity onPress={handleAddFamilyContact}>
-              <Text style={styles.addText}>+ Add</Text>
+            <TouchableOpacity style={styles.addBtn} onPress={handleAddFamilyContact}>
+              <MaterialCommunityIcons name="plus" size={16} color={COLORS.primary} />
+              <Text style={styles.addText}>Add</Text>
             </TouchableOpacity>
           </View>
-          
+
           {familyContacts.length === 0 ? (
-            <Card style={styles.familyCard}>
-              <Card.Content style={styles.familyContent}>
-                <View style={styles.familyIcon}>
-                  <MaterialCommunityIcons
-                    name="account-group"
-                    size={24}
-                    color={COLORS.textLight}
-                  />
-                </View>
-                <View style={styles.familyInfo}>
-                  <Text style={styles.familyTitle}>No Emergency Contacts</Text>
-                  <Text style={styles.familySubtitle}>
-                    Tap + Add to create your emergency contacts
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIconBg}>
+                <MaterialCommunityIcons name="account-group" size={28} color={COLORS.textMuted} />
+              </View>
+              <Text style={styles.emptyTitle}>No Emergency Contacts</Text>
+              <Text style={styles.emptySubtitle}>Tap + Add to create your emergency contacts</Text>
+            </View>
           ) : (
             familyContacts.map((contact) => (
-              <Card key={contact.id} style={styles.familyContactCard}>
-                <Card.Content style={styles.familyContactContent}>
-                  <TouchableOpacity
-                    style={styles.familyContactMain}
-                    onPress={() => handleCall(contact.phone, contact.name)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.familyContactIcon}>
-                      <MaterialCommunityIcons
-                        name="account"
-                        size={24}
-                        color={COLORS.success}
-                      />
-                    </View>
-                    <View style={styles.familyContactInfo}>
-                      <Text style={styles.familyContactName}>{contact.name}</Text>
-                      <Text style={styles.familyContactRelation}>
-                        {contact.relationship}
-                      </Text>
-                      <Text style={styles.familyContactPhone}>{contact.phone}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.callIconButton}
-                      onPress={() => handleCall(contact.phone, contact.name)}
-                    >
-                      <MaterialCommunityIcons
-                        name="phone"
-                        size={22}
-                        color={COLORS.success}
-                      />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteContact(contact.id, contact.name)}
-                  >
-                    <MaterialCommunityIcons
-                      name="close-circle"
-                      size={20}
-                      color={COLORS.primary}
-                    />
-                  </TouchableOpacity>
-                </Card.Content>
-              </Card>
+              <View key={contact.id} style={styles.familyContactCard}>
+                <TouchableOpacity
+                  style={styles.familyContactMain}
+                  onPress={() => handleCall(contact.phone, contact.name)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.familyContactIconBg}>
+                    <MaterialCommunityIcons name="account" size={22} color={COLORS.secondary} />
+                  </View>
+                  <View style={styles.familyContactInfo}>
+                    <Text style={styles.familyContactName}>{contact.name}</Text>
+                    <Text style={styles.familyContactRelation}>{contact.relationship}</Text>
+                    <Text style={styles.familyContactPhone}>{contact.phone}</Text>
+                  </View>
+                  <View style={styles.callIconButton}>
+                    <MaterialCommunityIcons name="phone" size={20} color={COLORS.secondary} />
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteContact(contact.id, contact.name)}
+                >
+                  <MaterialCommunityIcons name="close-circle" size={20} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
             ))
           )}
         </View>
@@ -376,52 +275,39 @@ export default function EmergencyScreen() {
         {/* Safety Tips */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Safety Tips</Text>
-          <Card style={styles.tipsCard}>
-            <Card.Content>
-              {SAFETY_TIPS.map((tip, index) => (
-                <View key={index} style={styles.tipItem}>
-                  <MaterialCommunityIcons
-                    name="check-circle"
-                    size={20}
-                    color={COLORS.success}
-                  />
-                  <Text style={styles.tipText}>{tip}</Text>
+          <View style={styles.tipsCard}>
+            {SAFETY_TIPS.map((tip, index) => (
+              <View key={index} style={[styles.tipItem, index === SAFETY_TIPS.length - 1 && { borderBottomWidth: 0 }]}>
+                <View style={styles.tipCheckmark}>
+                  <MaterialCommunityIcons name="check" size={14} color={COLORS.secondary} />
                 </View>
-              ))}
-            </Card.Content>
-          </Card>
+                <Text style={styles.tipText}>{tip}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {/* Share Location */}
         <View style={styles.section}>
-          <Button
-            mode="contained"
-            icon="share-variant"
+          <TouchableOpacity
             style={styles.shareButton}
-            contentStyle={styles.shareButtonContent}
-            labelStyle={styles.shareButtonLabel}
-            onPress={() =>
-              Alert.alert("Share Location", "Location sharing feature")
-            }
+            onPress={() => Alert.alert("Share Location", "Location sharing feature")}
+            activeOpacity={0.85}
           >
-            Share Live Location
-          </Button>
+            <MaterialCommunityIcons name="share-variant" size={20} color={COLORS.white} />
+            <Text style={styles.shareButtonText}>Share Live Location</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Add Contact Modal */}
-      <Modal
-        visible={showAddModal}
-        transparent
-        animationType="fade"
-        onRequestClose={handleCancelAddContact}
-      >
+      <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={handleCancelAddContact}>
         <Pressable style={styles.modalOverlay} onPress={handleCancelAddContact}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Emergency Contact</Text>
               <TouchableOpacity onPress={handleCancelAddContact}>
-                <MaterialCommunityIcons name="close" size={24} color={COLORS.text} />
+                <MaterialCommunityIcons name="close" size={22} color={COLORS.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -432,7 +318,7 @@ export default function EmergencyScreen() {
                 placeholder="Enter contact name"
                 value={newContactName}
                 onChangeText={setNewContactName}
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={COLORS.textMuted}
               />
             </View>
 
@@ -444,7 +330,7 @@ export default function EmergencyScreen() {
                 value={newContactPhone}
                 onChangeText={setNewContactPhone}
                 keyboardType="phone-pad"
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={COLORS.textMuted}
               />
             </View>
 
@@ -455,21 +341,15 @@ export default function EmergencyScreen() {
                 placeholder="Father, Mother, Friend, etc."
                 value={newContactRelation}
                 onChangeText={setNewContactRelation}
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={COLORS.textMuted}
               />
             </View>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={handleCancelAddContact}
-              >
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCancelAddContact}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleSaveContact}
-              >
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveContact}>
                 <Text style={styles.saveButtonText}>Add Contact</Text>
               </TouchableOpacity>
             </View>
@@ -487,250 +367,318 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    paddingVertical: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingVertical: 32,
+    paddingBottom: 28,
+    position: "relative",
+    overflow: "hidden",
+  },
+  headerDecoCircle: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
+    top: -60,
+    right: -60,
+  },
+  shieldContainer: {
+    marginBottom: 14,
+  },
+  shieldBg: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: "rgba(33, 16, 11, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.15)",
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: COLORS.white,
-    marginTop: 12,
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#21100B",
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
+    color: "#8C7D79",
     marginTop: 4,
+    fontWeight: "500",
   },
   sosContainer: {
     alignItems: "center",
-    paddingVertical: 30,
+    paddingVertical: 32,
   },
-  sosButton: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+  sosButtonOuter: {
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.1)",
+  },
+  sosButtonOuterActive: {
+    backgroundColor: "rgba(255, 56, 92, 0.15)",
+    borderColor: "rgba(255, 56, 92, 0.4)",
+    transform: [{ scale: 0.97 }],
+  },
+  sosButtonRing: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     overflow: "hidden",
-    elevation: 8,
-    shadowColor: COLORS.primary,
+    shadowColor: "#21100B",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-  },
-  sosButtonActive: {
-    transform: [{ scale: 0.95 }],
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 12,
   },
   sosGradient: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    gap: 4,
   },
   sosText: {
-    fontSize: 32,
-    fontWeight: "800",
+    fontSize: 28,
+    fontWeight: "900",
     color: COLORS.white,
-    marginTop: 8,
+    letterSpacing: 2,
   },
   sosSubtext: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.8)",
-    marginTop: 4,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.7)",
+    fontWeight: "500",
+    letterSpacing: 0.3,
   },
   sosHint: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 16,
     textAlign: "center",
+    paddingHorizontal: 40,
+    fontWeight: "500",
   },
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
   },
   sectionHeader: {
+    marginBottom: 14,
+  },
+  sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.text,
-    marginBottom: 12,
+    letterSpacing: -0.3,
+  },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(33, 16, 11, 0.05)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 50,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   addText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#21100B",
   },
   contactsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    gap: 12,
   },
   contactCard: {
     width: (SCREEN_WIDTH - 60) / 3,
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 12,
+    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: 18,
+    padding: 14,
     alignItems: "center",
-    marginBottom: 12,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(92, 63, 65, 0.12)",
   },
   contactIcon: {
     width: 52,
     height: 52,
-    borderRadius: 14,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
   },
   contactName: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
     color: COLORS.text,
     textAlign: "center",
+    letterSpacing: 0.2,
   },
   contactNumber: {
     fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.primary,
-    marginTop: 4,
+    fontWeight: "800",
+    marginTop: 3,
+    letterSpacing: 0.5,
   },
-  familyCard: {
-    borderRadius: 16,
-    elevation: 2,
-    marginBottom: 12,
-  },
-  familyContent: {
-    flexDirection: "row",
+  emptyCard: {
+    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: 20,
+    padding: 24,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(92, 63, 65, 0.12)",
+    gap: 10,
   },
-  familyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: `${COLORS.success}15`,
+  emptyIconBg: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceContainerHigh,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
   },
-  familyInfo: {
-    flex: 1,
-  },
-  familyTitle: {
+  emptyTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.text,
   },
-  familySubtitle: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 2,
+  emptySubtitle: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    lineHeight: 18,
+    fontWeight: "500",
   },
   familyContactCard: {
-    borderRadius: 16,
-    elevation: 2,
+    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: 18,
+    padding: 14,
     marginBottom: 10,
-    backgroundColor: COLORS.white,
-  },
-  familyContactContent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "rgba(92, 63, 65, 0.12)",
   },
   familyContactMain: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
-  familyContactIcon: {
-    width: 48,
-    height: 48,
+  familyContactIconBg: {
+    width: 46,
+    height: 46,
     borderRadius: 14,
-    backgroundColor: `${COLORS.success}15`,
+    backgroundColor: "rgba(98, 220, 163, 0.12)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
   familyContactInfo: {
     flex: 1,
   },
   familyContactName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.text,
   },
   familyContactRelation: {
     fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 2,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+    marginTop: 1,
   },
   familyContactPhone: {
     fontSize: 13,
-    color: COLORS.success,
-    fontWeight: "600",
+    color: COLORS.secondary,
+    fontWeight: "700",
     marginTop: 2,
   },
   callIconButton: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 12,
-    backgroundColor: `${COLORS.success}15`,
+    backgroundColor: "rgba(98, 220, 163, 0.12)",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
+    marginRight: 8,
   },
   deleteButton: {
-    padding: 8,
+    padding: 6,
   },
   tipsCard: {
-    borderRadius: 16,
-    elevation: 2,
+    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(92, 63, 65, 0.12)",
   },
   tipItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: "rgba(92, 63, 65, 0.08)",
+    gap: 12,
+  },
+  tipCheckmark: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: "rgba(98, 220, 163, 0.12)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   tipText: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text,
-    marginLeft: 12,
     flex: 1,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   shareButton: {
-    backgroundColor: COLORS.success,
-    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 16,
+    borderRadius: 50,
+    gap: 10,
     marginBottom: 20,
   },
-  shareButtonContent: {
-    paddingVertical: 8,
-  },
-  shareButtonLabel: {
+  shareButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: COLORS.white,
+    letterSpacing: 0.2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalContent: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
     padding: 24,
     width: "100%",
     maxWidth: 400,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   modalHeader: {
     flexDirection: "row",
@@ -739,53 +687,59 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: COLORS.text,
+    letterSpacing: -0.3,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.textMuted,
     marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
+    borderColor: "rgba(92, 63, 65, 0.25)",
+    borderRadius: 14,
     padding: 14,
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    fontWeight: "500",
   },
   modalButtons: {
     flexDirection: "row",
     gap: 12,
     marginTop: 8,
   },
-  modalButton: {
+  cancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 50,
     alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: COLORS.surfaceContainerHigh,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.textMuted,
   },
   saveButton: {
-    backgroundColor: COLORS.success,
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 50,
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: COLORS.white,
   },
 });

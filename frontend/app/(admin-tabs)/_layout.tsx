@@ -3,15 +3,15 @@ import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 const COLORS = {
-  primary: "#1E40AF", // Blue for admin theme
-  accent: "#8B5CF6",
-  error: "#EF4444",
-  warning: "#F59E0B",
+  primary: "#21100B",
+  accent: "#8C7D79",
+  error: "#D93636",
+  warning: "#D97706",
   success: "#10B981",
-  background: "#F1F5F9",
-  text: "#1F2937",
-  textLight: "#6B7280",
-  border: "#E5E7EB",
+  background: "#F5F1EE",
+  text: "#1A1818",
+  textLight: "#4A4341",
+  border: "#EDE7E3",
   white: "#FFFFFF",
 };
 
@@ -27,10 +27,10 @@ export default function AdminTabsLayout() {
           borderTopColor: COLORS.border,
           borderTopWidth: 1,
           elevation: 8,
-          shadowColor: "#000",
+          shadowColor: "#21100B",
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
           height: 70,
           paddingBottom: 10,
           paddingTop: 10,

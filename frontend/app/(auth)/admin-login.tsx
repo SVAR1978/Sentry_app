@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -13,27 +14,28 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Checkbox, Snackbar, TextInput } from "react-native-paper";
 import { useAuth } from "../../store/AuthContext";
 
 const COLORS = {
-  primary: "#1E40AF",
-  accent: "#14B8A6",
-  error: "#FF6B6B",
-  background: "#F8FAFC",
-  text: "#1F2937",
-  textLight: "#6B7280",
-  textSecondary: "#9CA3AF",
+  primary: "#21100B",
+  accent: "#8C7D79",
+  error: "#D93636",
+  background: "#F5F1EE",
+  text: "#1A1818",
+  textLight: "#4A4341",
+  textSecondary: "#8C7D79",
   white: "#FFFFFF",
-  border: "#E5E7EB",
+  border: "#EDE7E3",
   success: "#10B981",
 };
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function AdminLogin() {
-  const { login } = useAuth();
+  const { login, logout, user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -109,7 +111,15 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      await login(email, password, rememberMe);
+      const loggedInUser = await login(email, password, rememberMe);
+      
+      if (loggedInUser.role.name !== "admin") {
+        await logout();
+        setSnackbarMessage("Access denied. This portal is for Administrators only.");
+        setSnackbarVisible(true);
+        return;
+      }
+
       router.replace("/(admin-tabs)");
     } catch (error: any) {
       setSnackbarMessage(error.message || "Login failed");
@@ -129,7 +139,8 @@ export default function AdminLogin() {
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
+    <View style={styles.safeContainer}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -140,22 +151,24 @@ export default function AdminLogin() {
           showsVerticalScrollIndicator={false}
         >
           {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            disabled={loading}
-          >
+          <View style={{ paddingTop: insets.top }}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              disabled={loading}
+            >
             <MaterialCommunityIcons
               name="arrow-left"
               size={24}
               color={COLORS.text}
             />
-            <Text style={styles.backButtonText}>Back to Role Selection</Text>
-          </TouchableOpacity>
+              <Text style={styles.backButtonText}>Back to Role Selection</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Gradient Background Header */}
           <LinearGradient
-            colors={["#E0F2FE", "#F0F9FF"]}
+            colors={["#EDE7E3", "#F5F1EE"]}
             style={styles.headerGradient}
           >
             {/* Logo & Icon */}
@@ -314,7 +327,7 @@ export default function AdminLogin() {
       >
         {snackbarMessage}
       </Snackbar>
-    </SafeAreaView>
+    </View>
   );
 }
 

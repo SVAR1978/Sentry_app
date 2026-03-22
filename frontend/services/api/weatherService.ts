@@ -57,26 +57,26 @@ const fetchWithTimeout = async (
 // Map OpenWeatherMap icons to MaterialCommunityIcons
 const getWeatherIcon = (iconCode: string): string => {
   const iconMap: Record<string, string> = {
-    "01d": "weather-sunny",
-    "01n": "weather-night",
-    "02d": "weather-partly-cloudy",
-    "02n": "weather-night-partly-cloudy",
-    "03d": "weather-cloudy",
-    "03n": "weather-cloudy",
-    "04d": "weather-cloudy",
-    "04n": "weather-cloudy",
-    "09d": "weather-pouring",
-    "09n": "weather-pouring",
-    "10d": "weather-rainy",
-    "10n": "weather-rainy",
-    "11d": "weather-lightning-rainy",
-    "11n": "weather-lightning-rainy",
-    "13d": "weather-snowy",
-    "13n": "weather-snowy",
-    "50d": "weather-fog",
-    "50n": "weather-fog",
+    "01d": "Sun",
+    "01n": "Moon",
+    "02d": "CloudSun",
+    "02n": "CloudMoon",
+    "03d": "Cloud",
+    "03n": "Cloud",
+    "04d": "Cloud",
+    "04n": "Cloud",
+    "09d": "CloudRain",
+    "09n": "CloudRain",
+    "10d": "CloudRain",
+    "10n": "CloudRain",
+    "11d": "CloudLightning",
+    "11n": "CloudLightning",
+    "13d": "Snowflake",
+    "13n": "Snowflake",
+    "50d": "CloudFog",
+    "50n": "CloudFog",
   };
-  return iconMap[iconCode] || "weather-cloudy";
+  return iconMap[iconCode] || "Cloud";
 };
 
 const getWeatherAdvice = (condition: string, temp: number): string => {
@@ -141,7 +141,7 @@ export const getWeatherByLocation = async (
       temperature: 25,
       condition: "Partly Cloudy",
       description: "Weather data unavailable",
-      icon: "weather-partly-cloudy",
+      icon: "CloudSun",
       humidity: 60,
       windSpeed: 5,
       feelsLike: 25,

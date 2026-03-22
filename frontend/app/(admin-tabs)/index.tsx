@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useRef } from "react";
@@ -11,21 +12,21 @@ import {
     View,
 } from "react-native";
 import { Avatar, Card, Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const COLORS = {
-  primary: "#1E40AF",
-  secondary: "#8B5CF6",
-  accent: "#F59E0B",
-  error: "#EF4444",
+  primary: "#21100B",
+  secondary: "#8C7D79",
+  accent: "#8C7D79",
+  error: "#D93636",
   success: "#10B981",
-  background: "#F1F5F9",
+  background: "#F5F1EE",
   surface: "#FFFFFF",
-  text: "#1F2937",
-  textLight: "#6B7280",
+  text: "#1A1818",
+  textLight: "#4A4341",
   white: "#FFFFFF",
 };
 
@@ -35,7 +36,7 @@ const STATS = [
     title: "Total Users",
     value: "2,847",
     icon: "account-group",
-    color: "#1E40AF",
+    color: "#21100B",
     trend: "+12%",
   },
   {
@@ -51,7 +52,7 @@ const STATS = [
     title: "Alerts",
     value: "23",
     icon: "alert-circle",
-    color: "#EF4444",
+    color: "#D93636",
     trend: "-5%",
   },
   {
@@ -59,16 +60,16 @@ const STATS = [
     title: "Revenue",
     value: "₹4.2L",
     icon: "currency-inr",
-    color: "#F59E0B",
+    color: "#8C7D79",
     trend: "+18%",
   },
 ];
 
 const QUICK_ACTIONS = [
-  { id: "1", title: "Add User", icon: "account-plus", color: "#1E40AF" },
-  { id: "2", title: "New Alert", icon: "bell-plus", color: "#EF4444" },
+  { id: "1", title: "Add User", icon: "account-plus", color: "#21100B" },
+  { id: "2", title: "New Alert", icon: "bell-plus", color: "#D93636" },
   { id: "3", title: "View Map", icon: "map-search", color: "#10B981" },
-  { id: "4", title: "Reports", icon: "file-chart", color: "#8B5CF6" },
+  { id: "4", title: "Reports", icon: "file-chart", color: "#8C7D79" },
 ];
 
 const RECENT_ACTIVITIES = [
@@ -86,7 +87,7 @@ const RECENT_ACTIVITIES = [
     user: "Jane Smith",
     time: "15 min ago",
     icon: "alert",
-    color: "#EF4444",
+    color: "#D93636",
   },
   {
     id: "3",
@@ -94,7 +95,7 @@ const RECENT_ACTIVITIES = [
     user: "Mike Wilson",
     time: "1 hour ago",
     icon: "check-circle",
-    color: "#1E40AF",
+    color: "#21100B",
   },
   {
     id: "4",
@@ -108,6 +109,7 @@ const RECENT_ACTIVITIES = [
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -140,12 +142,13 @@ export default function AdminDashboard() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={[COLORS.primary, "#1E3A8A"]}
-          style={styles.header}
+          colors={["#21100B", "#4A4341"]}
+          style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}
         >
           <View style={styles.headerTop}>
             <View style={styles.userInfo}>
@@ -351,7 +354,7 @@ export default function AdminDashboard() {
           </View>
         </Animated.View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -362,10 +365,9 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 16,
     paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   headerTop: {
     flexDirection: "row",

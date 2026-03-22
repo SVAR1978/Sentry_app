@@ -8,20 +8,21 @@ import {
     View,
 } from "react-native";
 import { Card, Chip, Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const COLORS = {
-  primary: "#1E40AF",
-  secondary: "#8B5CF6",
-  accent: "#F59E0B",
-  error: "#EF4444",
+  primary: "#21100B",
+  secondary: "#8C7D79",
+  accent: "#8C7D79",
+  error: "#D93636",
   success: "#10B981",
-  background: "#F1F5F9",
+  background: "#F5F1EE",
   surface: "#FFFFFF",
-  text: "#1F2937",
-  textLight: "#6B7280",
+  text: "#1A1818",
+  textLight: "#4A4341",
   white: "#FFFFFF",
 };
 
@@ -103,12 +104,14 @@ const REPORTS = [
 
 export default function ReportsScreen() {
   const [selectedTime, setSelectedTime] = useState("This Week");
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
           <Text style={styles.headerTitle}>Reports & Analytics</Text>
           <Text style={styles.headerSubtitle}>
             Monitor your platform performance
@@ -270,7 +273,7 @@ export default function ReportsScreen() {
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -281,7 +284,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 16,
     paddingBottom: 8,
   },
   headerTitle: {

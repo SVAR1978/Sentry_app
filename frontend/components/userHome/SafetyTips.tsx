@@ -2,67 +2,56 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    Alert,
-    Linking,
-    Platform,
-    Share,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Linking,
+  Platform,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { ActivityIndicator, Card, Text } from "react-native-paper";
+import { ActivityIndicator, Text } from "react-native-paper";
 import { getCurrentLocation } from "../../services/maps/locationService";
 
-const SafetyTips: React.FC = () => {
+const ShareLocation: React.FC = () => {
   const [sharing, setSharing] = useState(false);
 
   const handleShareLocation = async () => {
     try {
       setSharing(true);
-
-      // Get current location
       const location = await getCurrentLocation();
 
       if (!location) {
         Alert.alert(
           "Location Unavailable",
           "Unable to get your current location. Please enable location services.",
-          [{ text: "OK" }],
+          [{ text: "OK" }]
         );
         setSharing(false);
         return;
       }
 
       const { latitude, longitude } = location;
-
-      // Create Google Maps link
       const mapsUrl = Platform.select({
         ios: `maps:0,0?q=${latitude},${longitude}`,
         android: `geo:0,0?q=${latitude},${longitude}`,
       });
-
       const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-      // Share options
       Alert.alert(
         "Share Your Location",
         "Choose how you want to share your location:",
         [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
+          { text: "Cancel", style: "cancel" },
           {
             text: "Share Link",
             onPress: async () => {
               try {
                 await Share.share({
-                  message: `📍 I'm sharing my live location with you!\n\nLatitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}\n\nView on map: ${googleMapsUrl}`,
+                  message: `I'm sharing my live location!\n\nView on map: ${googleMapsUrl}`,
                   title: "My Current Location",
                 });
-              } catch (error) {
-                console.error("Error sharing:", error);
-              }
+              } catch (error) {}
             },
           },
           {
@@ -70,79 +59,46 @@ const SafetyTips: React.FC = () => {
             onPress: async () => {
               try {
                 const supported = await Linking.canOpenURL(mapsUrl!);
-                if (supported) {
-                  await Linking.openURL(mapsUrl!);
-                } else {
-                  await Linking.openURL(googleMapsUrl);
-                }
+                await Linking.openURL(supported ? mapsUrl! : googleMapsUrl);
               } catch (error) {
-                console.error("Error opening maps:", error);
                 Alert.alert("Error", "Unable to open maps application");
               }
             },
           },
-        ],
+        ]
       );
-
       setSharing(false);
     } catch (error) {
-      console.error("Error in handleShareLocation:", error);
-      Alert.alert("Error", "Failed to share location. Please try again.", [
-        { text: "OK" },
-      ]);
+      Alert.alert("Error", "Failed to share location. Please try again.");
       setSharing(false);
     }
   };
 
   return (
     <View style={styles.section}>
-      <Card style={styles.safetyCard}>
-        <LinearGradient
-          colors={["#FEF3C7", "#FDE68A"]}
-          style={styles.safetyGradient}
-        >
-          <View style={styles.safetyContent}>
-            <View style={styles.safetyIcon}>
-              <MaterialCommunityIcons
-                name="shield-check"
-                size={32}
-                color="#F59E0B"
-              />
-            </View>
-            <View style={styles.safetyText}>
-              <Text style={styles.safetyTitle}>Travel Safety Tip</Text>
-              <Text style={styles.safetyDescription}>
-                Always share your live location with family members when
-                traveling to new places.
-              </Text>
-            </View>
-          </View>
+      <View style={styles.safetyCard}>
+        <View style={styles.content}>
           <TouchableOpacity
-            style={[
-              styles.safetyButton,
-              sharing && styles.safetyButtonDisabled,
-            ]}
+            style={[styles.shareBtn, sharing && styles.shareBtnDisabled]}
             onPress={handleShareLocation}
             disabled={sharing}
+            activeOpacity={0.85}
           >
             {sharing ? (
               <>
-                <ActivityIndicator size="small" color="#F59E0B" />
-                <Text style={styles.safetyButtonText}>Getting Location...</Text>
+                <ActivityIndicator size="small" color="#21100B" />
+                <Text style={styles.shareBtnText}>Getting Location...</Text>
               </>
             ) : (
               <>
-                <Text style={styles.safetyButtonText}>Share Location</Text>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={20}
-                  color="#F59E0B"
-                />
+                <MaterialCommunityIcons name="share-variant" size={18} color="#21100B" />
+                <Text style={styles.shareBtnText}>Share My Location</Text>
+                <MaterialCommunityIcons name="arrow-right" size={16} color="#21100B" />
               </>
             )}
           </TouchableOpacity>
-        </LinearGradient>
-      </Card>
+        </View>
+      </View>
     </View>
   );
 };
@@ -153,58 +109,75 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   safetyCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     overflow: "hidden",
-    elevation: 0,
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  safetyGradient: {
-    padding: 20,
-  },
-  safetyContent: {
+  cardBanner: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 16,
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
   },
-  safetyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.6)",
+  bannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  shieldIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
   },
-  safetyText: {
-    flex: 1,
+  bannerTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
-  safetyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#92400E",
-    marginBottom: 6,
+  bannerSub: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 1,
   },
-  safetyDescription: {
+  content: {
+    padding: 16,
+  },
+  description: {
     fontSize: 13,
-    color: "#A16207",
+    color: "#8A9BB8",
+    fontWeight: "500",
+    marginBottom: 16,
     lineHeight: 18,
   },
-  safetyButton: {
+  shareBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 50,
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
-  safetyButtonDisabled: {
+  shareBtnDisabled: {
     opacity: 0.6,
   },
-  safetyButtonText: {
+  shareBtnText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#F59E0B",
+    fontWeight: "700",
+    color: "#21100B",
   },
 });
 
-export default SafetyTips;
+export default ShareLocation;

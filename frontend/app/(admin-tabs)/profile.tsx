@@ -10,19 +10,20 @@ import {
     View,
 } from "react-native";
 import { Avatar, Card, Divider, Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../../store/AuthContext";
 
 const COLORS = {
-  primary: "#1E40AF",
-  secondary: "#8B5CF6",
-  accent: "#F59E0B",
-  error: "#EF4444",
+  primary: "#21100B",
+  secondary: "#8C7D79",
+  accent: "#8C7D79",
+  error: "#D93636",
   success: "#10B981",
-  background: "#F1F5F9",
+  background: "#F5F1EE",
   surface: "#FFFFFF",
-  text: "#1F2937",
-  textLight: "#6B7280",
+  text: "#1A1818",
+  textLight: "#4A4341",
   white: "#FFFFFF",
 };
 
@@ -71,6 +72,7 @@ const QUICK_SETTINGS = [
 
 export default function AdminProfileScreen() {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout from admin panel?", [
@@ -87,12 +89,13 @@ export default function AdminProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={[COLORS.primary, "#1E3A8A"]}
-          style={styles.header}
+          colors={["#21100B", "#4A4341"]}
+          style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}
         >
           <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
@@ -242,7 +245,7 @@ export default function AdminProfileScreen() {
         {/* App Version */}
         <Text style={styles.version}>Admin Portal v1.0.0</Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -252,10 +255,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingTop: 20,
     paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   profileSection: {
     alignItems: "center",
