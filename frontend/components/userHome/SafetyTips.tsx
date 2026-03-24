@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import React, { useState } from "react";
 import {
   Alert,
@@ -11,14 +10,9 @@ import {
   View,
 } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
-<<<<<<< HEAD
-import { COLORS } from "../../constants/userHomeData";
-import { getCurrentLocation } from "../../services/maps/locationService";
-=======
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../store/AuthContext";
->>>>>>> feature/backend-connect
 
 const ShareLocation: React.FC = () => {
   const { user } = useAuth();
@@ -109,7 +103,7 @@ const ShareLocation: React.FC = () => {
 
   return (
     <View style={styles.section}>
-      <BlurView intensity={30} tint="light" style={styles.safetyCard}>
+      <View style={styles.safetyCard}>
         <View style={styles.content}>
           <TouchableOpacity
             style={[styles.shareBtn, sharing && styles.shareBtnDisabled]}
@@ -119,19 +113,19 @@ const ShareLocation: React.FC = () => {
           >
             {sharing ? (
               <>
-                <ActivityIndicator size="small" color={COLORS.gold} />
+                <ActivityIndicator size="small" color="#21100B" />
                 <Text style={styles.shareBtnText}>Getting Location...</Text>
               </>
             ) : (
               <>
-                <MaterialCommunityIcons name="share-variant" size={18} color={COLORS.gold} />
+                <MaterialCommunityIcons name="share-variant" size={18} color="#21100B" />
                 <Text style={styles.shareBtnText}>Share My Location</Text>
-                <MaterialCommunityIcons name="arrow-right" size={16} color={COLORS.gold} />
+                <MaterialCommunityIcons name="arrow-right" size={16} color="#21100B" />
               </>
             )}
           </TouchableOpacity>
         </View>
-      </BlurView>
+      </View>
     </View>
   );
 };
@@ -142,32 +136,38 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   safetyCard: {
-    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1.5,
-    borderColor: COLORS.glassBorder,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
   },
   content: {
-    padding: 18,
+    padding: 16,
   },
   shareBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    paddingVertical: 14,
+    gap: 8,
+    paddingVertical: 13,
     borderRadius: 50,
-    backgroundColor: "rgba(207, 176, 132, 0.15)",
+    backgroundColor: "rgba(33, 16, 11, 0.04)",
     borderWidth: 1.5,
-    borderColor: "rgba(207, 176, 132, 0.3)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
   shareBtnDisabled: {
     opacity: 0.6,
   },
   shareBtnText: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#21100B",
   },
 });
 

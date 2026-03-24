@@ -18,7 +18,6 @@ import {
   Animated,
   Dimensions,
   FlatList,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -287,126 +286,122 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
             <View style={styles.headerLeft}>
               <View style={styles.headerAvatarRing}>
                 <View style={styles.headerAvatar}>
-<<<<<<< HEAD
-  <Image
-    source={require("../../assets/images/chat-bot.png")}
-    style={styles.headerBotImage}
-    resizeMode="cover"
-  />
-=======
-                  <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="cover" />
->>>>>>> feature/backend-connect
+                  <Image
+                    source={require("../../assets/images/chat-bot.png")}
+                    style={{ width: 44, height: 44, borderRadius: 22 }}
+                    resizeMode="cover"
+                  />
                 </View >
-  <View style={styles.onlineDot} />
+                <View style={styles.onlineDot} />
               </View >
-  <View style={styles.headerInfo}>
-    <Text style={styles.headerName}>{BOT_INFO.name}</Text>
-    <Text style={styles.headerSubtitle}>{BOT_INFO.subtitle}</Text>
-  </View>
+              <View style={styles.headerInfo}>
+                <Text style={styles.headerName}>{BOT_INFO.name}</Text>
+                <Text style={styles.headerSubtitle}>{BOT_INFO.subtitle}</Text>
+              </View>
             </View >
 
-  {/* Right: Actions */ }
-  < View style = { styles.headerActions } >
-    <TouchableOpacity
-      style={styles.headerBtn}
-      onPress={handleClose}
-      activeOpacity={0.6}
-    >
-      <X size={18} color="rgba(255,255,255,0.7)" strokeWidth={2.5} />
-    </TouchableOpacity>
+            {/* Right: Actions */}
+            <View style={styles.headerActions} >
+              <TouchableOpacity
+                style={styles.headerBtn}
+                onPress={handleClose}
+                activeOpacity={0.6}
+              >
+                <X size={18} color="rgba(255,255,255,0.7)" strokeWidth={2.5} />
+              </TouchableOpacity>
             </View >
 
-  {/* Bottom glow */ }
-  < View style = { styles.headerGlow } />
+            {/* Bottom glow */}
+            <View style={styles.headerGlow} />
           </LinearGradient >
 
-  {/* ========== MESSAGE BODY ========== */ }
-  < View style = { styles.body } >
-    {!hasMessages ? (
-      <WelcomeScreen onFeaturePress={handleWelcomeFeaturePress} />
-    ) : (
-      <>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          contentContainerStyle={styles.messageList}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <DateSeparator label="Today" />
-          }
-          ListFooterComponent={
-            <TypingIndicator visible={isTyping} />
-          }
-          onContentSizeChange={scrollToBottom}
-        />
-      </>
-    )}
+          {/* ========== MESSAGE BODY ========== */}
+          <View style={styles.body} >
+            {!hasMessages ? (
+              <WelcomeScreen onFeaturePress={handleWelcomeFeaturePress} />
+            ) : (
+              <>
+                <FlatList
+                  ref={flatListRef}
+                  data={messages}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderMessage}
+                  contentContainerStyle={styles.messageList}
+                  showsVerticalScrollIndicator={false}
+                  ListHeaderComponent={
+                    <DateSeparator label="Today" />
+                  }
+                  ListFooterComponent={
+                    <TypingIndicator visible={isTyping} />
+                  }
+                  onContentSizeChange={scrollToBottom}
+                />
+              </>
+            )}
           </View >
 
-  {/* ========== QUICK CHIPS ========== */ }
-{
-  hasMessages && showChips && (
-    <QuickReplyChips onChipPress={handleChipPress} />
-  )
-}
+          {/* ========== QUICK CHIPS ========== */}
+          {
+            hasMessages && showChips && (
+              <QuickReplyChips onChipPress={handleChipPress} />
+            )
+          }
 
-{/* ========== INPUT BAR ========== */ }
-<View style={styles.inputBar}>
-  {/* Left icons */}
-  <View style={styles.inputLeftIcons}>
-    <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.6}>
-      <Paperclip size={18} color={CHAT_COLORS.mutedText} strokeWidth={2} />
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.6}>
-      <ImageIcon size={18} color={CHAT_COLORS.mutedText} strokeWidth={2} />
-    </TouchableOpacity>
-  </View>
+          {/* ========== INPUT BAR ========== */}
+          <View style={styles.inputBar}>
+            {/* Left icons */}
+            <View style={styles.inputLeftIcons}>
+              <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.6}>
+                <Paperclip size={18} color={CHAT_COLORS.mutedText} strokeWidth={2} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.6}>
+                <ImageIcon size={18} color={CHAT_COLORS.mutedText} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
 
-  {/* Text field */}
-  <View style={styles.inputFieldWrapper}>
-    <TextInput
-      style={styles.inputField}
-      value={inputText}
-      onChangeText={setInputText}
-      placeholder="Ask about destinations, hotels, food..."
-      placeholderTextColor={CHAT_COLORS.inputPlaceholder}
-      multiline
-      maxLength={500}
-      returnKeyType="send"
-      onSubmitEditing={() => sendMessage(inputText)}
-      blurOnSubmit
-    />
-  </View>
+            {/* Text field */}
+            <View style={styles.inputFieldWrapper}>
+              <TextInput
+                style={styles.inputField}
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Ask about destinations, hotels, food..."
+                placeholderTextColor={CHAT_COLORS.inputPlaceholder}
+                multiline
+                maxLength={500}
+                returnKeyType="send"
+                onSubmitEditing={() => sendMessage(inputText)}
+                blurOnSubmit
+              />
+            </View>
 
-  {/* Right icons */}
-  <TouchableOpacity style={styles.micBtn} activeOpacity={0.6}>
-    <Mic size={18} color={CHAT_COLORS.mutedText} strokeWidth={2} />
-  </TouchableOpacity>
+            {/* Right icons */}
+            <TouchableOpacity style={styles.micBtn} activeOpacity={0.6}>
+              <Mic size={18} color={CHAT_COLORS.mutedText} strokeWidth={2} />
+            </TouchableOpacity>
 
-  <TouchableOpacity
-    style={[
-      styles.sendBtn,
-      !inputText.trim() && styles.sendBtnDisabled,
-    ]}
-    activeOpacity={0.7}
-    disabled={!inputText.trim()}
-    onPress={() => sendMessage(inputText)}
-  >
-    <Animated.View style={{ transform: [{ scale: sendScaleAnim }] }}>
-      <Send
-        size={18}
-        color={
-          inputText.trim()
-            ? CHAT_COLORS.white
-            : CHAT_COLORS.mutedText
-        }
-        strokeWidth={2.5}
-      />
-    </Animated.View>
-  </TouchableOpacity>
-</View>
+            <TouchableOpacity
+              style={[
+                styles.sendBtn,
+                !inputText.trim() && styles.sendBtnDisabled,
+              ]}
+              activeOpacity={0.7}
+              disabled={!inputText.trim()}
+              onPress={() => sendMessage(inputText)}
+            >
+              <Animated.View style={{ transform: [{ scale: sendScaleAnim }] }}>
+                <Send
+                  size={18}
+                  color={
+                    inputText.trim()
+                      ? CHAT_COLORS.white
+                      : CHAT_COLORS.mutedText
+                  }
+                  strokeWidth={2.5}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
         </Animated.View >
       </KeyboardAvoidingView >
     </Modal >
@@ -503,31 +498,27 @@ export const ChatFAB: React.FC<ChatFABProps> = ({
           end={{ x: 1, y: 1 }}
           style={fabStyles.gradient}
         >
-<<<<<<< HEAD
-<Image
-  source={require("../../assets/images/chat-bot.png")}
-  style={fabStyles.fabBotImage}
-  resizeMode="cover"
-/>
-=======
-          <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 60, height: 60, borderRadius: 30 }} resizeMode="cover" />
->>>>>>> feature/backend-connect
+          <Image
+            source={require("../../assets/images/chat-bot.png")}
+            style={{ width: 60, height: 60, borderRadius: 30 }}
+            resizeMode="cover"
+          />
         </LinearGradient >
       </TouchableOpacity >
 
-  {/* Unread badge */ }
-{
-  hasUnread && (
-    <Animated.View
-      style={[
-        fabStyles.badge,
-        { transform: [{ scale: badgePulse }] },
-      ]}
-    >
-      <View style={fabStyles.badgeDot} />
-    </Animated.View>
-  )
-}
+      {/* Unread badge */}
+      {
+        hasUnread && (
+          <Animated.View
+            style={[
+              fabStyles.badge,
+              { transform: [{ scale: badgePulse }] },
+            ]}
+          >
+            <View style={fabStyles.badgeDot} />
+          </Animated.View>
+        )
+      }
     </Animated.View >
   );
 };
@@ -590,10 +581,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-  },
-  headerBotImage: {
-    width: 40,
-    height: 40,
   },
   headerAvatarText: {
     fontSize: 20,
@@ -746,10 +733,6 @@ const fabStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-  },
-  fabBotImage: {
-    width: 60,
-    height: 60,
   },
   emoji: {
     fontSize: 28,

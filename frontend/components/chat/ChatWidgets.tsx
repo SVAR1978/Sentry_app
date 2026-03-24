@@ -147,54 +147,48 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <View style={welcomeStyles.avatarWrapper}>
         <View style={welcomeStyles.glowRing}>
           <View style={welcomeStyles.avatar}>
-<<<<<<< HEAD
-  <Image
-    source={require("../../assets/images/chat-bot.png")}
-    style={welcomeStyles.botImage}
-=======
             <Image
               source={require("../../assets/images/chat-bot.png")}
               style={{ width: 64, height: 64, borderRadius: 32 }}
->>>>>>> feature/backend-connect
-    resizeMode="cover"
-  />
+              resizeMode="cover"
+            />
           </View >
         </View >
       </View >
 
-  {/* Text */ }
-  < Text style = { welcomeStyles.heading } > Hi, I'm Travelo!</Text>
-    < Text style = { welcomeStyles.subtext } >
-      Your personal AI travel assistant.{ "\n" }Ask me anything about destinations, hotels & more!
-      </Text >
+      {/* Text */}
+      <Text style={welcomeStyles.heading}>Hi, I'm Travelo!</Text>
+      <Text style={welcomeStyles.subtext}>
+        Your personal AI travel assistant.{"\n"}Ask me anything about destinations, hotels & more!
+      </Text>
 
-  {/* Feature grid */ }
-  < View style = { welcomeStyles.featureGrid } >
-  {
-    WELCOME_FEATURES.map((feature) => {
-      const Icon = (LucideIcons as any)[feature.icon];
-      return (
-        <TouchableOpacity
-          key={feature.id}
-          style={welcomeStyles.featureCard}
-          activeOpacity={0.7}
-          onPress={() => onFeaturePress(feature)}
-        >
-          <View style={welcomeStyles.featureIconBg}>
-            {Icon && (
-              <Icon
-                size={22}
-                color="#3E1911"
-                strokeWidth={2}
-              />
-            )}
-          </View>
-          <Text style={welcomeStyles.featureLabel}>{feature.label}</Text>
-          <Text style={welcomeStyles.featureDesc}>{feature.description}</Text>
-        </TouchableOpacity>
-      );
-    })
-  }
+      {/* Feature grid */}
+      <View style={welcomeStyles.featureGrid}>
+        {
+          WELCOME_FEATURES.map((feature) => {
+            const Icon = (LucideIcons as any)[feature.icon];
+            return (
+              <TouchableOpacity
+                key={feature.id}
+                style={welcomeStyles.featureCard}
+                activeOpacity={0.7}
+                onPress={() => onFeaturePress(feature)}
+              >
+                <View style={welcomeStyles.featureIconBg}>
+                  {Icon && (
+                    <Icon
+                      size={22}
+                      color="#3E1911"
+                      strokeWidth={2}
+                    />
+                  )}
+                </View>
+                <Text style={welcomeStyles.featureLabel}>{feature.label}</Text>
+                <Text style={welcomeStyles.featureDesc}>{feature.description}</Text>
+              </TouchableOpacity>
+            );
+          })
+        }
       </View >
     </View >
   );
@@ -231,10 +225,6 @@ const welcomeStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-  },
-  botImage: {
-    width: 64,
-    height: 64,
   },
   heading: {
     fontSize: 24,

@@ -1,9 +1,5 @@
 import React, { useEffect, useRef } from "react";
-<<<<<<< HEAD
-import { Animated, Image, StyleSheet, View } from "react-native";
-=======
 import { Animated, StyleSheet, View, Image } from "react-native";
->>>>>>> feature/backend-connect
 import { Text } from "react-native-paper";
 import { Check, CheckCheck } from "lucide-react-native";
 import {
@@ -61,65 +57,57 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <View style={styles.avatarColumn}>
           {isLastInGroup ? (
             <View style={styles.avatarSmall}>
-<<<<<<< HEAD
-  <Image
-    source={require("../../assets/images/chat-bot.png")}
-    style={styles.botImage}
-    resizeMode="cover"
-  />
-=======
               <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="cover" />
->>>>>>> feature/backend-connect
             </View >
           ) : (
-  <View style={styles.avatarSpacer} />
-)}
+            <View style={styles.avatarSpacer} />
+          )}
         </View >
       )}
 
-<View
-  style={[
-    styles.bubbleContainer,
-    isBot ? styles.botBubbleContainer : styles.userBubbleContainer,
-  ]}
->
-  <View
-    style={[
-      styles.bubble,
-      isBot ? styles.botBubble : styles.userBubble,
-      isFirstInGroup && isBot && styles.botBubbleFirst,
-      isFirstInGroup && !isBot && styles.userBubbleFirst,
-    ]}
-  >
-    <Text
-      style={[
-        styles.messageText,
-        isBot ? styles.botMessageText : styles.userMessageText,
-      ]}
-    >
-      {message.text}
-    </Text>
-  </View>
+      <View
+        style={[
+          styles.bubbleContainer,
+          isBot ? styles.botBubbleContainer : styles.userBubbleContainer,
+        ]}
+      >
+        <View
+          style={[
+            styles.bubble,
+            isBot ? styles.botBubble : styles.userBubble,
+            isFirstInGroup && isBot && styles.botBubbleFirst,
+            isFirstInGroup && !isBot && styles.userBubbleFirst,
+          ]}
+        >
+          <Text
+            style={[
+              styles.messageText,
+              isBot ? styles.botMessageText : styles.userMessageText,
+            ]}
+          >
+            {message.text}
+          </Text>
+        </View>
 
-  {/* Timestamp & Status */}
-  <View
-    style={[
-      styles.metaRow,
-      isBot ? styles.metaLeft : styles.metaRight,
-    ]}
-  >
-    <Text style={styles.timestamp}>{time}</Text>
-    {!isBot && message.status && (
-      <View style={styles.statusIcon}>
-        {message.status === "seen" ? (
-          <CheckCheck size={12} color={CHAT_COLORS.seen} strokeWidth={2.5} />
-        ) : (
-          <Check size={12} color={CHAT_COLORS.sent} strokeWidth={2.5} />
-        )}
+        {/* Timestamp & Status */}
+        <View
+          style={[
+            styles.metaRow,
+            isBot ? styles.metaLeft : styles.metaRight,
+          ]}
+        >
+          <Text style={styles.timestamp}>{time}</Text>
+          {!isBot && message.status && (
+            <View style={styles.statusIcon}>
+              {message.status === "seen" ? (
+                <CheckCheck size={12} color={CHAT_COLORS.seen} strokeWidth={2.5} />
+              ) : (
+                <Check size={12} color={CHAT_COLORS.sent} strokeWidth={2.5} />
+              )}
+            </View>
+          )}
+        </View>
       </View>
-    )}
-  </View>
-</View>
     </Animated.View >
   );
 };
@@ -155,17 +143,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-<<<<<<< HEAD
-    overflow: "hidden",
-  },
-  botImage: {
-    width: 28,
-    height: 28,
-=======
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "rgba(33, 16, 11, 0.06)",
->>>>>>> feature/backend-connect
   },
   avatarEmoji: {
     fontSize: 14,
