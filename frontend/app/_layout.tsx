@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { PaperProvider } from "react-native-paper";
 import { AuthProvider } from "../store/AuthContext";
+import { SocketProvider } from "../store/SocketContext";
 import { theme } from "../theme";
 import { 
   useFonts, 
@@ -33,7 +34,8 @@ export default function RootLayout() {
   }
   return (
     <AuthProvider>
-      <PaperProvider theme={theme}>
+      <SocketProvider>
+        <PaperProvider theme={theme}>
         <StatusBar style="auto" />
 
         <Stack
@@ -73,7 +75,8 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-      </PaperProvider>
+        </PaperProvider>
+      </SocketProvider>
     </AuthProvider>
   );
 }

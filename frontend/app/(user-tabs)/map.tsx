@@ -1,4 +1,5 @@
 import * as Location from "expo-location";
+import { useSocket } from "../../store/SocketContext";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, {
     useCallback,
@@ -79,6 +80,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const { sendLocation } = useSocket();
   // Get route params (from QuickActions)
   const params = useLocalSearchParams<{ filter?: string }>();
 
@@ -212,6 +214,16 @@ export default function MapScreen() {
           setHeading(update.coords.heading);
           setAccuracy(update.coords.accuracy);
           setSpeed(update.coords.speed);
+
+          // ── Send location to WebSocket backend ──
+          sendLocation({
+            latitude: update.coords.latitude,
+            longitude: update.coords.longitude,
+            accuracy: update.coords.accuracy,
+            speed: update.coords.speed,
+            heading: update.coords.heading,
+            source: "GPS",
+          });
 
           // Append to breadcrumb trail
           setLocationHistory((prev) => {

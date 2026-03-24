@@ -40,6 +40,7 @@ import {
 import { ActivityIndicator, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
+import { useSocket } from "../../store/SocketContext";
 import sosService, {
   SOSAlertPayload,
   DeliveryLogEntry,
@@ -131,6 +132,7 @@ const LogItem = ({ entry }: { entry: DeliveryLogEntry }) => {
 
 export default function EmergencyScreen() {
   const { user } = useAuth();
+  const { isConnected: wsConnected, sendLocation } = useSocket();
   const insets = useSafeAreaInsets();
   const [sosActive, setSosActive] = useState(false);
   const [familyContacts, setFamilyContacts] = useState<FamilyContact[]>([]);
@@ -243,6 +245,21 @@ export default function EmergencyScreen() {
           user?.name || "Sentry User",
           contacts
         );
+      }
+
+      // Also stream location via WebSocket for live backend tracking
+      try {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        sendLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          accuracy: loc.coords.accuracy,
+          speed: loc.coords.speed,
+          heading: loc.coords.heading,
+          source: "GPS",
+        });
+      } catch (locErr) {
+        console.warn("[SOS] Failed to send location via WebSocket:", locErr);
       }
     } catch (err) {
       console.error("[SOS] Dispatch error:", err);
@@ -535,6 +552,17 @@ export default function EmergencyScreen() {
               <Text style={styles.activeIndicatorText}>Alert is active</Text>
             </View>
           )}
+          {/* WebSocket Connection Status */}
+          <View style={[styles.activeIndicator, { marginTop: 6 }]}>
+            {wsConnected ? (
+              <Wifi size={14} color={COLORS.success} />
+            ) : (
+              <WifiOff size={14} color={COLORS.error} />
+            )}
+            <Text style={[styles.activeIndicatorText, { color: wsConnected ? COLORS.success : COLORS.error }]}>
+              {wsConnected ? "Live tracking active" : "Server disconnected"}
+            </Text>
+          </View>
         </View>
 
         {/* Family Contacts */}

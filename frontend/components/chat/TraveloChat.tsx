@@ -40,6 +40,7 @@ import {
   ChatMessage,
   QuickChip,
 } from "../../constants/chatData";
+import chatService from "../../services/api/chatService";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
 import {
@@ -108,27 +109,8 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
     }, 100);
   }, []);
 
-  const getBotResponse = (userText: string): string => {
-    const lower = userText.toLowerCase().trim();
-
-    // Check for keyword matches
-    for (const [key, response] of Object.entries(BOT_RESPONSES)) {
-      if (lower.includes(key)) {
-        return response;
-      }
-    }
-
-    // Check for greetings
-    const greetings = ["hi", "hello", "hey", "hola", "sup", "yo"];
-    if (greetings.some((g) => lower.startsWith(g))) {
-      return BOT_RESPONSES.greeting;
-    }
-
-    return BOT_RESPONSES.default;
-  };
-
   const sendMessage = useCallback(
-    (text: string) => {
+    async (text: string) => {
       if (!text.trim()) return;
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -161,26 +143,25 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
       setShowChips(false);
       scrollToBottom();
 
-      // Show typing indicator after a brief pause
-      setTimeout(() => {
-        setIsTyping(true);
-        scrollToBottom();
+      // Show typing indicator
+      setIsTyping(true);
+      scrollToBottom();
 
-        // Mark user message as delivered
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === userMessage.id ? { ...m, status: "delivered" } : m
-          )
-        );
-      }, 400);
+      // Mark user message as delivered
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === userMessage.id ? { ...m, status: "delivered" } : m
+        )
+      );
 
-      // Bot responds after realistic delay
-      const responseDelay = 1200 + Math.random() * 800;
-      setTimeout(() => {
+      try {
+        // CALL THE REST API !
+        const replyText = await chatService.sendMessage(text);
+        
         const botReply: ChatMessage = {
           id: `bot_${Date.now()}`,
           sender: "bot",
-          text: getBotResponse(text),
+          text: replyText,
           timestamp: new Date(),
         };
 
@@ -197,7 +178,18 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
 
         scrollToBottom();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }, responseDelay);
+      } catch (err) {
+        setIsTyping(false);
+        
+        const errorReply: ChatMessage = {
+          id: `error_${Date.now()}`,
+          sender: "bot",
+          text: "I'm having trouble connecting to the network. Please try again later.",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorReply]);
+        scrollToBottom();
+      }
     },
     [scrollToBottom]
   );
