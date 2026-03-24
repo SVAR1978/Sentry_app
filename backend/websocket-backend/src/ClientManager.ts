@@ -2,6 +2,7 @@ import WebSocket from "ws";
 import { prisma } from "./prisma.js";
 import { emailQueue } from "./queues/emailQueue.js";
 import { emailService } from "./services/emailService.js";
+import { geminiService } from "./services/geminiService.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -26,6 +27,16 @@ interface LocationMessage {
   };
 }
 
+interface ChatAskMessage {
+  type: "CHAT_ASK";
+  payload: {
+    question: string;
+    conversationId?: string;
+  };
+}
+
+type IncomingMessage = LocationMessage | ChatAskMessage;
+
 export class ClientManager {
   private static clients: Client[] = [];
 
@@ -37,15 +48,34 @@ export class ClientManager {
     ClientManager.clients.push({ ws, userId, role });
 
     ws.on("message", (data) => {
-      const message = JSON.parse(data.toString()) as LocationMessage;
-      this.handleMessage(message);
+      try {
+        const message = JSON.parse(data.toString()) as IncomingMessage;
+        this.handleMessage(message);
+      } catch {
+        if (this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(
+            JSON.stringify({
+              type: "CHAT_ERROR",
+              payload: {
+                message: "Invalid message format",
+              },
+            })
+          );
+        }
+      }
     });
 
     ws.on("close", () => this.cleanup());
   }
 
-  private async handleMessage(message: LocationMessage) {
+  private async handleMessage(message: IncomingMessage) {
     if (this.role !== "USER") return;
+
+    if (message.type === "CHAT_ASK") {
+      await this.handleChatAsk(message);
+      return;
+    }
+
     if (message.type !== "LOCATION") return;
 
     const location = message.payload;
@@ -111,6 +141,54 @@ export class ClientManager {
         console.error("Failed to enqueue email job:", err);
       }
     }
+  }
+
+  private async handleChatAsk(message: ChatAskMessage) {
+    const question = message.payload?.question?.trim();
+    const conversationId = message.payload?.conversationId;
+
+    if (!question) {
+      this.sendChatError("Question is required", conversationId);
+      return;
+    }
+
+    const MAX_QUESTION_LENGTH = Number(process.env.CHAT_MAX_QUESTION_LENGTH ?? 2000);
+    if (question.length > MAX_QUESTION_LENGTH) {
+      this.sendChatError(`Question is too long (max ${MAX_QUESTION_LENGTH} chars)`, conversationId);
+      return;
+    }
+
+    try {
+      const answer = await geminiService.generateReply(question);
+
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(
+          JSON.stringify({
+            type: "CHAT_RESPONSE",
+            payload: {
+              conversationId,
+              answer,
+            },
+          })
+        );
+      }
+    } catch (err: any) {
+      console.error("CHAT_ASK failed:", err?.message ?? err);
+      this.sendChatError("Failed to get chat response", conversationId);
+    }
+  }
+
+  private sendChatError(message: string, conversationId?: string) {
+    if (this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(
+      JSON.stringify({
+        type: "CHAT_ERROR",
+        payload: {
+          conversationId,
+          message,
+        },
+      })
+    );
   }
 
   private static sendToAdmins(userId: string, location: LocationMessage["payload"]) {
