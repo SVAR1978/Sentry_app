@@ -19,7 +19,7 @@ const wss = new WebSocketServer({ port });
 console.log(`WebSocket backend is up on port ${port}`);
 
 wss.on("connection", (ws, request) => {
-    const url = request.url;
+    const { url } = request;
     if (!url) {
         ws.close();
         return;
