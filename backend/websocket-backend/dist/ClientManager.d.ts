@@ -7,6 +7,8 @@ export declare class ClientManager {
     private static clients;
     constructor(ws: WebSocket, userId: string, role: Role);
     private handleMessage;
+    private handleChatAsk;
+    private sendChatError;
     private static sendToAdmins;
     private calculateRisk;
     private cleanup;
