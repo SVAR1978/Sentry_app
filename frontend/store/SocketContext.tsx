@@ -23,13 +23,24 @@ interface UserLocationEvent {
   source: string;
 }
 
-type IncomingMessage = UserLocationEvent | { type: "CHAT_RESPONSE"; payload: { answer: string; conversationId?: string } } | { type: "CHAT_ERROR"; payload: { message: string; conversationId?: string } } | { type: string; [key: string]: any };
+interface UserActivityEvent {
+  type: "USER_SESSION";
+  payload: {
+    userId: string;
+    userName: string;
+    action: "LOGIN" | "LOGOUT";
+    timestamp: string;
+  };
+}
+
+type IncomingMessage = UserLocationEvent | UserActivityEvent | { type: "CHAT_RESPONSE"; payload: { answer: string; conversationId?: string } } | { type: "CHAT_ERROR"; payload: { message: string; conversationId?: string } } | { type: string; [key: string]: any };
 
 interface SocketContextType {
   socket: WebSocket | null;
   isConnected: boolean;
   sendLocation: (location: LocationPayload) => void;
   onUserLocation: (callback: (data: UserLocationEvent) => void) => () => void;
+  onUserActivity: (callback: (data: UserActivityEvent) => void) => () => void;
   sendChatAsk: (question: string, conversationId?: string) => void;
   onChatMessage: (callback: (data: any) => void) => () => void;
 }
@@ -41,6 +52,7 @@ const SocketContext = createContext<SocketContextType>({
   isConnected: false,
   sendLocation: () => {},
   onUserLocation: () => () => {},
+  onUserActivity: () => () => {},
   sendChatAsk: () => {},
   onChatMessage: () => () => {},
 });
@@ -59,6 +71,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   // Store admin callbacks for USER_LOCATION events
   const userLocationListeners = useRef<Set<(data: UserLocationEvent) => void>>(new Set());
+  const userActivityListeners = useRef<Set<(data: UserActivityEvent) => void>>(new Set());
   const chatListeners = useRef<Set<(data: any) => void>>(new Set());
 
   // ─── CONNECT ──────────────────────────────────────────
@@ -104,6 +117,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           if (data.type === "USER_LOCATION") {
             for (const listener of userLocationListeners.current) {
               listener(data as UserLocationEvent);
+            }
+          } else if (data.type === "USER_SESSION") {
+            for (const listener of userActivityListeners.current) {
+              listener(data as UserActivityEvent);
             }
           } else if (data.type === "CHAT_RESPONSE" || data.type === "CHAT_ERROR") {
             for (const listener of chatListeners.current) {
@@ -193,6 +210,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const onUserActivity = useCallback((callback: (data: UserActivityEvent) => void) => {
+    userActivityListeners.current.add(callback);
+    return () => {
+      userActivityListeners.current.delete(callback);
+    };
+  }, []);
+
   // ─── SUBSCRIBE TO CHAT MESSAGES ───────────────────────
 
   const onChatMessage = useCallback((callback: (data: any) => void) => {
@@ -218,7 +242,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [connectWebSocket]);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, sendLocation, onUserLocation, sendChatAsk, onChatMessage }}>
+    <SocketContext.Provider value={{ socket, isConnected, sendLocation, onUserLocation, onUserActivity, sendChatAsk, onChatMessage }}>
       {children}
     </SocketContext.Provider>
   );

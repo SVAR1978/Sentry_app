@@ -1,8 +1,20 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle,
+  LogOut,
+  MessageSquare,
+  Navigation,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+  UserPlus,
+  Users,
+} from "lucide-react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
     Animated,
     Dimensions,
@@ -14,6 +26,7 @@ import {
 import { Avatar, Card, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
+import { useSocket } from "../../store/SocketContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -40,7 +53,7 @@ const STATS = [
     id: "1",
     title: "Total Users",
     value: "2,847",
-    icon: "account-group",
+    icon: Users,
     color: "#21100B",
     trend: "+12%",
   },
@@ -48,42 +61,21 @@ const STATS = [
     id: "2",
     title: "Active Tours",
     value: "156",
-    icon: "map-marker-multiple",
+    icon: Navigation,
     color: "#10B981",
     trend: "+8%",
   },
-  {
-    id: "3",
-    title: "Alerts",
-    value: "23",
-    icon: "alert-circle",
-    color: "#D93636",
-    trend: "-5%",
-  },
-  {
-    id: "4",
-    title: "Revenue",
-    value: "₹4.2L",
-    icon: "currency-inr",
-    color: "#8C7D79",
-    trend: "+18%",
-  },
 ];
 
-const QUICK_ACTIONS = [
-  { id: "1", title: "Add User", icon: "account-plus", color: "#21100B" },
-  { id: "2", title: "New Alert", icon: "bell-plus", color: "#D93636" },
-  { id: "3", title: "View Map", icon: "map-search", color: "#10B981" },
-  { id: "4", title: "Reports", icon: "file-chart", color: "#8C7D79" },
-];
 
-const RECENT_ACTIVITIES = [
+
+const INITIAL_ACTIVITIES = [
   {
     id: "1",
     action: "New user registered",
     user: "John Doe",
     time: "5 min ago",
-    icon: "account-plus",
+    icon: UserPlus,
     color: "#10B981",
   },
   {
@@ -91,7 +83,7 @@ const RECENT_ACTIVITIES = [
     action: "SOS alert triggered",
     user: "Jane Smith",
     time: "15 min ago",
-    icon: "alert",
+    icon: AlertTriangle,
     color: "#D93636",
   },
   {
@@ -99,7 +91,7 @@ const RECENT_ACTIVITIES = [
     action: "Tour completed",
     user: "Mike Wilson",
     time: "1 hour ago",
-    icon: "check-circle",
+    icon: CheckCircle,
     color: "#21100B",
   },
   {
@@ -107,18 +99,38 @@ const RECENT_ACTIVITIES = [
     action: "Feedback received",
     user: "Sarah Connor",
     time: "2 hours ago",
-    icon: "message-text",
+    icon: MessageSquare,
     color: "#F59E0B",
   },
 ];
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const { onUserActivity } = useSocket();
   const insets = useSafeAreaInsets();
+  const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  React.useEffect(() => {
+  // Real-time Activity Tracking
+  useEffect(() => {
+    const unsubscribe = onUserActivity((event) => {
+      const newActivity = {
+        id: Date.now().toString(),
+        action: event.payload.action === "LOGIN" ? "User logged in" : "User logged out",
+        user: event.payload.userName,
+        time: "Just now",
+        icon: event.payload.action === "LOGIN" ? UserPlus : LogOut,
+        color: event.payload.action === "LOGIN" ? COLORS.success : COLORS.secondary,
+      };
+
+      setActivities((prev) => [newActivity, ...prev.slice(0, 9)]);
+    });
+
+    return unsubscribe;
+  }, [onUserActivity]);
+
+  useEffect(() => {
     if (!user) {
       router.replace("/(auth)/role-selection");
       return;
@@ -179,10 +191,10 @@ export default function AdminDashboard() {
               </View>
             </View>
             <TouchableOpacity style={styles.notificationBtn}>
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={24}
+              <Bell
+                size={22}
                 color={COLORS.white}
+                strokeWidth={2}
               />
               <View style={styles.notificationBadge}>
                 <Text style={styles.badgeText}>3</Text>
@@ -217,28 +229,20 @@ export default function AdminDashboard() {
                         { backgroundColor: `${stat.color}15` },
                       ]}
                     >
-                      <MaterialCommunityIcons
-                        name={stat.icon as any}
+                      <stat.icon
                         size={24}
                         color={stat.color}
+                        strokeWidth={2}
                       />
                     </View>
                     <Text style={styles.statValue}>{stat.value}</Text>
                     <Text style={styles.statTitle}>{stat.title}</Text>
                     <View style={styles.trendContainer}>
-                      <MaterialCommunityIcons
-                        name={
-                          stat.trend.startsWith("+")
-                            ? "trending-up"
-                            : "trending-down"
-                        }
-                        size={14}
-                        color={
-                          stat.trend.startsWith("+")
-                            ? COLORS.success
-                            : COLORS.error
-                        }
-                      />
+                      {stat.trend.startsWith("+") ? (
+                        <TrendingUp size={14} color={COLORS.success} />
+                      ) : (
+                        <TrendingDown size={14} color={COLORS.error} />
+                      )}
                       <Text
                         style={[
                           styles.trendText,
@@ -258,33 +262,6 @@ export default function AdminDashboard() {
             </View>
           </View>
 
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.quickActions}>
-              {QUICK_ACTIONS.map((action) => (
-                <TouchableOpacity
-                  key={action.id}
-                  style={styles.quickActionItem}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.quickActionIcon,
-                      { backgroundColor: `${action.color}12` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={action.icon as any}
-                      size={28}
-                      color={action.color}
-                    />
-                  </View>
-                  <Text style={styles.quickActionLabel}>{action.title}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
 
           {/* Recent Activity */}
           <View style={styles.section}>
@@ -295,12 +272,12 @@ export default function AdminDashboard() {
               </TouchableOpacity>
             </View>
             <Card style={styles.activityCard}>
-              {RECENT_ACTIVITIES.map((activity, index) => (
+              {activities.map((activity, index) => (
                 <View
                   key={activity.id}
                   style={[
                     styles.activityItem,
-                    index < RECENT_ACTIVITIES.length - 1 &&
+                    index < activities.length - 1 &&
                       styles.activityBorder,
                   ]}
                 >
@@ -310,10 +287,10 @@ export default function AdminDashboard() {
                       { backgroundColor: `${activity.color}12` },
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name={activity.icon as any}
-                      size={20}
+                    <activity.icon
+                      size={18}
                       color={activity.color}
+                      strokeWidth={2}
                     />
                   </View>
                   <View style={styles.activityInfo}>
@@ -326,46 +303,6 @@ export default function AdminDashboard() {
             </Card>
           </View>
 
-          {/* System Status */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>System Status</Text>
-            <Card style={styles.statusCard}>
-              <Card.Content>
-                <View style={styles.statusRow}>
-                  <View style={styles.statusItem}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: COLORS.success },
-                      ]}
-                    />
-                    <Text style={styles.statusLabel}>Server</Text>
-                    <Text style={styles.statusValue}>Online</Text>
-                  </View>
-                  <View style={styles.statusItem}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: COLORS.success },
-                      ]}
-                    />
-                    <Text style={styles.statusLabel}>Database</Text>
-                    <Text style={styles.statusValue}>Connected</Text>
-                  </View>
-                  <View style={styles.statusItem}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: COLORS.success },
-                      ]}
-                    />
-                    <Text style={styles.statusLabel}>API</Text>
-                    <Text style={styles.statusValue}>99.9%</Text>
-                  </View>
-                </View>
-              </Card.Content>
-            </Card>
-          </View>
         </Animated.View>
       </ScrollView>
     </View>

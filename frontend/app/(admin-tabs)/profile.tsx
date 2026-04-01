@@ -1,4 +1,16 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Award,
+  Bell,
+  ChevronRight,
+  HelpCircle,
+  History,
+  Key,
+  Lock,
+  LogOut,
+  Palette,
+  ShieldCheck,
+  User,
+} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
@@ -35,20 +47,20 @@ const ADMIN_MENU = [
   {
     id: "personal",
     title: "Personal Information",
-    icon: "account-outline",
+    icon: User,
     color: "#1E40AF",
   },
   {
     id: "security",
     title: "Security Settings",
-    icon: "shield-lock-outline",
+    icon: Lock,
     color: "#10B981",
   },
-  { id: "activity", title: "Activity Log", icon: "history", color: "#8B5CF6" },
+  { id: "activity", title: "Activity Log", icon: History, color: "#8B5CF6" },
   {
     id: "permissions",
     title: "My Permissions",
-    icon: "key-outline",
+    icon: Key,
     color: "#F59E0B",
   },
 ];
@@ -57,19 +69,19 @@ const QUICK_SETTINGS = [
   {
     id: "notifications",
     title: "Notifications",
-    icon: "bell-outline",
+    icon: Bell,
     color: "#F59E0B",
   },
   {
     id: "appearance",
     title: "Appearance",
-    icon: "palette-outline",
+    icon: Palette,
     color: "#EC4899",
   },
   {
     id: "help",
     title: "Help Center",
-    icon: "help-circle-outline",
+    icon: HelpCircle,
     color: "#6B7280",
   },
 ];
@@ -117,66 +129,26 @@ export default function AdminProfileScreen() {
                 style={styles.avatar}
               />
               <View style={styles.adminBadge}>
-                <MaterialCommunityIcons
-                  name="shield-crown"
+                <ShieldCheck
                   size={16}
                   color={COLORS.white}
+                  strokeWidth={2.5}
                 />
               </View>
             </View>
             <Text style={styles.userName}>{user?.name || "Administrator"}</Text>
-            <Text style={styles.userEmail}>
-              {user?.email || "admin@sentryapp.com"}
-            </Text>
-            <View style={styles.roleContainer}>
-              <MaterialCommunityIcons
-                name="shield-check"
+
+             <View style={styles.roleContainer}>
+              <Award
                 size={14}
                 color={COLORS.white}
+                strokeWidth={2.5}
               />
               <Text style={styles.roleText}>Super Administrator</Text>
             </View>
           </View>
-
-          {/* Admin Stats */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>247</Text>
-              <Text style={styles.statLabel}>Actions Today</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>5</Text>
-              <Text style={styles.statLabel}>Pending Tasks</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>99.9%</Text>
-              <Text style={styles.statLabel}>Uptime</Text>
-            </View>
-          </View>
         </LinearGradient>
 
-        {/* Last Login Info */}
-        <View style={styles.section}>
-          <Card style={styles.loginCard}>
-            <Card.Content style={styles.loginContent}>
-              <View style={styles.loginIconBg}>
-                <MaterialCommunityIcons
-                  name="login"
-                  size={24}
-                  color={COLORS.success}
-                />
-              </View>
-              <View style={styles.loginInfo}>
-                <Text style={styles.loginTitle}>Last Login</Text>
-                <Text style={styles.loginValue}>
-                  Today at 9:30 AM • Mumbai, India
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        </View>
 
         {/* Admin Menu */}
         <View style={styles.section}>
@@ -191,16 +163,15 @@ export default function AdminProfileScreen() {
                       { backgroundColor: `${item.color}12` },
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={22}
+                    <item.icon
+                      size={20}
                       color={item.color}
+                      strokeWidth={2}
                     />
                   </View>
                   <Text style={styles.menuTitle}>{item.title}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={22}
+                  <ChevronRight
+                    size={20}
                     color={COLORS.textMuted}
                   />
                 </TouchableOpacity>
@@ -223,16 +194,15 @@ export default function AdminProfileScreen() {
                       { backgroundColor: `${item.color}12` },
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={22}
+                    <item.icon
+                      size={20}
                       color={item.color}
+                      strokeWidth={2}
                     />
                   </View>
                   <Text style={styles.menuTitle}>{item.title}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={22}
+                  <ChevronRight
+                    size={20}
                     color={COLORS.textMuted}
                   />
                 </TouchableOpacity>
@@ -245,10 +215,10 @@ export default function AdminProfileScreen() {
         {/* Logout Button */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-            <MaterialCommunityIcons
-              name="logout"
-              size={22}
+            <LogOut
+              size={20}
               color={COLORS.error}
+              strokeWidth={2.5}
             />
             <Text style={styles.logoutText}>Logout from Admin Panel</Text>
           </TouchableOpacity>
@@ -346,37 +316,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     letterSpacing: 0.5,
   },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    marginHorizontal: 20,
-    marginTop: 24,
-    borderRadius: 18,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: COLORS.white,
-    letterSpacing: -0.3,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
+
   section: {
     paddingHorizontal: 20,
     marginTop: 24,
@@ -388,39 +328,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     letterSpacing: -0.2,
   },
-  loginCard: {
-    borderRadius: 20,
-    elevation: 3,
-    shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-  },
-  loginContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  loginIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: `${COLORS.success}12`,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loginInfo: {
-    marginLeft: 14,
-  },
-  loginTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  loginValue: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
+
   menuCard: {
     borderRadius: 20,
     elevation: 3,
