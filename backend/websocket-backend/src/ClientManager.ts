@@ -3,42 +3,24 @@ import { prisma } from "./prisma.js";
 import { emailQueue } from "./queues/emailQueue.js";
 import { emailService } from "./services/emailService.js";
 import { geminiService } from "./services/geminiService.js";
+import { RiskZoneService } from "./services/riskZoneService.js";
+import {
+  broadcastLiveUserCountToAdmins,
+  broadcastUserLocationToAdmins,
+} from "./services/adminRealtimeService.js";
+import {
+  ChatAskMessage,
+  Client,
+  IncomingMessage,
+  Role,
+} from "./types/wsTypes.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-type Role = "USER" | "ADMIN";
-
-interface Client {
-  ws: WebSocket;
-  userId: string;
-  role: Role;
-}
-
-interface LocationMessage {
-  type: "LOCATION";
-  payload: {
-    latitude: number;
-    longitude: number;
-    accuracy?: number;
-    speed?: number;
-    heading?: number;
-    source: "GPS" | "NETWORK";
-  };
-}
-
-interface ChatAskMessage {
-  type: "CHAT_ASK";
-  payload: {
-    question: string;
-    conversationId?: string;
-  };
-}
-
-type IncomingMessage = LocationMessage | ChatAskMessage;
-
 export class ClientManager {
   private static clients: Client[] = [];
+  private static liveCountInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private ws: WebSocket,
@@ -46,6 +28,8 @@ export class ClientManager {
     private role: Role
   ) {
     ClientManager.clients.push({ ws, userId, role });
+    ClientManager.ensureLiveCountInterval();
+    broadcastLiveUserCountToAdmins(ClientManager.clients);
 
     ws.on("message", (data) => {
       try {
@@ -79,7 +63,13 @@ export class ClientManager {
     if (message.type !== "LOCATION") return;
 
     const location = message.payload;
-    const risk = this.calculateRisk(location.latitude, location.longitude);
+    
+    // Calculate real risk using geofencing
+    const riskResult = await RiskZoneService.calculateRisk(
+      location.latitude,
+      location.longitude
+    );
+    const risk = riskResult.score;
 
     await prisma.locationLog.create({
       data: {
@@ -94,10 +84,15 @@ export class ClientManager {
       },
     });
 
-    ClientManager.sendToAdmins(this.userId, location);
+    broadcastUserLocationToAdmins(ClientManager.clients, this.userId, location);
+
+    // Send WebSocket alert if risk is high (threshold: 8)
+    const HIGH_RISK_THRESHOLD = Number(process.env.HIGH_RISK_THRESHOLD ?? 8);
+    if (risk >= HIGH_RISK_THRESHOLD) {
+      this.sendRiskAlert(riskResult);
+    }
 
     // If risk is high, enqueue an email notification job
-    const HIGH_RISK_THRESHOLD = Number(process.env.HIGH_RISK_THRESHOLD ?? 8);
     if (risk >= HIGH_RISK_THRESHOLD) {
       try {
         // fetch emergency contacts for the user
@@ -112,7 +107,7 @@ export class ClientManager {
             await emailQueue.add("sendEmail", {
               email: contactEmail,
               subject: `High risk alert for ${this.userId}`,
-              htmlContent: `<h3>High risk detected: ${risk}</h3><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`,
+              htmlContent: `<h3>High risk detected: ${risk}</h3><p>Zone: ${riskResult.zoneName || "Unknown"}</p><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`,
               userId: this.userId,
               latitude: location.latitude,
               longitude: location.longitude,
@@ -125,7 +120,7 @@ export class ClientManager {
               await emailService.sendEmail(
                 contactEmail,
                 `High risk alert for ${this.userId}`,
-                `<h3>High risk detected: ${risk}</h3><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`
+                `<h3>High risk detected: ${risk}</h3><p>Zone: ${riskResult.zoneName || "Unknown"}</p><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`
               );
             } catch (err2) {
               console.error("Direct email send failed:", err2);
@@ -178,6 +173,35 @@ export class ClientManager {
     }
   }
 
+  private sendRiskAlert(riskResult: any) {
+    if (this.ws.readyState !== WebSocket.OPEN) return;
+    
+    const levelDescriptions: Record<string, string> = {
+      high: "You have entered a HIGH-RISK zone. Stay alert and consider changing your route.",
+      medium: "You have entered a MEDIUM-RISK zone. Please be cautious.",
+      low: "You are in a low-risk area.",
+    };
+
+    const message = levelDescriptions[riskResult.level] || "Risk detected in your area.";
+
+    console.log(
+      `[ClientManager] Sending risk alert to user ${this.userId}: ${riskResult.level} (score: ${riskResult.score})`
+    );
+
+    this.ws.send(
+      JSON.stringify({
+        type: "RISK_ALERT",
+        payload: {
+          level: riskResult.level,
+          score: riskResult.score,
+          message,
+          zoneName: riskResult.zoneName || undefined,
+          timestamp: new Date().toISOString(),
+        },
+      })
+    );
+  }
+
   private sendChatError(message: string, conversationId?: string) {
     if (this.ws.readyState !== WebSocket.OPEN) return;
     this.ws.send(
@@ -191,27 +215,27 @@ export class ClientManager {
     );
   }
 
-  private static sendToAdmins(userId: string, location: LocationMessage["payload"]) {
-    for (const client of ClientManager.clients) {
-      if (client.role === "ADMIN" && client.ws.readyState === WebSocket.OPEN) {
-        client.ws.send(
-          JSON.stringify({
-            type: "USER_LOCATION",
-            userId,
-            ...location,
-          })
-        );
-      }
-    }
+  private static ensureLiveCountInterval() {
+    if (ClientManager.liveCountInterval) return;
+
+    ClientManager.liveCountInterval = setInterval(() => {
+      broadcastLiveUserCountToAdmins(ClientManager.clients);
+    }, 2000);
   }
 
-  private calculateRisk(_: number, __: number): number {
-    return Math.floor(Math.random() * 10) + 1;
+  private static clearLiveCountIntervalIfNoClients() {
+    if (ClientManager.clients.length > 0) return;
+    if (!ClientManager.liveCountInterval) return;
+
+    clearInterval(ClientManager.liveCountInterval);
+    ClientManager.liveCountInterval = null;
   }
 
   private cleanup() {
     ClientManager.clients = ClientManager.clients.filter(
       (c) => c.ws !== this.ws
     );
+    broadcastLiveUserCountToAdmins(ClientManager.clients);
+    ClientManager.clearLiveCountIntervalIfNoClients();
   }
 }
