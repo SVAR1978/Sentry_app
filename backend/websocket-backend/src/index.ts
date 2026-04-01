@@ -28,7 +28,7 @@ console.log(`WebSocket backend is up on port ${port}`);
 // ============================================================
 const redisSubscriber = redis.duplicate();
 
-redisSubscriber.subscribe("user-session-events", (err, count) => {
+redisSubscriber.subscribe("user-session-events", (err: Error | null, count: number) => {
   if (err) {
     console.error("[Redis] Failed to subscribe to user-session-events:", err);
   } else {
@@ -43,7 +43,7 @@ redisSubscriber.subscribe("user-session-events", (err, count) => {
  * When a user logs in or out, the HTTPS backend publishes to Redis,
  * and this listener receives it and broadcasts to all admin clients.
  */
-redisSubscriber.on("message", (channel, message) => {
+redisSubscriber.on("message", (channel: string, message: string) => {
   if (channel !== "user-session-events") return;
 
   try {
@@ -63,7 +63,7 @@ redisSubscriber.on("message", (channel, message) => {
   }
 });
 
-redisSubscriber.on("error", (err) => {
+redisSubscriber.on("error", (err: Error) => {
   console.error("[Redis Subscriber] Error:", err);
 });
 
