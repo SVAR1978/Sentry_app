@@ -1,7 +1,7 @@
 import { Router } from "express";
 import axios from "axios";
 import type { Request, Response } from "express";
-import type { RiskZone, RiskZoneResponse } from "../../websocket-backend/src/types/riskZones.js";
+import type { RiskZone, RiskZoneResponse } from "../types/riskZones.js";
 
 const router = Router();
 
