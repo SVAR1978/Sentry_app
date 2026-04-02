@@ -7,7 +7,7 @@ import { Client, LocationPayload } from "../types/wsTypes.js";
 export interface UserSessionPayload {
   userId: string;
   userName: string;
-  action: "LOGIN" | "LOGOUT";
+  action: "LOGIN" | "LOGOUT" | "SIGNUP";
   timestamp: string;
 }
 
@@ -35,10 +35,14 @@ export function broadcastLiveUserCountToAdmins(clients: Client[]) {
   const activeUsers = activeClients.filter((c) => c.role === "USER");
   const activeAdmins = activeClients.filter((c) => c.role === "ADMIN");
 
+  // Collect unique active user IDs
+  const activeUserIds = [...new Set(activeUsers.map((c) => c.userId))];
+
   const payload = {
     type: "LIVE_USERS_COUNT",
     payload: {
       count: activeUsers.length,
+      activeUserIds,
     },
   };
 

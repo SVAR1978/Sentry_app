@@ -350,11 +350,11 @@ export default function AdminDashboard() {
               activeOpacity={0.8}
             >
               <View style={styles.avatarRing}>
-                <Avatar.Image
+                <Avatar.Text
                   size={48}
-                  source={{
-                    uri: user?.avatar || "https://avatar.iran.liara.run/public/1",
-                  }}
+                  label={user?.name ? user.name.charAt(0).toUpperCase() : "A"}
+                  style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+                  color={COLORS.white}
                 />
               </View>
               <View style={styles.greeting}>
@@ -525,66 +525,78 @@ export default function AdminDashboard() {
         animationType="fade"
         onRequestClose={() => setShowNotifications(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setShowNotifications(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <View style={[styles.notificationPanel, { paddingTop: Math.max(insets.top, 20) + 10 }]}>
-                {/* Panel Header */}
-                <View style={styles.panelHeader}>
-                  <Text style={styles.panelTitle}>Notifications</Text>
-                  <View style={styles.panelActions}>
-                    {notifications.length > 0 && (
-                      <TouchableOpacity onPress={handleClearNotifications} style={styles.clearBtn}>
-                        <Text style={styles.clearBtnText}>Clear All</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity onPress={() => setShowNotifications(false)} style={styles.closeBtn}>
-                      <X size={20} color={COLORS.text} strokeWidth={2} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowNotifications(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+          <View style={[styles.notificationPanel, { marginTop: Math.max(insets.top, 40) }]}>
+            
+            <View style={styles.panelHandleWrap}>
+              <View style={styles.panelHandle} />
+            </View>
 
-                {/* Notification Items */}
-                <ScrollView
-                  style={styles.notificationList}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {notifications.length === 0 ? (
-                    <View style={styles.emptyNotifications}>
-                      <Bell size={40} color={COLORS.textMuted} strokeWidth={1.5} />
-                      <Text style={styles.emptyNotifText}>All caught up!</Text>
-                      <Text style={styles.emptyNotifSubtext}>
-                        New notifications will appear here
-                      </Text>
-                    </View>
-                  ) : (
-                    notifications.map((notif, index) => {
-                      const { Icon, color } = getActivityIcon(notif.type);
-                      return (
-                        <View
-                          key={notif.id}
-                          style={[
-                            styles.notifItem,
-                            index < notifications.length - 1 && styles.notifBorder,
-                          ]}
-                        >
-                          <View style={[styles.notifIcon, { backgroundColor: `${color}15` }]}>
-                            <Icon size={20} color={color} strokeWidth={2} />
-                          </View>
-                          <View style={styles.notifContent}>
-                            <Text style={styles.notifAction}>{notif.action}</Text>
-                            <Text style={styles.notifUser}>{notif.user}</Text>
-                            <Text style={styles.notifTime}>{getRelativeTime(notif.timestamp)}</Text>
-                          </View>
-                        </View>
-                      );
-                    })
-                  )}
-                </ScrollView>
+            {/* Panel Header */}
+            <View style={styles.panelHeader}>
+              <View>
+                <Text style={styles.panelTitle}>Notifications</Text>
+                <Text style={styles.panelSubtitle}>Real-time system alerts</Text>
               </View>
-            </TouchableWithoutFeedback>
+              <View style={styles.panelActions}>
+                {notifications.length > 0 && (
+                  <TouchableOpacity onPress={handleClearNotifications} style={styles.clearBtn}>
+                    <Text style={styles.clearBtnText}>Clear All</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => setShowNotifications(false)} style={styles.closeBtn}>
+                  <X size={20} color={COLORS.text} strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Notification Items */}
+            <ScrollView
+              style={styles.notificationList}
+              contentContainerStyle={{ paddingBottom: 24, paddingTop: 10 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {notifications.length === 0 ? (
+                <View style={styles.emptyNotifications}>
+                  <View style={styles.emptyBellCircle}>
+                    <Bell size={32} color={COLORS.textMuted} strokeWidth={1.5} />
+                  </View>
+                  <Text style={styles.emptyNotifText}>All caught up!</Text>
+                  <Text style={styles.emptyNotifSubtext}>
+                    New notifications will appear here
+                  </Text>
+                </View>
+              ) : (
+                notifications.map((notif, index) => {
+                  const { Icon, color } = getActivityIcon(notif.type);
+                  return (
+                    <View
+                      key={notif.id}
+                      style={[
+                        styles.notifItem,
+                        !notif.read && styles.notifItemUnread,
+                      ]}
+                    >
+                      <View style={[styles.notifIcon, { backgroundColor: `${color}15` }]}>
+                        <Icon size={20} color={color} strokeWidth={2} />
+                      </View>
+                      <View style={styles.notifContent}>
+                        <View style={styles.notifHeader}>
+                          <Text style={styles.notifAction}>{notif.action}</Text>
+                          <Text style={styles.notifTime}>{getRelativeTime(notif.timestamp)}</Text>
+                        </View>
+                        <Text style={styles.notifUser} numberOfLines={1}>{notif.user}</Text>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
           </View>
-        </TouchableWithoutFeedback>
+        </View>
       </Modal>
     </View>
   );
@@ -872,34 +884,55 @@ const styles = StyleSheet.create({
   // ─── MODAL / NOTIFICATION PANEL ───────────────────────────
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "flex-start",
   },
   notificationPanel: {
     backgroundColor: COLORS.surface,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
+    borderRadius: 32,
+    marginHorizontal: 16,
     maxHeight: "75%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.2,
+    shadowRadius: 36,
+    elevation: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    overflow: "hidden",
+  },
+  panelHandleWrap: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  panelHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: COLORS.border,
   },
   panelHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    paddingTop: 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   panelTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: COLORS.text,
-    letterSpacing: -0.3,
+    fontSize: 22,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+  },
+  panelSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+    marginTop: 2,
   },
   panelActions: {
     flexDirection: "row",
@@ -907,20 +940,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   clearBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: `${COLORS.error}10`,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: `${COLORS.error}12`,
   },
   clearBtnText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.error,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.background,
     justifyContent: "center",
     alignItems: "center",
@@ -930,16 +963,25 @@ const styles = StyleSheet.create({
   },
   emptyNotifications: {
     alignItems: "center",
-    paddingVertical: 50,
-    gap: 10,
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyBellCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
   emptyNotifText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.primary,
   },
   emptyNotifSubtext: {
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.textMuted,
     textAlign: "center",
   },
@@ -947,37 +989,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
-  notifBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+  notifItemUnread: {
+    backgroundColor: `${COLORS.info}05`,
+    borderColor: `${COLORS.info}20`,
   },
   notifIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
   notifContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
+  },
+  notifHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
   },
   notifAction: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  notifUser: {
-    fontSize: 13,
-    color: COLORS.textLight,
-    marginTop: 2,
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.primary,
+    flex: 1,
   },
   notifTime: {
     fontSize: 11,
     color: COLORS.textMuted,
-    marginTop: 3,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  notifUser: {
+    fontSize: 13,
+    color: COLORS.textLight,
     fontWeight: "500",
   },
 });
