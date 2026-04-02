@@ -17,24 +17,25 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  Animated,
 } from "react-native";
-import { Card, Divider, Switch, Text } from "react-native-paper";
+import { Switch, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 const COLORS = {
   primary: "#21100B",
-  accent: "#38302E",
+  primaryContainer: "#4A4341",
+  background: "#F2F2F2",
+  white: "#FFFFFF",
   secondary: "#8C7D79",
+  text: "#1A1818",
+  textMuted: "#8C7D79",
   error: "#D93636",
   success: "#10B981",
-  background: "#F5F1EE",
-  surface: "#FFFFFF",
-  text: "#1A1818",
-  textLight: "#4A4341",
-  textMuted: "#8C7D79",
-  white: "#FFFFFF",
-  border: "#EDE7E3",
+  cardBorder: "rgba(33, 16, 11, 0.05)",
+  cardShadow: "#21100B",
+  iconBg: "rgba(33, 16, 11, 0.04)",
 };
 
 const GENERAL_SETTINGS = [
@@ -42,32 +43,91 @@ const GENERAL_SETTINGS = [
     id: "notifications",
     title: "Push Notifications",
     icon: Bell,
-    color: "#F59E0B",
     type: "switch",
   },
   {
     id: "email",
     title: "Email Notifications",
     icon: Mail,
-    color: "#10B981",
     type: "switch",
   },
   {
     id: "alerts",
     title: "SOS Alerts",
     icon: AlertTriangle,
-    color: "#EF4444",
     type: "switch",
   },
   {
     id: "language",
     title: "Language",
     icon: Languages,
-    color: "#8B5CF6",
     type: "navigate",
     value: "English",
   },
 ];
+
+const DANGER_ITEMS = [
+  {
+    id: "clear_cache",
+    title: "Clear System Cache",
+    icon: Trash2,
+    confirmTitle: "Clear Cache",
+    confirmMessage: "This will clear all cached data. Continue?",
+  },
+  {
+    id: "reset_db",
+    title: "Reset Database",
+    icon: Database,
+    confirmTitle: "Reset Database",
+    confirmMessage: "⚠️ This action cannot be undone! Are you sure?",
+  },
+];
+
+const AnimatedSettingCard = ({
+  children,
+  onPress,
+  isDanger,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  isDanger?: boolean;
+}) => {
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={styles.cardWrapper}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          isDanger && styles.dangerCard,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 export default function SettingsScreen() {
   const { logout } = useAuth();
@@ -96,52 +156,27 @@ export default function SettingsScreen() {
     setSwitches({ ...switches, [id]: !switches[id] });
   };
 
-  const renderSettingItem = (item: any, index: number, isLast: boolean) => (
-    <React.Fragment key={item.id}>
-      <TouchableOpacity
-        style={styles.settingItem}
-        onPress={() =>
-          item.type === "navigate" && console.log("Navigate to", item.id)
-        }
-        disabled={item.type === "switch"}
-        activeOpacity={0.7}
-      >
-        <View
-          style={[styles.settingIcon, { backgroundColor: `${item.color}12` }]}
-        >
-          <item.icon
-            size={20}
-            color={item.color}
-            strokeWidth={2}
-          />
-        </View>
-        <View style={styles.settingInfo}>
-          <Text style={styles.settingTitle}>{item.title}</Text>
-          {item.value && <Text style={styles.settingValue}>{item.value}</Text>}
-        </View>
-        {item.type === "switch" ? (
-          <Switch
-            value={switches[item.id]}
-            onValueChange={() => toggleSwitch(item.id)}
-            color={COLORS.primary}
-          />
-        ) : (
-          <ChevronRight
-            size={20}
-            color={COLORS.textMuted}
-          />
-        )}
-      </TouchableOpacity>
-      {!isLast && <Divider style={styles.divider} />}
-    </React.Fragment>
-  );
+  const handleDangerPress = (item: (typeof DANGER_ITEMS)[0]) => {
+    Alert.alert(item.confirmTitle, item.confirmMessage, [
+      { text: "Cancel", style: "cancel" },
+      { text: item.confirmTitle.split(" ")[0], style: "destructive" },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 8 }]}>
+        <View
+          style={[
+            styles.header,
+            { paddingTop: Math.max(insets.top, 20) + 8 },
+          ]}
+        >
           <Text style={styles.headerTitle}>Settings</Text>
           <Text style={styles.headerSubtitle}>
             Manage your admin preferences
@@ -151,15 +186,44 @@ export default function SettingsScreen() {
         {/* General Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>General</Text>
-          <Card style={styles.settingsCard}>
-            {GENERAL_SETTINGS.map((item, index) =>
-              renderSettingItem(
-                item,
-                index,
-                index === GENERAL_SETTINGS.length - 1,
-              ),
-            )}
-          </Card>
+          {GENERAL_SETTINGS.map((item) => (
+            <AnimatedSettingCard
+              key={item.id}
+              onPress={() =>
+                item.type === "switch"
+                  ? toggleSwitch(item.id)
+                  : console.log("Navigate to", item.id)
+              }
+            >
+                <View style={styles.cardLeft}>
+                  <View style={styles.cardIconBox}>
+                    <item.icon
+                      size={22}
+                      color={COLORS.primaryContainer}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <View style={styles.cardTextContainer}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    {item.value && (
+                      <Text style={styles.cardValue}>{item.value}</Text>
+                    )}
+                  </View>
+                </View>
+                {item.type === "switch" ? (
+                  <Switch
+                    value={switches[item.id]}
+                    onValueChange={() => toggleSwitch(item.id)}
+                    color={COLORS.primary}
+                  />
+                ) : (
+                  <ChevronRight
+                    size={20}
+                    color={COLORS.textMuted}
+                  />
+                )}
+            </AnimatedSettingCard>
+          ))}
         </View>
 
         {/* Danger Zone */}
@@ -167,74 +231,38 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionTitle, { color: COLORS.error }]}>
             Danger Zone
           </Text>
-          <Card style={[styles.settingsCard, styles.dangerCard]}>
-            <TouchableOpacity
-              style={styles.dangerItem}
-              onPress={() =>
-                Alert.alert(
-                  "Clear Cache",
-                  "This will clear all cached data. Continue?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Clear", style: "destructive" },
-                  ],
-                )
-              }
-              activeOpacity={0.7}
+          {DANGER_ITEMS.map((item) => (
+            <AnimatedSettingCard
+              key={item.id}
+              onPress={() => handleDangerPress(item)}
+              isDanger
             >
-              <View
-                style={[styles.settingIcon, { backgroundColor: "#FEE2E2" }]}
-              >
-                <Trash2
-                  size={20}
-                  color={COLORS.error}
-                  strokeWidth={2}
-                />
-              </View>
-              <Text style={styles.dangerText}>Clear System Cache</Text>
-            </TouchableOpacity>
-            <Divider style={styles.divider} />
-            <TouchableOpacity
-              style={styles.dangerItem}
-              onPress={() =>
-                Alert.alert(
-                  "Reset Database",
-                  "⚠️ This action cannot be undone! Are you sure?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Reset", style: "destructive" },
-                  ],
-                )
-              }
-              activeOpacity={0.7}
-            >
-              <View
-                style={[styles.settingIcon, { backgroundColor: "#FEE2E2" }]}
-              >
-                <Database
-                  size={20}
-                  color={COLORS.error}
-                  strokeWidth={2}
-                />
-              </View>
-              <Text style={styles.dangerText}>Reset Database</Text>
-            </TouchableOpacity>
-          </Card>
+                <View style={styles.cardLeft}>
+                  <View style={[styles.cardIconBox, styles.dangerIconBox]}>
+                    <item.icon
+                      size={22}
+                      color={COLORS.error}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <Text style={[styles.cardTitle, { color: COLORS.error }]}>
+                    {item.title}
+                  </Text>
+                </View>
+                <ChevronRight size={20} color={COLORS.error} />
+            </AnimatedSettingCard>
+          ))}
         </View>
 
-        {/* Logout Section */}
-        <View style={styles.section}>
+        {/* Logout Button */}
+        <View style={styles.logoutSection}>
           <TouchableOpacity
             style={styles.logoutButton}
             onPress={handleLogout}
             activeOpacity={0.8}
           >
-            <LogOut
-              size={20}
-              color={COLORS.error}
-              strokeWidth={2.5}
-            />
-            <Text style={styles.logoutText}>Logout from Admin Panel</Text>
+            <LogOut size={18} color={COLORS.error} strokeWidth={2.5} />
+            <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
 
@@ -256,82 +284,105 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 8,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 32,
+    fontWeight: "900",
     color: COLORS.text,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   headerSubtitle: {
     fontSize: 14,
     color: COLORS.textMuted,
     marginTop: 4,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   section: {
     paddingHorizontal: 20,
     marginTop: 24,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginBottom: 12,
-    letterSpacing: -0.2,
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+    marginBottom: 16,
   },
-  settingsCard: {
-    borderRadius: 20,
-    elevation: 3,
-    overflow: "hidden",
-    shadowColor: "#21100B",
+  cardWrapper: {
+    marginBottom: 12,
+  },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    shadowColor: COLORS.cardShadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
+    elevation: 3,
   },
-  settingItem: {
+  dangerCard: {
+    borderColor: "rgba(217, 54, 54, 0.1)",
+  },
+  cardLeft: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-  },
-  settingIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
-  settingInfo: {
+    gap: 16,
     flex: 1,
   },
-  settingTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.text,
+  cardIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.iconBg,
   },
-  settingValue: {
+  dangerIconBox: {
+    backgroundColor: "rgba(217, 54, 54, 0.06)",
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.primary,
+    letterSpacing: -0.2,
+  },
+  cardValue: {
     fontSize: 12,
     color: COLORS.textMuted,
     marginTop: 2,
+    fontWeight: "500",
   },
-  divider: {
-    backgroundColor: COLORS.border,
+  logoutSection: {
+    marginTop: 32,
+    paddingHorizontal: 20,
+    alignItems: "center",
   },
-  dangerCard: {
-    borderWidth: 1,
-    borderColor: "#FECACA",
-  },
-  dangerItem: {
+  logoutButton: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    justifyContent: "center",
+    backgroundColor: COLORS.iconBg,
+    paddingVertical: 14,
+    width: "100%",
+    borderRadius: 50,
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.1)",
   },
-  dangerText: {
-    fontSize: 15,
-    fontWeight: "600",
+  logoutText: {
+    fontSize: 14,
+    fontWeight: "700",
     color: COLORS.error,
   },
   appInfo: {
@@ -347,22 +398,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textMuted,
     marginTop: 4,
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FEE2E2",
-    paddingVertical: 16,
-    borderRadius: 18,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#FECACA",
-    marginTop: 8,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.error,
   },
 });

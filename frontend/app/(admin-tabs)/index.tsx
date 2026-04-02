@@ -35,21 +35,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const COLORS = {
   headerDark: "#21100B",
-  headerMid: "#38302E",
+  headerMid: "#4A4341",
   primary: "#21100B",
-  accent: "#38302E",
+  accent: "#4A4341",
   secondary: "#8C7D79",
   error: "#D93636",
   success: "#10B981",
   warning: "#F59E0B",
   info: "#3B82F6",
-  background: "#F5F1EE",
+  background: "#F2F2F2",
   surface: "#FFFFFF",
   text: "#1A1818",
   textLight: "#4A4341",
   textMuted: "#8C7D79",
   white: "#FFFFFF",
   border: "#EDE7E3",
+  cardBorder: "rgba(33, 16, 11, 0.05)",
+  iconBg: "rgba(33, 16, 11, 0.04)",
 };
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -342,7 +344,11 @@ export default function AdminDashboard() {
           <View style={styles.blob2} />
 
           <View style={styles.headerTop}>
-            <View style={styles.userInfo}>
+            <TouchableOpacity 
+              style={styles.userInfo} 
+              onPress={() => router.push("/(admin-tabs)/profile")} 
+              activeOpacity={0.8}
+            >
               <View style={styles.avatarRing}>
                 <Avatar.Image
                   size={48}
@@ -357,7 +363,7 @@ export default function AdminDashboard() {
                   {user?.name || "Administrator"}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* ── NOTIFICATION BELL ── */}
             <TouchableOpacity style={styles.notificationBtn} onPress={handleBellPress}>
@@ -593,9 +599,9 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     overflow: "hidden",
     position: "relative",
   },
@@ -679,10 +685,10 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: "800",
+    fontSize: 32,
+    fontWeight: "900",
     color: COLORS.white,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   connectionStatus: {
     flexDirection: "row",
@@ -731,10 +737,10 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.text,
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
   },
   statsGrid: {
     flexDirection: "row",
@@ -744,12 +750,14 @@ const styles = StyleSheet.create({
   statCard: {
     width: "48%",
     marginBottom: 12,
-    borderRadius: 20,
+    borderRadius: 24,
     elevation: 3,
     shadowColor: "#21100B",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   statContent: {
     alignItems: "center",
@@ -786,13 +794,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   activityCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     elevation: 3,
     padding: 4,
     shadowColor: "#21100B",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   activityItem: {
     flexDirection: "row",
@@ -867,8 +877,8 @@ const styles = StyleSheet.create({
   },
   notificationPanel: {
     backgroundColor: COLORS.surface,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     maxHeight: "75%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },

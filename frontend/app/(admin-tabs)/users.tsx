@@ -20,24 +20,28 @@ import {
   Search,
   RefreshCw,
   Clock,
+  UserPlus,
+  X,
 } from "lucide-react-native";
 import { useSocket } from "../../store/SocketContext";
 
 const COLORS = {
   primary: "#21100B",
-  accent: "#38302E",
+  accent: "#4A4341",
   secondary: "#8C7D79",
   error: "#D93636",
   success: "#10B981",
   warning: "#F59E0B",
   info: "#3B82F6",
-  background: "#F5F1EE",
+  background: "#F2F2F2",
   surface: "#FFFFFF",
   text: "#1A1818",
   textLight: "#4A4341",
   textMuted: "#8C7D79",
   white: "#FFFFFF",
   border: "#EDE7E3",
+  cardBorder: "rgba(33, 16, 11, 0.05)",
+  iconBg: "rgba(33, 16, 11, 0.04)",
 };
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -176,8 +180,8 @@ export default function UsersScreen() {
 
   // ─── FILTER & SEARCH ──────────────────────────────────
   const filteredUsers = users.filter((u) => {
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.phone.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (u.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.phone || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     const isOnline = onlineUserIds.has(u.id);
     const matchesFilter =
@@ -250,6 +254,8 @@ export default function UsersScreen() {
           inputStyle={styles.searchInput}
           iconColor={COLORS.textMuted}
           placeholderTextColor={COLORS.textMuted}
+          icon={() => <Search size={20} color={COLORS.textMuted} />}
+          clearIcon={() => <X size={20} color={COLORS.textMuted} />}
         />
       </View>
 
@@ -406,6 +412,7 @@ export default function UsersScreen() {
           </ScrollView>
         </Animated.View>
       )}
+
     </View>
   );
 }
@@ -426,10 +433,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 32,
+    fontWeight: "900",
     color: COLORS.text,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -485,13 +492,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   searchBar: {
-    borderRadius: 18,
+    borderRadius: 22,
     elevation: 3,
     backgroundColor: COLORS.white,
     shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   searchInput: {
     fontSize: 14,
@@ -525,13 +534,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   userCard: {
-    marginBottom: 10,
-    borderRadius: 18,
-    elevation: 2,
+    marginBottom: 12,
+    borderRadius: 24,
+    elevation: 3,
     shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   userContent: {
     flexDirection: "row",
@@ -663,5 +674,21 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textAlign: "center",
     maxWidth: 240,
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 100,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
 });
