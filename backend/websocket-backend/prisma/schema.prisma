@@ -25,6 +25,7 @@ model User {
   locationLogs      LocationLog[]
   emergencyContacts EmergencyContact[]
   itineraries       Itinerary[]
+  sosAlerts         SOSAlert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -95,4 +96,38 @@ enum ItineraryStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum SOSStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  CANCELLED
+  ESCALATED
+}
+
+model SOSAlert {
+  id        String    @id @default(uuid())
+  userId    String
+
+  status    SOSStatus @default(ACTIVE)
+
+  latitude  Float?
+  longitude Float?
+  address   String?
+
+  emergencyContacts Json?    // snapshot of contacts at dispatch time
+
+  resolvedAt   DateTime?
+  cancelledAt  DateTime?
+  acknowledgedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }

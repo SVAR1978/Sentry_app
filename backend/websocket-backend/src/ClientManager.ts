@@ -9,8 +9,16 @@ import {
   broadcastUserLocationToAdmins,
 } from "./services/adminRealtimeService.js";
 import {
+  handleSOSDispatch,
+  handleSOSResolve,
+  handleSOSAcknowledge,
+} from "./services/sosAlertService.js";
+import {
   ChatAskMessage,
   Client,
+  EmergencySOSMessage,
+  SOSResolveMessage,
+  SOSAcknowledgeMessage,
   IncomingMessage,
   Role,
 } from "./types/wsTypes.js";
@@ -62,6 +70,30 @@ export class ClientManager {
   }
 
   private async handleMessage(message: IncomingMessage) {
+    // ── SOS messages: available to BOTH users and admins ──
+    if (message.type === "EMERGENCY_SOS" && this.role === "USER") {
+      await handleSOSDispatch(
+        ClientManager.clients,
+        this.userId,
+        (message as EmergencySOSMessage).payload,
+        this.ws
+      );
+      return;
+    }
+
+    if (message.type === "SOS_RESOLVE" && this.role === "USER") {
+      const alertId = (message as SOSResolveMessage).payload.alertId;
+      await handleSOSResolve(ClientManager.clients, this.userId, alertId, this.ws);
+      return;
+    }
+
+    if (message.type === "SOS_ACKNOWLEDGE" && this.role === "ADMIN") {
+      const { alertId, adminId } = (message as SOSAcknowledgeMessage).payload;
+      await handleSOSAcknowledge(ClientManager.clients, alertId, adminId);
+      return;
+    }
+
+    // ── User-only messages below ──
     if (this.role !== "USER") return;
 
     if (message.type === "CHAT_ASK") {
