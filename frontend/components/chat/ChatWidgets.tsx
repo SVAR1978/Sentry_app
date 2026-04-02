@@ -93,7 +93,7 @@ const chipStyles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: "rgba(33, 16, 11, 0.06)",
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    backgroundColor: "rgba(242, 240, 238, 0.6)",
   },
   list: {
     paddingHorizontal: 16,
@@ -107,14 +107,14 @@ const chipStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingRight: 18,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.1)",
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    backgroundColor: "#FFFFFF",
     shadowColor: "#21100B",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   chipIconBg: {
     width: 24,
@@ -149,7 +149,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <View style={welcomeStyles.avatar}>
             <Image
               source={require("../../assets/images/chat-bot.png")}
-              style={{ width: 64, height: 64, borderRadius: 32 }}
+              style={{ width: 72, height: 72, borderRadius: 36 }}
               resizeMode="cover"
             />
           </View >
@@ -178,7 +178,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   {Icon && (
                     <Icon
                       size={22}
-                      color="#3E1911"
+                      color="#21100B"
                       strokeWidth={2}
                     />
                   )}
@@ -203,43 +203,43 @@ const welcomeStyles = StyleSheet.create({
     paddingBottom: 20,
   },
   avatarWrapper: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   glowRing: {
     padding: 6,
     borderRadius: 48,
     borderWidth: 2,
-    borderColor: "rgba(33, 16, 11, 0.08)",
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderColor: "rgba(33, 16, 11, 0.1)",
+    backgroundColor: "#F5F0EE",
     shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 6,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
   },
   heading: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "900",
     color: "#21100B",
     marginBottom: 8,
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
   subtext: {
     fontSize: 14,
     color: "rgba(33, 16, 11, 0.5)",
     textAlign: "center",
-    marginBottom: 28,
+    marginBottom: 32,
     fontWeight: "600",
-    lineHeight: 20,
+    lineHeight: 21,
   },
   featureGrid: {
     flexDirection: "row",
@@ -250,42 +250,43 @@ const welcomeStyles = StyleSheet.create({
   },
   featureCard: {
     width: "46%",
-    backgroundColor: "rgba(255, 255, 255, 0.65)",
-    borderWidth: 1,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
     borderColor: "rgba(33, 16, 11, 0.06)",
-    borderRadius: 20,
-    paddingVertical: 18,
+    borderRadius: 22,
+    paddingVertical: 20,
     paddingHorizontal: 14,
     alignItems: "center",
     shadowColor: "#21100B",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 3,
   },
   featureIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: "rgba(33, 16, 11, 0.04)",
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: "#F5F0EE",
     borderWidth: 1,
     borderColor: "rgba(33, 16, 11, 0.06)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   featureLabel: {
     fontSize: 14,
     fontWeight: "800",
     color: "#21100B",
     marginBottom: 4,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   featureDesc: {
     fontSize: 11,
     color: "rgba(33, 16, 11, 0.45)",
     textAlign: "center",
     fontWeight: "500",
+    lineHeight: 16,
   },
 });
 
@@ -320,10 +321,10 @@ const separatorStyles = StyleSheet.create({
     backgroundColor: "rgba(33, 16, 11, 0.06)",
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: "#F5F0EE",
     borderWidth: 1,
     borderColor: "rgba(33, 16, 11, 0.06)",
     marginHorizontal: 8,

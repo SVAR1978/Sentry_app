@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View, Image } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "react-native-paper";
 import { Check, CheckCheck } from "lucide-react-native";
 import {
@@ -40,6 +41,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const isBot = message.sender === "bot";
   const time = formatTime(message.timestamp);
 
+  // Compute border radii based on grouping
+  const userRadii = {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: isFirstInGroup ? 20 : 6,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: isLastInGroup ? 20 : 6,
+  };
+
+  const botRadii = {
+    borderTopLeftRadius: isFirstInGroup ? 20 : 6,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: isLastInGroup ? 20 : 6,
+    borderBottomRightRadius: 20,
+  };
+
   return (
     <Animated.View
       style={[
@@ -48,7 +64,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {
           opacity: fadeAnim,
           transform: [{ translateX: slideAnim }],
-          marginBottom: isLastInGroup ? 12 : 4,
+          marginBottom: isLastInGroup ? 14 : 3,
         },
       ]}
     >
@@ -57,12 +73,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <View style={styles.avatarColumn}>
           {isLastInGroup ? (
             <View style={styles.avatarSmall}>
-              <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="cover" />
-            </View >
+              <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 30, height: 30, borderRadius: 15 }} resizeMode="cover" />
+            </View>
           ) : (
             <View style={styles.avatarSpacer} />
           )}
-        </View >
+        </View>
       )}
 
       <View
@@ -71,44 +87,43 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           isBot ? styles.botBubbleContainer : styles.userBubbleContainer,
         ]}
       >
-        <View
-          style={[
-            styles.bubble,
-            isBot ? styles.botBubble : styles.userBubble,
-            isFirstInGroup && isBot && styles.botBubbleFirst,
-            isFirstInGroup && !isBot && styles.userBubbleFirst,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              isBot ? styles.botMessageText : styles.userMessageText,
-            ]}
+        {isBot ? (
+          /* ── Bot Bubble: Solid light background ── */
+          <View style={[styles.bubble, styles.botBubble, botRadii]}>
+            <Text style={[styles.messageText, styles.botMessageText]}>
+              {message.text}
+            </Text>
+            <View style={[styles.metaInline, styles.metaLeft]}>
+              <Text style={styles.timestamp}>{time}</Text>
+            </View>
+          </View>
+        ) : (
+          /* ── User Bubble: Gradient matching the header ── */
+          <LinearGradient
+            colors={['#1A0C08', '#2D1610', '#3E1911']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.bubble, styles.userBubble, userRadii]}
           >
-            {message.text}
-          </Text>
-        </View>
-
-        {/* Timestamp & Status */}
-        <View
-          style={[
-            styles.metaRow,
-            isBot ? styles.metaLeft : styles.metaRight,
-          ]}
-        >
-          <Text style={styles.timestamp}>{time}</Text>
-          {!isBot && message.status && (
-            <View style={styles.statusIcon}>
-              {message.status === "seen" ? (
-                <CheckCheck size={12} color={CHAT_COLORS.seen} strokeWidth={2.5} />
-              ) : (
-                <Check size={12} color={CHAT_COLORS.sent} strokeWidth={2.5} />
+            <Text style={[styles.messageText, styles.userMessageText]}>
+              {message.text}
+            </Text>
+            <View style={[styles.metaInline, styles.metaRight]}>
+              <Text style={[styles.timestamp, styles.timestampUser]}>{time}</Text>
+              {message.status && (
+                <View style={styles.statusIcon}>
+                  {message.status === "seen" ? (
+                    <CheckCheck size={12} color={CHAT_COLORS.seen} strokeWidth={2.5} />
+                  ) : (
+                    <Check size={12} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
+                  )}
+                </View>
               )}
             </View>
-          )}
-        </View>
+          </LinearGradient>
+        )}
       </View>
-    </Animated.View >
+    </Animated.View>
   );
 };
 
@@ -124,7 +139,7 @@ function formatTime(date: Date): string {
 const styles = StyleSheet.create({
   messageRow: {
     flexDirection: "row",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     alignItems: "flex-end",
   },
   botRow: {
@@ -135,27 +150,25 @@ const styles = StyleSheet.create({
   },
   avatarColumn: {
     marginRight: 8,
-    width: 28,
+    width: 30,
   },
   avatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.06)",
-  },
-  avatarEmoji: {
-    fontSize: 14,
+    backgroundColor: "#F5F0EE",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
+    overflow: "hidden",
   },
   avatarSpacer: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
   },
   bubbleContainer: {
-    maxWidth: "75%",
+    maxWidth: "78%",
   },
   botBubbleContainer: {
     alignItems: "flex-start",
@@ -164,44 +177,25 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   bubble: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    overflow: "hidden",
   },
   botBubble: {
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.08)",
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-    shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
-  },
-  botBubbleFirst: {
-    borderTopLeftRadius: 18,
+    backgroundColor: "#F5F0EE",
   },
   userBubble: {
-    backgroundColor: "#21100B",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 4,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-    shadowColor: "#21100B",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  userBubbleFirst: {
-    borderTopRightRadius: 18,
+    shadowColor: "#1A0C08",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
   },
   messageText: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 14.5,
+    lineHeight: 22,
+    fontWeight: "500",
   },
   botMessageText: {
     color: "#1A1818",
@@ -209,12 +203,11 @@ const styles = StyleSheet.create({
   userMessageText: {
     color: "#FFFFFF",
   },
-  metaRow: {
+  metaInline: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 6,
     gap: 4,
-    paddingHorizontal: 4,
   },
   metaLeft: {
     justifyContent: "flex-start",
@@ -224,7 +217,11 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 10,
-    color: CHAT_COLORS.timestamp,
+    color: "rgba(33, 16, 11, 0.35)",
+    fontWeight: "600",
+  },
+  timestampUser: {
+    color: "rgba(255, 255, 255, 0.45)",
   },
   statusIcon: {
     marginLeft: 2,

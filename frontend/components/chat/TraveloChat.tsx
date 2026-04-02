@@ -7,6 +7,8 @@ import {
   Mic,
   Paperclip,
   Image as ImageIcon,
+  Sparkles,
+  ChevronDown,
 } from "lucide-react-native";
 import React, {
   useCallback,
@@ -293,50 +295,63 @@ const TraveloChat: React.FC<TraveloChatProps> = ({ visible, onClose }) => {
               transform: [{ scale: scaleAnim }],
               opacity: fadeAnim,
               paddingBottom: insets.bottom,
+              marginTop: insets.top,
             },
           ]}
         >
-          <BlurView intensity={90} tint="light" style={StyleSheet.absoluteFillObject} />
+          <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFillObject} />
 
           {/* ========== HEADER ========== */}
           <LinearGradient
-            colors={[CHAT_COLORS.headerGradientStart, CHAT_COLORS.headerGradientEnd]}
+            colors={['#1A0C08', '#2D1610', '#3E1911']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.header, { paddingTop: Math.max(insets.top, 12) + 8 }]}
+            style={[styles.header, { paddingTop: 16 }]}
           >
-            {/* Left: Avatar + Info */}
-            <View style={styles.headerLeft}>
-              <View style={styles.headerAvatarRing}>
-                <View style={styles.headerAvatar}>
-                  <Image
-                    source={require("../../assets/images/chat-bot.png")}
-                    style={{ width: 44, height: 44, borderRadius: 22 }}
-                    resizeMode="cover"
-                  />
-                </View >
-                <View style={styles.onlineDot} />
-              </View >
-              <View style={styles.headerInfo}>
-                <Text style={styles.headerName}>{BOT_INFO.name}</Text>
-                <Text style={styles.headerSubtitle}>{BOT_INFO.subtitle}</Text>
-              </View>
-            </View >
+            {/* Decorative accent line at top */}
+            <View style={styles.headerAccentLine} />
 
-            {/* Right: Actions */}
-            <View style={styles.headerActions} >
+            <View style={styles.headerRow}>
+              {/* Left: Avatar + Info */}
+              <View style={styles.headerLeft}>
+                <View style={styles.headerAvatarRing}>
+                  <View style={styles.headerAvatar}>
+                    <Image
+                      source={require("../../assets/images/chat-bot.png")}
+                      style={{ width: 46, height: 46, borderRadius: 23 }}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <View style={styles.onlineDot} />
+                </View>
+                <View style={styles.headerInfo}>
+                  <View style={styles.headerNameRow}>
+                    <Text style={styles.headerName}>{BOT_INFO.name}</Text>
+                    <View style={styles.aiBadge}>
+                      <Sparkles size={10} color="#FFC107" strokeWidth={2.5} />
+                      <Text style={styles.aiBadgeText}>AI</Text>
+                    </View>
+                  </View>
+                  <View style={styles.onlineStatusPill}>
+                    <View style={styles.onlinePulse} />
+                    <Text style={styles.headerSubtitle}>Online · Ready to help</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Right: Close */}
               <TouchableOpacity
-                style={styles.headerBtn}
+                style={styles.closeHeaderBtn}
                 onPress={handleClose}
-                activeOpacity={0.6}
+                activeOpacity={0.7}
               >
-                <X size={18} color="rgba(255,255,255,0.7)" strokeWidth={2.5} />
+                <ChevronDown size={22} color="rgba(255,255,255,0.8)" strokeWidth={2.5} />
               </TouchableOpacity>
-            </View >
+            </View>
 
             {/* Bottom glow */}
             <View style={styles.headerGlow} />
-          </LinearGradient >
+          </LinearGradient>
 
           {/* ========== MESSAGE BODY ========== */}
           <View style={styles.body} >
@@ -561,8 +576,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   chatWindow: {
-    height: SCREEN_HEIGHT * 0.85,
-    backgroundColor: "rgba(255, 255, 255, 0.75)", // glassmorphism semi-transparent base
+    flex: 1,
+    backgroundColor: "#EDE8E5",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     overflow: "hidden",
@@ -575,81 +590,113 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    height: "auto",
-    minHeight: 70,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+  },
+  headerAccentLine: {
+    height: 3,
+    width: 40,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignSelf: "center",
+    marginBottom: 14,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 14,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     flex: 1,
   },
   headerAvatarRing: {
     position: "relative",
-    padding: 2,
-    borderRadius: 24,
+    padding: 3,
+    borderRadius: 28,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
   headerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
   },
-  headerAvatarText: {
-    fontSize: 20,
-  },
   onlineDot: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    bottom: 1,
+    right: 1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: CHAT_COLORS.online,
-    borderWidth: 2,
-    borderColor: CHAT_COLORS.headerGradientStart,
+    borderWidth: 2.5,
+    borderColor: "#1A0C08",
   },
   headerInfo: {
     flex: 1,
+    gap: 4,
   },
-  headerName: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: CHAT_COLORS.white,
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.5)",
-    fontWeight: "500",
-    marginTop: 1,
-  },
-  headerActions: {
+  headerNameRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
+    gap: 8,
+  },
+  headerName: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: CHAT_COLORS.white,
+    letterSpacing: -0.5,
+  },
+  aiBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(255, 193, 7, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255, 193, 7, 0.2)",
   },
-  headerBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  aiBadgeText: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#FFC107",
+    letterSpacing: 0.5,
   },
-  headerDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: "rgba(255,255,255,0.1)",
+  onlineStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  onlinePulse: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: CHAT_COLORS.online,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+    fontWeight: "600",
+  },
+  closeHeaderBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   headerGlow: {
     position: "absolute",
@@ -667,11 +714,11 @@ const styles = StyleSheet.create({
   // Body
   body: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: "#EDE8E5",
   },
   messageList: {
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
 
   // Input Bar
@@ -681,8 +728,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(33, 16, 11, 0.06)",
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderTopColor: "rgba(33, 16, 11, 0.08)",
+    backgroundColor: "#E8E2DF",
     gap: 6,
   },
   inputLeftIcons: {
@@ -695,10 +742,10 @@ const styles = StyleSheet.create({
   },
   inputFieldWrapper: {
     flex: 1,
-    backgroundColor: CHAT_COLORS.inputBg,
+    backgroundColor: "#FFFFFF",
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: CHAT_COLORS.inputBorder,
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
     paddingHorizontal: 20,
     paddingVertical: Platform.OS === "ios" ? 10 : 4,
     maxHeight: 100,
