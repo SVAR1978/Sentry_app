@@ -2,6 +2,11 @@ import WebSocket, { WebSocketServer } from "ws";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { ClientManager } from "./ClientManager.js";
+import { redis } from "./config/redis.js";
+import {
+  broadcastUserSessionToAdmins,
+  UserSessionPayload,
+} from "./services/adminRealtimeService.js";
 
 dotenv.config();
 
@@ -18,6 +23,53 @@ const port = Number(process.env.PORT) || 8080;
 const wss = new WebSocketServer({ port });
 console.log(`WebSocket backend is up on port ${port}`);
 
+// ============================================================
+// Redis Pub/Sub Setup for USER_SESSION Events
+// ============================================================
+const redisSubscriber = redis.duplicate();
+
+redisSubscriber.subscribe("user-session-events", (err: Error | null, count: number) => {
+  if (err) {
+    console.error("[Redis] Failed to subscribe to user-session-events:", err);
+  } else {
+    console.log(
+      `[Redis] Successfully subscribed to ${count} channel(s): user-session-events`
+    );
+  }
+});
+
+/**
+ * Listen for USER_SESSION events published from the HTTPS backend.
+ * When a user logs in or out, the HTTPS backend publishes to Redis,
+ * and this listener receives it and broadcasts to all admin clients.
+ */
+redisSubscriber.on("message", (channel: string, message: string) => {
+  if (channel !== "user-session-events") return;
+
+  try {
+    const sessionEvent: UserSessionPayload = JSON.parse(message);
+
+    console.log(
+      `[WebSocket] Received USER_SESSION event from Redis: ${sessionEvent.action} for user ${sessionEvent.userId}`
+    );
+
+    // Broadcast to all admin clients
+    broadcastUserSessionToAdmins(ClientManager.getClients(), sessionEvent);
+  } catch (err) {
+    console.error(
+      "[WebSocket] Failed to parse USER_SESSION event from Redis:",
+      err
+    );
+  }
+});
+
+redisSubscriber.on("error", (err: Error) => {
+  console.error("[Redis Subscriber] Error:", err);
+});
+
+// ============================================================
+// WebSocket Connection Handler
+// ============================================================
 wss.on("connection", (ws, request) => {
     const { url } = request;
     if (!url) {

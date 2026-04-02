@@ -130,6 +130,35 @@ router.post("/signin", async (req: Request, res: Response) => {
       { expiresIn: "6h" }
     );
 
+    // ============================================================
+    // Publish USER_SESSION event to Redis for real-time admin activity feed
+    // ============================================================
+    try {
+      const userSessionEvent = {
+        type: "USER_SESSION",
+        payload: {
+          userId: user.id,
+          userName: user.name || user.email,
+          action: "LOGIN",
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      // Publish to Redis for WebSocket backend to pick up and broadcast to admins
+      await redis.publish(
+        "user-session-events",
+        JSON.stringify(userSessionEvent.payload)
+      );
+
+      console.log("[AUTH][SIGNIN] Published USER_SESSION LOGIN event to Redis", {
+        userId: user.id,
+        userName: user.name || user.email,
+      });
+    } catch (publishErr) {
+      console.error("[AUTH][SIGNIN] Failed to publish USER_SESSION event:", publishErr);
+      // Don't fail the login if publishing fails - this is a non-critical operation
+    }
+
     return res.status(200).json({
       message: "Signin successful",
       token,
@@ -252,6 +281,84 @@ router.post("/reset-password", async (req: Request, res: Response) => {
     return res.status(200).json({ success: true, message: "Password reset successful." });
   } catch (error) {
     console.error("[AUTH][RESET_PASSWORD] Unexpected error", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+/**
+ * LOGOUT Endpoint
+ * POST /auth/logout
+ * 
+ * Publishes a USER_SESSION LOGOUT event for real-time admin activity feed.
+ * Expects Bearer token in Authorization header.
+ */
+router.post("/logout", async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+    if (!token) {
+      console.warn("[AUTH][LOGOUT] No token provided");
+      return res.status(401).json({ message: "Token is required" });
+    }
+
+    let decoded: { userId: string; role?: string } | null = null;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as { userId: string; role?: string };
+    } catch {
+      console.warn("[AUTH][LOGOUT] Invalid token");
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    if (!decoded?.userId) {
+      console.warn("[AUTH][LOGOUT] Invalid token payload");
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    // Fetch user details for the activity feed
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!user) {
+      console.warn("[AUTH][LOGOUT] User not found", { userId: decoded.userId });
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ============================================================
+    // Publish USER_SESSION LOGOUT event to Redis for admin activity feed
+    // ============================================================
+    try {
+      const userSessionEvent = {
+        type: "USER_SESSION",
+        payload: {
+          userId: user.id,
+          userName: user.name || user.email,
+          action: "LOGOUT",
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      // Publish to Redis for WebSocket backend to pick up and broadcast to admins
+      await redis.publish(
+        "user-session-events",
+        JSON.stringify(userSessionEvent.payload)
+      );
+
+      console.log("[AUTH][LOGOUT] Published USER_SESSION LOGOUT event to Redis", {
+        userId: user.id,
+        userName: user.name || user.email,
+      });
+    } catch (publishErr) {
+      console.error("[AUTH][LOGOUT] Failed to publish USER_SESSION event:", publishErr);
+      // Don't fail the logout if publishing fails - this is a non-critical operation
+    }
+
+    console.log("[AUTH][LOGOUT] Logout successful", { userId: user.id });
+    return res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    console.error("[AUTH][LOGOUT] Unexpected error", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });

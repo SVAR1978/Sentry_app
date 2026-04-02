@@ -52,6 +52,15 @@ export class ClientManager {
     ws.on("close", () => this.cleanup());
   }
 
+  /**
+   * Public getter to access the clients array.
+   * Used by services to broadcast events to all connected clients.
+   * @returns Array of connected clients
+   */
+  public static getClients(): Client[] {
+    return ClientManager.clients;
+  }
+
   private async handleMessage(message: IncomingMessage) {
     if (this.role !== "USER") return;
 
