@@ -163,7 +163,7 @@ const PulsingMarker = React.memo(
             />
           </View>
           {/* Heading indicator */}
-          {user.heading !== undefined && user.heading !== null && user.speed && user.speed > 0.5 && (
+          {user.heading !== undefined && user.heading !== null && (user.speed ?? 0) > 0.5 && (
             <View
               style={[
                 styles.headingArrow,
