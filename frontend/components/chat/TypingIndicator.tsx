@@ -64,7 +64,7 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = ({ visible }) => {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <View style={styles.avatarSmall}>
-        <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="cover" />
+        <Image source={require("../../assets/images/chat-bot.png")} style={{ width: 30, height: 30, borderRadius: 15 }} resizeMode="cover" />
       </View>
       <View style={styles.bubble}>
         <Animated.View
@@ -85,39 +85,38 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     marginBottom: 8,
     gap: 8,
   },
   avatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.06)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#F5F0EE",
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.08)",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
   bubble: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.08)",
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 5,
+    backgroundColor: "#F5F0EE",
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(33, 16, 11, 0.3)",
+    backgroundColor: "rgba(33, 16, 11, 0.25)",
   },
 });
 

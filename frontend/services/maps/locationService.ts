@@ -1,6 +1,5 @@
 import * as Location from "expo-location";
 import {
-    RISK_ZONES,
     RiskZone,
     ROUTE_DEVIATION_CONFIG,
 } from "../../constants/mapData";
@@ -129,42 +128,6 @@ export const getDeviationStatus = (
   return "danger";
 };
 
-// Check if point is inside a polygon (risk zone)
-export const isPointInPolygon = (
-  point: LocationCoordinate,
-  polygon: LocationCoordinate[],
-): boolean => {
-  let inside = false;
-  const n = polygon.length;
-
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = polygon[i].latitude;
-    const yi = polygon[i].longitude;
-    const xj = polygon[j].latitude;
-    const yj = polygon[j].longitude;
-
-    if (
-      yi > point.longitude !== yj > point.longitude &&
-      point.latitude < ((xj - xi) * (point.longitude - yi)) / (yj - yi) + xi
-    ) {
-      inside = !inside;
-    }
-  }
-
-  return inside;
-};
-
-// Get current risk zone for a location
-export const getCurrentRiskZone = (
-  location: LocationCoordinate,
-): RiskZone | null => {
-  for (const zone of RISK_ZONES) {
-    if (isPointInPolygon(location, zone.coordinates)) {
-      return zone;
-    }
-  }
-  return null;
-};
 
 // Request location permissions
 export const requestLocationPermission = async (): Promise<boolean> => {

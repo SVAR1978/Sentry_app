@@ -74,6 +74,26 @@ router.post("/signup", async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
+    // ============================================================
+    // Publish USER_SESSION SIGNUP event to Redis for real-time admin notifications
+    // ============================================================
+    try {
+      await redis.publish(
+        "user-session-events",
+        JSON.stringify({
+          userId: newUser.id,
+          userName: newUser.name || newUser.email,
+          action: "SIGNUP",
+          timestamp: new Date().toISOString(),
+        })
+      );
+      console.log("[AUTH][SIGNUP] Published USER_SESSION SIGNUP event to Redis", {
+        userId: newUser.id,
+      });
+    } catch (publishErr) {
+      console.error("[AUTH][SIGNUP] Failed to publish USER_SESSION event:", publishErr);
+    }
+
     return res.status(201).json({
       message: "Signup successful",
       token,

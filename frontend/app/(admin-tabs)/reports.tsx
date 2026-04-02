@@ -15,49 +15,23 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const COLORS = {
   primary: "#21100B",
+  accent: "#38302E",
   secondary: "#8C7D79",
-  accent: "#8C7D79",
   error: "#D93636",
   success: "#10B981",
+  warning: "#F59E0B",
   background: "#F5F1EE",
   surface: "#FFFFFF",
   text: "#1A1818",
   textLight: "#4A4341",
+  textMuted: "#8C7D79",
   white: "#FFFFFF",
+  border: "#EDE7E3",
 };
 
 const TIME_FILTERS = ["Today", "This Week", "This Month", "This Year"];
 
-const OVERVIEW_STATS = [
-  {
-    label: "Total Tours",
-    value: "1,234",
-    change: "+12%",
-    icon: "map-marker-path",
-    color: COLORS.primary,
-  },
-  {
-    label: "Active Users",
-    value: "856",
-    change: "+8%",
-    icon: "account-check",
-    color: COLORS.success,
-  },
-  {
-    label: "SOS Alerts",
-    value: "23",
-    change: "-5%",
-    icon: "alert-circle",
-    color: COLORS.error,
-  },
-  {
-    label: "Revenue",
-    value: "₹12.4L",
-    change: "+18%",
-    icon: "currency-inr",
-    color: COLORS.accent,
-  },
-];
+
 
 const REPORTS = [
   {
@@ -109,9 +83,9 @@ export default function ReportsScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 8 }]}>
           <Text style={styles.headerTitle}>Reports & Analytics</Text>
           <Text style={styles.headerSubtitle}>
             Monitor your platform performance
@@ -143,68 +117,20 @@ export default function ReportsScreen() {
           ))}
         </ScrollView>
 
-        {/* Overview Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Overview</Text>
-          <View style={styles.statsGrid}>
-            {OVERVIEW_STATS.map((stat, index) => (
-              <Card key={index} style={styles.statCard}>
-                <Card.Content style={styles.statContent}>
-                  <View
-                    style={[
-                      styles.statIcon,
-                      { backgroundColor: `${stat.color}15` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={stat.icon as any}
-                      size={22}
-                      color={stat.color}
-                    />
-                  </View>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
-                  <View style={styles.changeContainer}>
-                    <MaterialCommunityIcons
-                      name={
-                        stat.change.startsWith("+") ? "arrow-up" : "arrow-down"
-                      }
-                      size={12}
-                      color={
-                        stat.change.startsWith("+")
-                          ? COLORS.success
-                          : COLORS.error
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.changeText,
-                        {
-                          color: stat.change.startsWith("+")
-                            ? COLORS.success
-                            : COLORS.error,
-                        },
-                      ]}
-                    >
-                      {stat.change}
-                    </Text>
-                  </View>
-                </Card.Content>
-              </Card>
-            ))}
-          </View>
-        </View>
+
 
         {/* Chart Placeholder */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>User Activity Trend</Text>
           <Card style={styles.chartCard}>
             <Card.Content style={styles.chartContent}>
-              <MaterialCommunityIcons
-                name="chart-areaspline"
-                size={100}
-                color={COLORS.primary}
-              />
+              <View style={styles.chartIconBg}>
+                <MaterialCommunityIcons
+                  name="chart-areaspline"
+                  size={80}
+                  color={COLORS.primary}
+                />
+              </View>
               <Text style={styles.chartPlaceholder}>Activity Chart</Text>
               <Text style={styles.chartSubtext}>
                 Interactive chart will be displayed here
@@ -217,7 +143,7 @@ export default function ReportsScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Generated Reports</Text>
-            <TouchableOpacity style={styles.generateButton}>
+            <TouchableOpacity style={styles.generateButton} activeOpacity={0.8}>
               <MaterialCommunityIcons
                 name="plus"
                 size={18}
@@ -233,7 +159,7 @@ export default function ReportsScreen() {
                 <View
                   style={[
                     styles.reportIcon,
-                    { backgroundColor: `${COLORS.primary}15` },
+                    { backgroundColor: `${COLORS.primary}12` },
                   ]}
                 >
                   <MaterialCommunityIcons
@@ -263,7 +189,7 @@ export default function ReportsScreen() {
                     size={20}
                     color={
                       report.status === "processing"
-                        ? COLORS.textLight
+                        ? COLORS.textMuted
                         : COLORS.primary
                     }
                   />
@@ -288,13 +214,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 4,
+    fontWeight: "500",
   },
   timeFilters: {
     paddingHorizontal: 20,
@@ -304,13 +232,18 @@ const styles = StyleSheet.create({
   timeChip: {
     backgroundColor: COLORS.white,
     marginRight: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   timeChipSelected: {
     backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   timeText: {
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     fontSize: 13,
+    fontWeight: "600",
   },
   timeTextSelected: {
     color: COLORS.white,
@@ -327,70 +260,42 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.text,
     marginBottom: 12,
+    letterSpacing: -0.3,
   },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    marginBottom: 12,
-    borderRadius: 16,
-    elevation: 2,
-  },
-  statContent: {
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 2,
-  },
-  changeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-    gap: 2,
-  },
-  changeText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
+
   chartCard: {
-    borderRadius: 16,
-    elevation: 2,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
   },
   chartContent: {
     alignItems: "center",
     paddingVertical: 40,
   },
+  chartIconBg: {
+    width: 120,
+    height: 120,
+    borderRadius: 32,
+    backgroundColor: `${COLORS.primary}08`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   chartPlaceholder: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.text,
     marginTop: 12,
   },
   chartSubtext: {
     fontSize: 13,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 4,
   },
   generateButton: {
@@ -399,18 +304,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 12,
     gap: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   generateText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.white,
   },
   reportCard: {
     marginBottom: 10,
-    borderRadius: 14,
-    elevation: 1,
+    borderRadius: 18,
+    elevation: 2,
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
   },
   reportContent: {
     flexDirection: "row",
@@ -419,7 +333,7 @@ const styles = StyleSheet.create({
   reportIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -429,23 +343,23 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.text,
   },
   reportMeta: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   downloadButton: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: `${COLORS.primary}10`,
     justifyContent: "center",
     alignItems: "center",
   },
   downloadButtonDisabled: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: COLORS.border,
   },
 });

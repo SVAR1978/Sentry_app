@@ -1,119 +1,257 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle,
+  LogOut,
+  Navigation,
+  Shield,
+  TrendingUp,
+  UserPlus,
+  Users,
+  X,
+  Wifi,
+  WifiOff,
+  Clock,
+} from "lucide-react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
-    Animated,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Animated,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { Avatar, Card, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
+import { useSocket } from "../../store/SocketContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const COLORS = {
+  headerDark: "#21100B",
+  headerMid: "#4A4341",
   primary: "#21100B",
+  accent: "#4A4341",
   secondary: "#8C7D79",
-  accent: "#8C7D79",
   error: "#D93636",
   success: "#10B981",
-  background: "#F5F1EE",
+  warning: "#F59E0B",
+  info: "#3B82F6",
+  background: "#F2F2F2",
   surface: "#FFFFFF",
   text: "#1A1818",
   textLight: "#4A4341",
+  textMuted: "#8C7D79",
   white: "#FFFFFF",
+  border: "#EDE7E3",
+  cardBorder: "rgba(33, 16, 11, 0.05)",
+  iconBg: "rgba(33, 16, 11, 0.04)",
 };
 
-const STATS = [
-  {
-    id: "1",
-    title: "Total Users",
-    value: "2,847",
-    icon: "account-group",
-    color: "#21100B",
-    trend: "+12%",
-  },
-  {
-    id: "2",
-    title: "Active Tours",
-    value: "156",
-    icon: "map-marker-multiple",
-    color: "#10B981",
-    trend: "+8%",
-  },
-  {
-    id: "3",
-    title: "Alerts",
-    value: "23",
-    icon: "alert-circle",
-    color: "#D93636",
-    trend: "-5%",
-  },
-  {
-    id: "4",
-    title: "Revenue",
-    value: "₹4.2L",
-    icon: "currency-inr",
-    color: "#8C7D79",
-    trend: "+18%",
-  },
-];
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const QUICK_ACTIONS = [
-  { id: "1", title: "Add User", icon: "account-plus", color: "#21100B" },
-  { id: "2", title: "New Alert", icon: "bell-plus", color: "#D93636" },
-  { id: "3", title: "View Map", icon: "map-search", color: "#10B981" },
-  { id: "4", title: "Reports", icon: "file-chart", color: "#8C7D79" },
-];
+// ─── TYPES ────────────────────────────────────────────────────────
+interface ActivityItem {
+  id: string;
+  type: "LOGIN" | "LOGOUT" | "SIGNUP" | "RISK_ALERT" | "SOS" | "SYSTEM";
+  action: string;
+  user: string;
+  timestamp: string; // ISO string
+  read?: boolean;
+}
 
-const RECENT_ACTIVITIES = [
-  {
-    id: "1",
-    action: "New user registered",
-    user: "John Doe",
-    time: "5 min ago",
-    icon: "account-plus",
-    color: "#10B981",
-  },
-  {
-    id: "2",
-    action: "SOS alert triggered",
-    user: "Jane Smith",
-    time: "15 min ago",
-    icon: "alert",
-    color: "#D93636",
-  },
-  {
-    id: "3",
-    action: "Tour completed",
-    user: "Mike Wilson",
-    time: "1 hour ago",
-    icon: "check-circle",
-    color: "#21100B",
-  },
-  {
-    id: "4",
-    action: "Feedback received",
-    user: "Sarah Connor",
-    time: "2 hours ago",
-    icon: "message-text",
-    color: "#F59E0B",
-  },
-];
+// ─── HELPERS ──────────────────────────────────────────────────────
+
+function getRelativeTime(isoString: string): string {
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  const diffMs = now - then;
+
+  if (diffMs < 0) return "Just now";
+
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 10) return "Just now";
+  if (seconds < 60) return `${seconds}s ago`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  return new Date(isoString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getActivityIcon(type: ActivityItem["type"]) {
+  switch (type) {
+    case "LOGIN":
+      return { Icon: UserPlus, color: COLORS.success };
+    case "LOGOUT":
+      return { Icon: LogOut, color: COLORS.secondary };
+    case "SIGNUP":
+      return { Icon: UserPlus, color: COLORS.info };
+    case "RISK_ALERT":
+      return { Icon: AlertTriangle, color: COLORS.error };
+    case "SOS":
+      return { Icon: Shield, color: COLORS.error };
+    case "SYSTEM":
+    default:
+      return { Icon: CheckCircle, color: COLORS.primary };
+  }
+}
+
+
+
+// ─── COMPONENT ────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const { onUserActivity, onLiveUsersCount, isConnected } = useSocket();
   const insets = useSafeAreaInsets();
+
+  // ─── STATE ────────────────────────────────────────────────
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [notifications, setNotifications] = useState<ActivityItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [liveUsers, setLiveUsers] = useState<number>(0);
+
+
+  // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const bellShake = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  React.useEffect(() => {
+  // Timer for relative time updates
+  const [, setTick] = useState(0);
+
+  // ─── BELL SHAKE ANIMATION ─────────────────────────────────
+  const shakeBell = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(bellShake, { toValue: 15, duration: 60, useNativeDriver: true }),
+      Animated.timing(bellShake, { toValue: -15, duration: 60, useNativeDriver: true }),
+      Animated.timing(bellShake, { toValue: 10, duration: 60, useNativeDriver: true }),
+      Animated.timing(bellShake, { toValue: -10, duration: 60, useNativeDriver: true }),
+      Animated.timing(bellShake, { toValue: 5, duration: 60, useNativeDriver: true }),
+      Animated.timing(bellShake, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start();
+  }, [bellShake]);
+
+  // ─── PULSE ANIMATION FOR LIVE INDICATOR ────────────────────
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [pulseAnim]);
+
+  // ─── TICK for relative time updates every 30s ──────────────
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ─── FETCH INITIAL DATA ───────────────────────────────────
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        // Fetch stats
+        const statsRes = await fetch(`${BACKEND_URL}/stats`);
+        const statsData = await statsRes.json();
+        if (statsData.totalUsers !== undefined) {
+          setTotalUsers(statsData.totalUsers);
+        }
+
+        // Fetch recent activity
+        const activityRes = await fetch(`${BACKEND_URL}/stats/recent-activity`);
+        const activityData = await activityRes.json();
+        if (activityData.activities) {
+          const mapped: ActivityItem[] = activityData.activities.map((a: any) => ({
+            id: a.id,
+            type: a.type as ActivityItem["type"],
+            action: a.action,
+            user: a.user,
+            timestamp: a.timestamp,
+            read: true, // Historical data → already "read"
+          }));
+          setActivities(mapped);
+        }
+
+
+      } catch (error) {
+        console.error("[AdminDashboard] Failed to fetch initial data:", error);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  // ─── REAL-TIME: LIVE USERS COUNT ──────────────────────────
+  useEffect(() => {
+    const unsubscribe = onLiveUsersCount((event) => {
+      setLiveUsers(event.payload.count);
+    });
+    return unsubscribe;
+  }, [onLiveUsersCount]);
+
+  // ─── REAL-TIME: USER ACTIVITY (LOGIN/LOGOUT/SIGNUP) ───────
+  useEffect(() => {
+    const unsubscribe = onUserActivity((event) => {
+      const actionLabels: Record<string, string> = {
+        LOGIN: "User logged in",
+        LOGOUT: "User logged out",
+        SIGNUP: "New user registered",
+      };
+
+      const newActivity: ActivityItem = {
+        id: `ws-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type: event.payload.action,
+        action: actionLabels[event.payload.action] || event.payload.action,
+        user: event.payload.userName,
+        timestamp: event.payload.timestamp || new Date().toISOString(),
+        read: false,
+      };
+
+      // Add to activities feed (capped at 50)
+      setActivities((prev) => [newActivity, ...prev].slice(0, 50));
+
+      // Add to notifications (capped at 30)
+      setNotifications((prev) => [newActivity, ...prev].slice(0, 30));
+
+      // Increment unread
+      setUnreadCount((prev) => prev + 1);
+
+      // Update total users on SIGNUP
+      if (event.payload.action === "SIGNUP") {
+        setTotalUsers((prev) => prev + 1);
+      }
+
+      // Shake the bell
+      shakeBell();
+    });
+
+    return unsubscribe;
+  }, [onUserActivity, shakeBell]);
+
+  // ─── ENTRY ANIMATION ──────────────────────────────────────
+  useEffect(() => {
     if (!user) {
       router.replace("/(auth)/role-selection");
       return;
@@ -136,51 +274,129 @@ export default function AdminDashboard() {
 
   if (!user) return null;
 
+  // ─── HANDLERS ─────────────────────────────────────────────
   const handleLogout = async () => {
+    // Call the backend logout endpoint to publish the LOGOUT event
+    try {
+      const token = await AsyncStorage.getItem("@sentryapp:token");
+      if (token) {
+        await fetch(`${BACKEND_URL}/auth/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      }
+    } catch (err) {
+      console.warn("[AdminDashboard] Logout API call failed:", err);
+    }
     await logout();
     router.replace("/(auth)/admin-login");
   };
 
+  const handleBellPress = () => {
+    setShowNotifications(true);
+    // Mark all as read
+    setUnreadCount(0);
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleClearNotifications = () => {
+    setNotifications([]);
+    setUnreadCount(0);
+  };
+
+  // ─── STATS DATA ───────────────────────────────────────────
+  const dynamicStats = [
+    {
+      id: "1",
+      title: "Total Users",
+      value: totalUsers.toLocaleString(),
+      icon: Users,
+      color: "#21100B",
+    },
+    {
+      id: "2",
+      title: "Live Users",
+      value: liveUsers.toString(),
+      icon: Navigation,
+      color: "#10B981",
+    },
+  ];
+
+  // ─── RENDER ───────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <StatusBar style="light" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
         <LinearGradient
-          colors={["#21100B", "#4A4341"]}
-          style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}
+          colors={[COLORS.headerDark, COLORS.headerMid]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 16 }]}
         >
+          {/* Decorative blobs */}
+          <View style={styles.blob1} />
+          <View style={styles.blob2} />
+
           <View style={styles.headerTop}>
-            <View style={styles.userInfo}>
-              <Avatar.Image
-                size={48}
-                source={{
-                  uri: user?.avatar || "https://avatar.iran.liara.run/public/1",
-                }}
-              />
+            <TouchableOpacity 
+              style={styles.userInfo} 
+              onPress={() => router.push("/(admin-tabs)/profile")} 
+              activeOpacity={0.8}
+            >
+              <View style={styles.avatarRing}>
+                <Avatar.Text
+                  size={48}
+                  label={user?.name ? user.name.charAt(0).toUpperCase() : "A"}
+                  style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+                  color={COLORS.white}
+                />
+              </View>
               <View style={styles.greeting}>
                 <Text style={styles.greetingText}>Admin Dashboard</Text>
                 <Text style={styles.userName}>
                   {user?.name || "Administrator"}
                 </Text>
               </View>
-            </View>
-            <TouchableOpacity style={styles.notificationBtn}>
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={24}
-                color={COLORS.white}
-              />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>3</Text>
-              </View>
+            </TouchableOpacity>
+
+            {/* ── NOTIFICATION BELL ── */}
+            <TouchableOpacity style={styles.notificationBtn} onPress={handleBellPress}>
+              <Animated.View style={{ transform: [{ rotate: bellShake.interpolate({
+                inputRange: [-15, 15],
+                outputRange: ['-15deg', '15deg'],
+              }) }] }}>
+                <Bell size={22} color={COLORS.white} strokeWidth={2} />
+              </Animated.View>
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
           <Text style={styles.headerTitle}>Welcome back, Admin!</Text>
-          <Text style={styles.headerSubtitle}>
-            Here's what's happening with your platform today
-          </Text>
+          <View style={styles.connectionStatus}>
+            {isConnected ? (
+              <>
+                <Animated.View style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]} />
+                <Wifi size={12} color="rgba(255,255,255,0.7)" strokeWidth={2} />
+                <Text style={styles.connectionText}>Live</Text>
+              </>
+            ) : (
+              <>
+                <View style={[styles.liveDot, { backgroundColor: COLORS.error }]} />
+                <WifiOff size={12} color="rgba(255,255,255,0.5)" strokeWidth={2} />
+                <Text style={[styles.connectionText, { color: "rgba(255,255,255,0.5)" }]}>Reconnecting…</Text>
+              </>
+            )}
+          </View>
         </LinearGradient>
 
         <Animated.View
@@ -195,79 +411,31 @@ export default function AdminDashboard() {
           {/* Stats Grid */}
           <View style={styles.section}>
             <View style={styles.statsGrid}>
-              {STATS.map((stat) => (
+              {dynamicStats.map((stat) => (
                 <Card key={stat.id} style={styles.statCard}>
                   <Card.Content style={styles.statContent}>
-                    <View
-                      style={[
-                        styles.statIcon,
-                        { backgroundColor: `${stat.color}15` },
-                      ]}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={stat.id === "2" ? () => router.push("/(admin-tabs)/map") : undefined}
+                      style={{ alignItems: "center", width: "100%" }}
                     >
-                      <MaterialCommunityIcons
-                        name={stat.icon as any}
-                        size={24}
-                        color={stat.color}
-                      />
-                    </View>
-                    <Text style={styles.statValue}>{stat.value}</Text>
-                    <Text style={styles.statTitle}>{stat.title}</Text>
-                    <View style={styles.trendContainer}>
-                      <MaterialCommunityIcons
-                        name={
-                          stat.trend.startsWith("+")
-                            ? "trending-up"
-                            : "trending-down"
-                        }
-                        size={14}
-                        color={
-                          stat.trend.startsWith("+")
-                            ? COLORS.success
-                            : COLORS.error
-                        }
-                      />
-                      <Text
+                      <View
                         style={[
-                          styles.trendText,
-                          {
-                            color: stat.trend.startsWith("+")
-                              ? COLORS.success
-                              : COLORS.error,
-                          },
+                          styles.statIcon,
+                          { backgroundColor: `${stat.color}15` },
                         ]}
                       >
-                        {stat.trend}
-                      </Text>
-                    </View>
+                        <stat.icon
+                          size={24}
+                          color={stat.color}
+                          strokeWidth={2}
+                        />
+                      </View>
+                      <Text style={styles.statValue}>{stat.value}</Text>
+                      <Text style={styles.statTitle}>{stat.title}</Text>
+                    </TouchableOpacity>
                   </Card.Content>
                 </Card>
-              ))}
-            </View>
-          </View>
-
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.quickActions}>
-              {QUICK_ACTIONS.map((action) => (
-                <TouchableOpacity
-                  key={action.id}
-                  style={styles.quickActionItem}
-                >
-                  <View
-                    style={[
-                      styles.quickActionIcon,
-                      { backgroundColor: `${action.color}15` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={action.icon as any}
-                      size={28}
-                      color={action.color}
-                    />
-                  </View>
-                  <Text style={styles.quickActionLabel}>{action.title}</Text>
-                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -276,87 +444,148 @@ export default function AdminDashboard() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Activity</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAll}>View All</Text>
-              </TouchableOpacity>
+              <View style={styles.sectionHeaderRight}>
+                <View style={styles.activityCountBadge}>
+                  <Text style={styles.activityCountText}>{activities.length}</Text>
+                </View>
+              </View>
             </View>
-            <Card style={styles.activityCard}>
-              {RECENT_ACTIVITIES.map((activity, index) => (
-                <View
-                  key={activity.id}
-                  style={[
-                    styles.activityItem,
-                    index < RECENT_ACTIVITIES.length - 1 &&
-                      styles.activityBorder,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.activityIcon,
-                      { backgroundColor: `${activity.color}15` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={activity.icon as any}
-                      size={20}
-                      color={activity.color}
-                    />
-                  </View>
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.activityAction}>{activity.action}</Text>
-                    <Text style={styles.activityUser}>{activity.user}</Text>
-                  </View>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
-                </View>
-              ))}
-            </Card>
-          </View>
 
-          {/* System Status */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>System Status</Text>
-            <Card style={styles.statusCard}>
-              <Card.Content>
-                <View style={styles.statusRow}>
-                  <View style={styles.statusItem}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: COLORS.success },
-                      ]}
-                    />
-                    <Text style={styles.statusLabel}>Server</Text>
-                    <Text style={styles.statusValue}>Online</Text>
-                  </View>
-                  <View style={styles.statusItem}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: COLORS.success },
-                      ]}
-                    />
-                    <Text style={styles.statusLabel}>Database</Text>
-                    <Text style={styles.statusValue}>Connected</Text>
-                  </View>
-                  <View style={styles.statusItem}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: COLORS.accent },
-                      ]}
-                    />
-                    <Text style={styles.statusLabel}>API</Text>
-                    <Text style={styles.statusValue}>99.9%</Text>
-                  </View>
+            {activities.length === 0 ? (
+              <Card style={styles.activityCard}>
+                <View style={styles.emptyState}>
+                  <Clock size={32} color={COLORS.textMuted} strokeWidth={1.5} />
+                  <Text style={styles.emptyStateText}>No activity yet</Text>
+                  <Text style={styles.emptyStateSubtext}>
+                    User logins, signups, and alerts will appear here in real-time
+                  </Text>
                 </View>
-              </Card.Content>
-            </Card>
+              </Card>
+            ) : (
+              <Card style={styles.activityCard}>
+                {activities.slice(0, 10).map((activity, index) => {
+                  const { Icon, color } = getActivityIcon(activity.type);
+                  return (
+                    <View
+                      key={activity.id}
+                      style={[
+                        styles.activityItem,
+                        index < Math.min(activities.length, 10) - 1 && styles.activityBorder,
+                        !activity.read && styles.activityUnread,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.activityIcon,
+                          { backgroundColor: `${color}12` },
+                        ]}
+                      >
+                        <Icon size={18} color={color} strokeWidth={2} />
+                      </View>
+                      <View style={styles.activityInfo}>
+                        <Text style={styles.activityAction}>{activity.action}</Text>
+                        <Text style={styles.activityUser}>{activity.user}</Text>
+                      </View>
+                      <View style={styles.activityTimeContainer}>
+                        <Text style={styles.activityTime}>
+                          {getRelativeTime(activity.timestamp)}
+                        </Text>
+                        {!activity.read && <View style={styles.unreadDot} />}
+                      </View>
+                    </View>
+                  );
+                })}
+              </Card>
+            )}
           </View>
         </Animated.View>
       </ScrollView>
+
+      {/* ── NOTIFICATION PANEL MODAL ── */}
+      <Modal
+        visible={showNotifications}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowNotifications(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+          <View style={[styles.notificationPanel, { marginTop: Math.max(insets.top, 40) }]}>
+            
+            <View style={styles.panelHandleWrap}>
+              <View style={styles.panelHandle} />
+            </View>
+
+            {/* Panel Header */}
+            <View style={styles.panelHeader}>
+              <View>
+                <Text style={styles.panelTitle}>Notifications</Text>
+                <Text style={styles.panelSubtitle}>Real-time system alerts</Text>
+              </View>
+              <View style={styles.panelActions}>
+                {notifications.length > 0 && (
+                  <TouchableOpacity onPress={handleClearNotifications} style={styles.clearBtn}>
+                    <Text style={styles.clearBtnText}>Clear All</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => setShowNotifications(false)} style={styles.closeBtn}>
+                  <X size={20} color={COLORS.text} strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Notification Items */}
+            <ScrollView
+              style={styles.notificationList}
+              contentContainerStyle={{ paddingBottom: 24, paddingTop: 10 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {notifications.length === 0 ? (
+                <View style={styles.emptyNotifications}>
+                  <View style={styles.emptyBellCircle}>
+                    <Bell size={32} color={COLORS.textMuted} strokeWidth={1.5} />
+                  </View>
+                  <Text style={styles.emptyNotifText}>All caught up!</Text>
+                  <Text style={styles.emptyNotifSubtext}>
+                    New notifications will appear here
+                  </Text>
+                </View>
+              ) : (
+                notifications.map((notif, index) => {
+                  const { Icon, color } = getActivityIcon(notif.type);
+                  return (
+                    <View
+                      key={notif.id}
+                      style={[
+                        styles.notifItem,
+                        !notif.read && styles.notifItemUnread,
+                      ]}
+                    >
+                      <View style={[styles.notifIcon, { backgroundColor: `${color}15` }]}>
+                        <Icon size={20} color={color} strokeWidth={2} />
+                      </View>
+                      <View style={styles.notifContent}>
+                        <View style={styles.notifHeader}>
+                          <Text style={styles.notifAction}>{notif.action}</Text>
+                          <Text style={styles.notifTime}>{getRelativeTime(notif.timestamp)}</Text>
+                        </View>
+                        <Text style={styles.notifUser} numberOfLines={1}>{notif.user}</Text>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
+
+// ─── STYLES ─────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -365,9 +594,29 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+    overflow: "hidden",
+    position: "relative",
+  },
+  blob1: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+  blob2: {
+    position: "absolute",
+    bottom: 10,
+    left: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
   },
   headerTop: {
     flexDirection: "row",
@@ -379,38 +628,51 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  avatarRing: {
+    padding: 2,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
   greeting: {
     marginLeft: 12,
   },
   greetingText: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.6)",
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    fontWeight: "600",
   },
   userName: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.white,
+    letterSpacing: -0.3,
   },
   notificationBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   notificationBadge: {
     position: "absolute",
-    top: 6,
-    right: 6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: -2,
+    right: -2,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.error,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: COLORS.headerDark,
   },
   badgeText: {
     fontSize: 10,
@@ -418,14 +680,27 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "900",
     color: COLORS.white,
+    letterSpacing: -1,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    marginTop: 4,
+  connectionStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 6,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.success,
+  },
+  connectionText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+    fontWeight: "600",
   },
   content: {
     paddingTop: 20,
@@ -440,16 +715,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 12,
+  sectionHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  seeAll: {
-    fontSize: 14,
-    fontWeight: "600",
+  activityCountBadge: {
+    backgroundColor: `${COLORS.primary}12`,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  activityCountText: {
+    fontSize: 12,
+    fontWeight: "700",
     color: COLORS.primary,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
   },
   statsGrid: {
     flexDirection: "row",
@@ -459,8 +745,14 @@ const styles = StyleSheet.create({
   statCard: {
     width: "48%",
     marginBottom: 12,
-    borderRadius: 16,
-    elevation: 2,
+    borderRadius: 24,
+    elevation: 3,
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   statContent: {
     alignItems: "center",
@@ -469,20 +761,22 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
   },
   statValue: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
   statTitle: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 4,
+    fontWeight: "500",
   },
   trendContainer: {
     flexDirection: "row",
@@ -492,48 +786,35 @@ const styles = StyleSheet.create({
   },
   trendText: {
     fontSize: 12,
-    fontWeight: "600",
-  },
-  quickActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  quickActionItem: {
-    alignItems: "center",
-    width: (SCREEN_WIDTH - 80) / 4,
-  },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  quickActionLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: COLORS.text,
-    textAlign: "center",
+    fontWeight: "700",
   },
   activityCard: {
-    borderRadius: 16,
-    elevation: 2,
+    borderRadius: 24,
+    elevation: 3,
     padding: 4,
+    shadowColor: "#21100B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   activityItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
   },
+  activityUnread: {
+    backgroundColor: "rgba(59, 130, 246, 0.04)",
+  },
   activityBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: COLORS.border,
   },
   activityIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -548,38 +829,192 @@ const styles = StyleSheet.create({
   },
   activityUser: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 2,
+  },
+  activityTimeContainer: {
+    alignItems: "flex-end",
+    gap: 4,
   },
   activityTime: {
     fontSize: 11,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
+    fontWeight: "500",
   },
-  statusCard: {
-    borderRadius: 16,
-    elevation: 2,
+  unreadDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: COLORS.info,
   },
-  statusRow: {
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 8,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  emptyStateSubtext: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    maxWidth: 240,
+  },
+
+  // ─── MODAL / NOTIFICATION PANEL ───────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-start",
+  },
+  notificationPanel: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 32,
+    marginHorizontal: 16,
+    maxHeight: "75%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.2,
+    shadowRadius: 36,
+    elevation: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    overflow: "hidden",
+  },
+  panelHandleWrap: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  panelHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: COLORS.border,
+  },
+  panelHeader: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    paddingTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  statusItem: {
+  panelTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+  },
+  panelSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  panelActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  clearBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: `${COLORS.error}12`,
+  },
+  clearBtnText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: COLORS.error,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
     alignItems: "center",
   },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginBottom: 6,
+  notificationList: {
+    paddingHorizontal: 16,
   },
-  statusLabel: {
-    fontSize: 12,
-    color: COLORS.textLight,
+  emptyNotifications: {
+    alignItems: "center",
+    paddingVertical: 60,
+    gap: 12,
   },
-  statusValue: {
+  emptyBellCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  emptyNotifText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.primary,
+  },
+  emptyNotifSubtext: {
     fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: "center",
+  },
+  notifItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  notifItemUnread: {
+    backgroundColor: `${COLORS.info}05`,
+    borderColor: `${COLORS.info}20`,
+  },
+  notifIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  notifContent: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  notifHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  notifAction: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.primary,
+    flex: 1,
+  },
+  notifTime: {
+    fontSize: 11,
+    color: COLORS.textMuted,
     fontWeight: "600",
-    color: COLORS.text,
-    marginTop: 2,
+    marginLeft: 8,
+  },
+  notifUser: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    fontWeight: "500",
   },
 });

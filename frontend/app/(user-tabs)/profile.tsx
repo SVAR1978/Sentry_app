@@ -23,6 +23,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  Animated,
 } from "react-native";
 import { Avatar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -78,6 +79,49 @@ const SETTINGS_ITEMS = [
   },
 ];
 
+const AnimatedProfileCard = ({
+  children,
+  onPress,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+}) => {
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={styles.cardWrapper}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();
   const insets = useSafeAreaInsets();
@@ -130,8 +174,10 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           {ACCOUNT_ITEMS.map((item) => (
-            <TouchableOpacity key={item.id} onPress={() => handleMenuPress(item.id)} activeOpacity={0.7} style={styles.cardWrapper}>
-              <View style={styles.card}>
+            <AnimatedProfileCard
+              key={item.id}
+              onPress={() => handleMenuPress(item.id)}
+            >
                 <View style={styles.cardLeft}>
                   <View style={styles.cardIconBox}>
                     <item.icon size={22} color={COLORS.primaryContainer} strokeWidth={2} />
@@ -139,8 +185,7 @@ export default function ProfileScreen() {
                   <Text style={styles.cardTitle}>{item.title}</Text>
                 </View>
                 <ChevronRight size={20} color={COLORS.textSecondary} />
-              </View>
-            </TouchableOpacity>
+            </AnimatedProfileCard>
           ))}
         </View>
 
@@ -148,8 +193,10 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
           {SETTINGS_ITEMS.map((item) => (
-            <TouchableOpacity key={item.id} onPress={() => handleMenuPress(item.id)} activeOpacity={0.7} style={styles.cardWrapper}>
-              <View style={styles.card}>
+            <AnimatedProfileCard
+              key={item.id}
+              onPress={() => handleMenuPress(item.id)}
+            >
                 <View style={styles.cardLeft}>
                   <View style={styles.cardIconBox}>
                     <item.icon size={22} color={COLORS.primaryContainer} strokeWidth={2} />
@@ -157,8 +204,7 @@ export default function ProfileScreen() {
                   <Text style={styles.cardTitle}>{item.title}</Text>
                 </View>
                 <ChevronRight size={20} color={COLORS.textSecondary} />
-              </View>
-            </TouchableOpacity>
+            </AnimatedProfileCard>
           ))}
         </View>
 
@@ -390,5 +436,3 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
   },
 });
-
-

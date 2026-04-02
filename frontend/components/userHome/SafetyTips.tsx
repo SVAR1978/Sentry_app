@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   Alert,
@@ -148,44 +147,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  cardBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  bannerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  shieldIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bannerTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  bannerSub: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 1,
-  },
   content: {
     padding: 16,
-  },
-  description: {
-    fontSize: 13,
-    color: "#8A9BB8",
-    fontWeight: "500",
-    marginBottom: 16,
-    lineHeight: 18,
   },
   shareBtn: {
     flexDirection: "row",

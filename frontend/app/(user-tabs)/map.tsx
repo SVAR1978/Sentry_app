@@ -30,11 +30,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Map Components
 import {
-    ClusterMarker,
     DirectionsPanel,
     MapFilterBar,
-    POIMarker,
-    RiskZonePolygon,
     SearchOverlay,
     UserLocationMarker,
 } from "../../components/map";
@@ -43,19 +40,11 @@ import {
 import {
     COLORS,
     DELHI_REGION,
-    POI_MARKERS,
-    POIMarker as POIMarkerType,
-    RISK_ZONES,
-    RiskZone,
 } from "../../constants/mapData";
 
 // Location Services
 import {
-    Cluster,
-    clusterMarkers,
     formatDistance,
-    getCurrentRiskZone,
-    isCluster,
     LocationCoordinate,
 } from "../../services/maps/locationService";
 
@@ -107,7 +96,7 @@ export default function MapScreen() {
 
   // ── Filters ──
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [showRiskZones, setShowRiskZones] = useState(true);
+  const [showRiskZones, setShowRiskZones] = useState(false);
 
   // ── Directions ──
   const [selectedPlace, setSelectedPlace] = useState<SearchResult | null>(null);
@@ -122,8 +111,7 @@ export default function MapScreen() {
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
   const navigationManagerRef = useRef<NavigationManager | null>(null);
 
-  // ── Risk zone ──
-  const [currentRiskZone, setCurrentRiskZone] = useState<RiskZone | null>(null);
+  // ── Panic state ──
   const [isPanic, setIsPanic] = useState(false);
 
   // ── UI state ──
@@ -195,8 +183,7 @@ export default function MapScreen() {
         }
       } catch {}
 
-      // Check risk zone
-      setCurrentRiskZone(getCurrentRiskZone(initial));
+
 
       // ── Continuous watch (high accuracy, small intervals) ──
       sub = await Location.watchPositionAsync(
@@ -274,16 +261,6 @@ export default function MapScreen() {
             return follow;
           });
 
-          // Risk zone check
-          const rz = getCurrentRiskZone(coord);
-          setCurrentRiskZone((prev) => {
-            if (rz && rz.level === "high" && prev?.level !== "high") {
-              Alert.alert("⚠️ High Risk Area", rz.description, [
-                { text: "I Understand" },
-              ]);
-            }
-            return rz;
-          });
         },
       );
 
@@ -299,72 +276,81 @@ export default function MapScreen() {
     };
   }, []);
 
+  const lastSearchLocation = useRef<{
+    latitude: number;
+    longitude: number;
+    filter: string;
+  } | null>(null);
+
   // ===================================================================
-  // 1B. FETCH NEARBY PLACES - ONLY when coming from QuickActions button
+  // 1B. FETCH NEARBY PLACES - Dynamic API Call with Throttling
   // ===================================================================
-  useFocusEffect(
-    useCallback(() => {
-      // Only search if we have a filter param from QuickActions
-      if (!userLocation || !params.filter) return;
+  useEffect(() => {
+    // Check if coming from QuickActions and set initial filter once
+    if (params.filter && selectedFilter === "all") {
+      setSelectedFilter(params.filter as string);
+    }
+  }, [params.filter]);
 
-      const filter = params.filter; // Type narrowing
-      let cancelled = false;
-      const fetchNearby = async () => {
-        setLoadingNearby(true);
-        try {
-          console.log(`🎯 QuickAction triggered search for: ${filter}`);
+  useEffect(() => {
+    if (!userLocation) return;
+    
+    // 🚦 THROTTLE: Only search if moved > 500m or if filter changed
+    if (lastSearchLocation.current) {
+      const dx = (userLocation.latitude - lastSearchLocation.current.latitude) * 111000;
+      const dy = (userLocation.longitude - lastSearchLocation.current.longitude) * 111000;
+      const distanceMoved = Math.sqrt(dx*dx + dy*dy);
+      
+      // If we haven't moved far enough and the filter hasn't changed, don't search
+      // Note: selectedFilter change will still trigger this useEffect
+      if (distanceMoved < 500 && lastSearchLocation.current.filter === selectedFilter) {
+        return;
+      }
+    }
 
-          // Map filter to search types
-          const filterTypeMap: Record<string, string[]> = {
-            hospital: ["hospital"],
-            police: ["police"],
-            attraction: ["tourism", "attraction"],
-            all: ["hospital", "police", "tourism", "attraction"],
-          };
+    let cancelled = false;
+    const fetchNearby = async () => {
+      setLoadingNearby(true);
+      try {
+        const filterTypeMap: Record<string, string[]> = {
+          hospital: ["hospital"],
+          police: ["police"],
+          attraction: ["tourism", "attraction"],
+          restaurant: ["restaurant", "fast_food", "cafe"],
+          hotel: ["hotel", "motel", "hostel"],
+          all: ["hospital", "police", "tourism", "restaurant", "hotel"],
+        };
 
-          const searchTypes = filterTypeMap[filter] || [
-            "hospital",
-            "police",
-            "tourism",
-            "attraction",
-          ];
-          const places = await searchNearbyPlaces(
-            userLocation,
-            5000,
-            searchTypes,
-          );
+        const searchTypes = filterTypeMap[selectedFilter] || filterTypeMap["all"];
+        const places = await searchNearbyPlaces(
+          userLocation,
+          2000,
+          searchTypes,
+        );
 
-          if (!cancelled) {
-            // Calculate distances for display
-            const withDistance = places.map((p) => {
-              const dx =
-                (p.coordinate.latitude - userLocation.latitude) * 111_000;
-              const dy =
-                (p.coordinate.longitude - userLocation.longitude) *
-                111_000 *
-                Math.cos((userLocation.latitude * Math.PI) / 180);
-              return { ...p, distanceValue: Math.sqrt(dx * dx + dy * dy) };
-            });
-            setNearbyPlaces(withDistance.slice(0, 3));
-
-            // Apply the filter to the map view
-            setSelectedFilter(filter);
-          }
-        } catch (error) {
-          // Error already logged in searchNearbyPlaces
-          if (!cancelled) setNearbyPlaces([]);
-        } finally {
-          if (!cancelled) setLoadingNearby(false);
+        if (!cancelled) {
+          const withDistance = places.map((p) => {
+            const dx = (p.coordinate.latitude - userLocation.latitude) * 111_000;
+            const dy = (p.coordinate.longitude - userLocation.longitude) * 111_000 * Math.cos((userLocation.latitude * Math.PI) / 180);
+            return { ...p, distanceValue: Math.sqrt(dx * dx + dy * dy) };
+          });
+          
+          withDistance.sort((a, b) => a.distanceValue - b.distanceValue);
+          setNearbyPlaces(withDistance.slice(0, 5));
+          
+          // Store this location as the last searched location
+          lastSearchLocation.current = { ...userLocation, filter: selectedFilter };
         }
-      };
+      } catch (error) {
+        if (!cancelled) setNearbyPlaces([]);
+      } finally {
+        if (!cancelled) setLoadingNearby(false);
+      }
+    };
 
-      fetchNearby();
-
-      return () => {
-        cancelled = true;
-      };
-    }, [userLocation, params.filter]),
-  );
+    fetchNearby();
+    return () => { cancelled = true; };
+  }, [userLocation, selectedFilter]);
 
   // ===================================================================
   // 2. DIRECTIONS – fetch route when destination is selected or initially
@@ -465,22 +451,6 @@ export default function MapScreen() {
     }
   }, [userLocation, isNavigating]);
 
-  // ===================================================================
-  // 4. FILTERS & CLUSTERS
-  // ===================================================================
-  const filteredMarkers = useMemo(() => {
-    if (selectedFilter === "all") return POI_MARKERS;
-    return POI_MARKERS.filter((m) => m.type === selectedFilter);
-  }, [selectedFilter]);
-
-  const clusteredMarkers = useMemo(
-    () =>
-      clusterMarkers(
-        filteredMarkers.map((m) => ({ id: m.id, coordinate: m.coordinate })),
-        zoomLevel,
-      ),
-    [filteredMarkers, zoomLevel],
-  );
 
   // ===================================================================
   // 5. NOTE: nearbyPlaces is now fetched via API in useEffect above
@@ -504,48 +474,6 @@ export default function MapScreen() {
     );
   }, [userLocation]);
 
-  const handlePOIPress = useCallback(
-    (poi: POIMarkerType) => {
-      Alert.alert(
-        poi.name,
-        `Type: ${poi.type}\n${poi.rating ? `Rating: ${poi.rating}⭐` : ""}${poi.phone ? `\nPhone: ${poi.phone}` : ""}`,
-        [
-          { text: "Close" },
-          {
-            text: "Get Directions",
-            onPress: () => {
-              handlePlaceSelected({
-                id: poi.id,
-                name: poi.name,
-                displayName: poi.name,
-                coordinate: poi.coordinate,
-                type: poi.type,
-                category: poi.type,
-                icon: "map-marker",
-              });
-            },
-          },
-        ],
-      );
-    },
-    [handlePlaceSelected],
-  );
-
-  const handleRiskZonePress = useCallback((zone: RiskZone) => {
-    const emoji = { safe: "🟢", moderate: "🟡", high: "🔴" };
-    Alert.alert(`${emoji[zone.level]} ${zone.name}`, zone.description);
-  }, []);
-
-  const handleClusterPress = useCallback(
-    (cluster: Cluster) => {
-      mapRef.current?.animateToRegion({
-        ...cluster.coordinate,
-        latitudeDelta: region.latitudeDelta / 2.5,
-        longitudeDelta: region.longitudeDelta / 2.5,
-      });
-    },
-    [region],
-  );
 
   const togglePanic = useCallback(() => {
     setIsPanic((p) => {
@@ -677,15 +605,7 @@ export default function MapScreen() {
             left: 0,
           }}
         >
-          {/* Risk Zones */}
-          {showRiskZones &&
-            RISK_ZONES.map((zone) => (
-              <RiskZonePolygon
-                key={zone.id}
-                zone={zone}
-                onPress={handleRiskZonePress}
-              />
-            ))}
+
 
           {/* Direction route polyline */}
           {routeInfo && (
@@ -718,24 +638,7 @@ export default function MapScreen() {
             />
           )}
 
-          {/* POI Markers */}
-          {!showDirections &&
-            clusteredMarkers.map((item) =>
-              isCluster(item) ? (
-                <ClusterMarker
-                  key={item.id}
-                  cluster={item}
-                  onPress={handleClusterPress}
-                />
-              ) : (
-                <POIMarker
-                  key={item.id}
-                  poi={filteredMarkers.find((m) => m.id === item.id)!}
-                  onPress={handlePOIPress}
-                  onCalloutPress={handlePOIPress}
-                />
-              ),
-            )}
+
 
           {/* User's live location marker */}
           {userLocation && (
@@ -751,100 +654,11 @@ export default function MapScreen() {
         {/* ── SEARCH ── */}
         <SearchOverlay onSelectPlace={handlePlaceSelected} />
 
-        {/* ── FILTERS (hide during directions) ── */}
-        {!showDirections && (
-          <View style={[styles.filterContainer, { top: insets.top + 70 }]}>
-            <MapFilterBar
-              selectedFilter={selectedFilter}
-              onFilterChange={setSelectedFilter}
-              showRiskZones={showRiskZones}
-              onToggleRiskZones={() => setShowRiskZones((p) => !p)}
-            />
-          </View>
-        )}
 
-        {/* ── RISK ZONE INDICATOR ── */}
-        {currentRiskZone && !showDirections && (
-          <View
-            style={[
-              styles.riskIndicator,
-              {
-                top: insets.top + 130,
-                backgroundColor:
-                  currentRiskZone.level === "high"
-                    ? "#FEE2E2"
-                    : currentRiskZone.level === "moderate"
-                      ? "#FEF3C7"
-                      : "#D1FAE5",
-                borderColor:
-                  currentRiskZone.level === "high"
-                    ? "#EF4444"
-                    : currentRiskZone.level === "moderate"
-                      ? "#F59E0B"
-                      : "#10B981",
-              },
-            ]}
-          >
-            <Icon
-              source={
-                currentRiskZone.level === "high"
-                  ? "alert-circle"
-                  : currentRiskZone.level === "moderate"
-                    ? "alert"
-                    : "shield-check"
-              }
-              size={16}
-              color={
-                currentRiskZone.level === "high"
-                  ? "#EF4444"
-                  : currentRiskZone.level === "moderate"
-                    ? "#F59E0B"
-                    : "#10B981"
-              }
-            />
-            <Text
-              style={[
-                styles.riskIndicatorText,
-                {
-                  color:
-                    currentRiskZone.level === "high"
-                      ? "#DC2626"
-                      : currentRiskZone.level === "moderate"
-                        ? "#D97706"
-                        : "#059669",
-                },
-              ]}
-            >
-              {currentRiskZone.level === "high"
-                ? "High Risk Area"
-                : currentRiskZone.level === "moderate"
-                  ? "Stay Alert"
-                  : "Safe Zone"}
-            </Text>
-          </View>
-        )}
 
-        {/* ── SPEED + LOCATION CARD ── */}
-        {!showDirections && (
-          <View style={styles.locationCard}>
-            <View style={styles.locationInfo}>
-              <Icon source="crosshairs-gps" size={22} color="#21100B" />
-              <View style={styles.locationText}>
-                <Text style={styles.locationTitle}>Current Location</Text>
-                <Text style={styles.locationSubtitle} numberOfLines={1}>
-                  {currentAddress}
-                </Text>
-              </View>
-            </View>
-            {speed !== null && speed > 0 && (
-              <View style={styles.speedBadge}>
-                <Text style={styles.speedText}>
-                  {Math.round(speed * 3.6)} km/h
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+
+
+
 
         {/* ── FABs ── */}
         <View style={[styles.fabContainer, showDirections && { bottom: 400 }]}>

@@ -1,210 +1,182 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Bell,
+  Mail,
+  AlertTriangle,
+  Languages,
+  Trash2,
+  Database,
+  ChevronRight,
+  LogOut,
+} from "lucide-react-native";
+import { router } from "expo-router";
+import { useAuth } from "../../store/AuthContext";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  Animated,
 } from "react-native";
-import { Card, Divider, Switch, Text } from "react-native-paper";
+import { Switch, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 const COLORS = {
   primary: "#21100B",
+  primaryContainer: "#4A4341",
+  background: "#F2F2F2",
+  white: "#FFFFFF",
   secondary: "#8C7D79",
-  accent: "#8C7D79",
+  text: "#1A1818",
+  textMuted: "#8C7D79",
   error: "#D93636",
   success: "#10B981",
-  background: "#F5F1EE",
-  surface: "#FFFFFF",
-  text: "#1A1818",
-  textLight: "#4A4341",
-  white: "#FFFFFF",
+  cardBorder: "rgba(33, 16, 11, 0.05)",
+  cardShadow: "#21100B",
+  iconBg: "rgba(33, 16, 11, 0.04)",
 };
 
 const GENERAL_SETTINGS = [
   {
     id: "notifications",
     title: "Push Notifications",
-    icon: "bell-outline",
-    color: "#F59E0B",
+    icon: Bell,
     type: "switch",
   },
   {
     id: "email",
     title: "Email Notifications",
-    icon: "email-outline",
-    color: "#10B981",
+    icon: Mail,
     type: "switch",
   },
   {
     id: "alerts",
     title: "SOS Alerts",
-    icon: "alert-circle-outline",
-    color: "#EF4444",
+    icon: AlertTriangle,
     type: "switch",
   },
   {
     id: "language",
     title: "Language",
-    icon: "translate",
-    color: "#8B5CF6",
+    icon: Languages,
     type: "navigate",
     value: "English",
   },
+];
+
+const DANGER_ITEMS = [
   {
-    id: "timezone",
-    title: "Timezone",
-    icon: "clock-outline",
-    color: "#0EA5E9",
-    type: "navigate",
-    value: "IST (UTC+5:30)",
+    id: "clear_cache",
+    title: "Clear System Cache",
+    icon: Trash2,
+    confirmTitle: "Clear Cache",
+    confirmMessage: "This will clear all cached data. Continue?",
+  },
+  {
+    id: "reset_db",
+    title: "Reset Database",
+    icon: Database,
+    confirmTitle: "Reset Database",
+    confirmMessage: "⚠️ This action cannot be undone! Are you sure?",
   },
 ];
 
-const SECURITY_SETTINGS = [
-  {
-    id: "2fa",
-    title: "Two-Factor Authentication",
-    icon: "shield-lock-outline",
-    color: "#10B981",
-    type: "switch",
-  },
-  {
-    id: "password",
-    title: "Change Password",
-    icon: "lock-outline",
-    color: "#1E40AF",
-    type: "navigate",
-  },
-  {
-    id: "sessions",
-    title: "Active Sessions",
-    icon: "devices",
-    color: "#8B5CF6",
-    type: "navigate",
-    value: "3 devices",
-  },
-  {
-    id: "audit",
-    title: "Audit Logs",
-    icon: "history",
-    color: "#F59E0B",
-    type: "navigate",
-  },
-];
+const AnimatedSettingCard = ({
+  children,
+  onPress,
+  isDanger,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  isDanger?: boolean;
+}) => {
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
-const SYSTEM_SETTINGS = [
-  {
-    id: "backup",
-    title: "Data Backup",
-    icon: "cloud-upload-outline",
-    color: "#0EA5E9",
-    type: "navigate",
-    value: "Last: 2 hours ago",
-  },
-  {
-    id: "maintenance",
-    title: "Maintenance Mode",
-    icon: "tools",
-    color: "#EF4444",
-    type: "switch",
-  },
-  {
-    id: "api",
-    title: "API Settings",
-    icon: "api",
-    color: "#10B981",
-    type: "navigate",
-  },
-  {
-    id: "integrations",
-    title: "Integrations",
-    icon: "connection",
-    color: "#8B5CF6",
-    type: "navigate",
-    value: "5 active",
-  },
-];
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={styles.cardWrapper}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          isDanger && styles.dangerCard,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 export default function SettingsScreen() {
+  const { logout } = useAuth();
   const [switches, setSwitches] = useState<Record<string, boolean>>({
     notifications: true,
     email: true,
     alerts: true,
-    "2fa": false,
-    maintenance: false,
   });
   const insets = useSafeAreaInsets();
 
-  const toggleSwitch = (id: string) => {
-    if (id === "maintenance") {
-      Alert.alert(
-        "Maintenance Mode",
-        switches[id]
-          ? "Are you sure you want to disable maintenance mode?"
-          : "Enabling maintenance mode will restrict user access. Continue?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Confirm",
-            onPress: () => setSwitches({ ...switches, [id]: !switches[id] }),
-          },
-        ],
-      );
-    } else {
-      setSwitches({ ...switches, [id]: !switches[id] });
-    }
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to logout from admin panel?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          router.replace("/(auth)/admin-login");
+        },
+      },
+    ]);
   };
 
-  const renderSettingItem = (item: any, index: number, isLast: boolean) => (
-    <React.Fragment key={item.id}>
-      <TouchableOpacity
-        style={styles.settingItem}
-        onPress={() =>
-          item.type === "navigate" && console.log("Navigate to", item.id)
-        }
-        disabled={item.type === "switch"}
-      >
-        <View
-          style={[styles.settingIcon, { backgroundColor: `${item.color}15` }]}
-        >
-          <MaterialCommunityIcons
-            name={item.icon as any}
-            size={22}
-            color={item.color}
-          />
-        </View>
-        <View style={styles.settingInfo}>
-          <Text style={styles.settingTitle}>{item.title}</Text>
-          {item.value && <Text style={styles.settingValue}>{item.value}</Text>}
-        </View>
-        {item.type === "switch" ? (
-          <Switch
-            value={switches[item.id]}
-            onValueChange={() => toggleSwitch(item.id)}
-            color={COLORS.primary}
-          />
-        ) : (
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={22}
-            color={COLORS.textLight}
-          />
-        )}
-      </TouchableOpacity>
-      {!isLast && <Divider />}
-    </React.Fragment>
-  );
+  const toggleSwitch = (id: string) => {
+    setSwitches({ ...switches, [id]: !switches[id] });
+  };
+
+  const handleDangerPress = (item: (typeof DANGER_ITEMS)[0]) => {
+    Alert.alert(item.confirmTitle, item.confirmMessage, [
+      { text: "Cancel", style: "cancel" },
+      { text: item.confirmTitle.split(" ")[0], style: "destructive" },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+        <View
+          style={[
+            styles.header,
+            { paddingTop: Math.max(insets.top, 20) + 8 },
+          ]}
+        >
           <Text style={styles.headerTitle}>Settings</Text>
           <Text style={styles.headerSubtitle}>
             Manage your admin preferences
@@ -214,43 +186,44 @@ export default function SettingsScreen() {
         {/* General Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>General</Text>
-          <Card style={styles.settingsCard}>
-            {GENERAL_SETTINGS.map((item, index) =>
-              renderSettingItem(
-                item,
-                index,
-                index === GENERAL_SETTINGS.length - 1,
-              ),
-            )}
-          </Card>
-        </View>
-
-        {/* Security Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Security</Text>
-          <Card style={styles.settingsCard}>
-            {SECURITY_SETTINGS.map((item, index) =>
-              renderSettingItem(
-                item,
-                index,
-                index === SECURITY_SETTINGS.length - 1,
-              ),
-            )}
-          </Card>
-        </View>
-
-        {/* System Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>System</Text>
-          <Card style={styles.settingsCard}>
-            {SYSTEM_SETTINGS.map((item, index) =>
-              renderSettingItem(
-                item,
-                index,
-                index === SYSTEM_SETTINGS.length - 1,
-              ),
-            )}
-          </Card>
+          {GENERAL_SETTINGS.map((item) => (
+            <AnimatedSettingCard
+              key={item.id}
+              onPress={() =>
+                item.type === "switch"
+                  ? toggleSwitch(item.id)
+                  : console.log("Navigate to", item.id)
+              }
+            >
+                <View style={styles.cardLeft}>
+                  <View style={styles.cardIconBox}>
+                    <item.icon
+                      size={22}
+                      color={COLORS.primaryContainer}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <View style={styles.cardTextContainer}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    {item.value && (
+                      <Text style={styles.cardValue}>{item.value}</Text>
+                    )}
+                  </View>
+                </View>
+                {item.type === "switch" ? (
+                  <Switch
+                    value={switches[item.id]}
+                    onValueChange={() => toggleSwitch(item.id)}
+                    color={COLORS.primary}
+                  />
+                ) : (
+                  <ChevronRight
+                    size={20}
+                    color={COLORS.textMuted}
+                  />
+                )}
+            </AnimatedSettingCard>
+          ))}
         </View>
 
         {/* Danger Zone */}
@@ -258,57 +231,39 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionTitle, { color: COLORS.error }]}>
             Danger Zone
           </Text>
-          <Card style={[styles.settingsCard, styles.dangerCard]}>
-            <TouchableOpacity
-              style={styles.dangerItem}
-              onPress={() =>
-                Alert.alert(
-                  "Clear Cache",
-                  "This will clear all cached data. Continue?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Clear", style: "destructive" },
-                  ],
-                )
-              }
+          {DANGER_ITEMS.map((item) => (
+            <AnimatedSettingCard
+              key={item.id}
+              onPress={() => handleDangerPress(item)}
+              isDanger
             >
-              <View
-                style={[styles.settingIcon, { backgroundColor: "#FEE2E2" }]}
-              >
-                <MaterialCommunityIcons
-                  name="delete-sweep"
-                  size={22}
-                  color={COLORS.error}
-                />
-              </View>
-              <Text style={styles.dangerText}>Clear System Cache</Text>
-            </TouchableOpacity>
-            <Divider />
-            <TouchableOpacity
-              style={styles.dangerItem}
-              onPress={() =>
-                Alert.alert(
-                  "Reset Database",
-                  "⚠️ This action cannot be undone! Are you sure?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Reset", style: "destructive" },
-                  ],
-                )
-              }
-            >
-              <View
-                style={[styles.settingIcon, { backgroundColor: "#FEE2E2" }]}
-              >
-                <MaterialCommunityIcons
-                  name="database-remove"
-                  size={22}
-                  color={COLORS.error}
-                />
-              </View>
-              <Text style={styles.dangerText}>Reset Database</Text>
-            </TouchableOpacity>
-          </Card>
+                <View style={styles.cardLeft}>
+                  <View style={[styles.cardIconBox, styles.dangerIconBox]}>
+                    <item.icon
+                      size={22}
+                      color={COLORS.error}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <Text style={[styles.cardTitle, { color: COLORS.error }]}>
+                    {item.title}
+                  </Text>
+                </View>
+                <ChevronRight size={20} color={COLORS.error} />
+            </AnimatedSettingCard>
+          ))}
+        </View>
+
+        {/* Logout Button */}
+        <View style={styles.logoutSection}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            activeOpacity={0.8}
+          >
+            <LogOut size={18} color={COLORS.error} strokeWidth={2.5} />
+            <Text style={styles.logoutText}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
 
         {/* App Info */}
@@ -329,72 +284,105 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 8,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "900",
     color: COLORS.text,
+    letterSpacing: -1,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 4,
+    fontWeight: "600",
   },
   section: {
     paddingHorizontal: 20,
     marginTop: 24,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+    marginBottom: 16,
+  },
+  cardWrapper: {
     marginBottom: 12,
   },
-  settingsCard: {
-    borderRadius: 16,
-    elevation: 2,
-    overflow: "hidden",
-  },
-  settingItem: {
+  card: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
-  },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
-  settingInfo: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: COLORS.text,
-  },
-  settingValue: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 2,
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    shadowColor: COLORS.cardShadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
   dangerCard: {
-    borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: "rgba(217, 54, 54, 0.1)",
   },
-  dangerItem: {
+  cardLeft: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    gap: 16,
+    flex: 1,
   },
-  dangerText: {
+  cardIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.iconBg,
+  },
+  dangerIconBox: {
+    backgroundColor: "rgba(217, 54, 54, 0.06)",
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
+  cardTitle: {
     fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.primary,
+    letterSpacing: -0.2,
+  },
+  cardValue: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
     fontWeight: "500",
+  },
+  logoutSection: {
+    marginTop: 32,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.iconBg,
+    paddingVertical: 14,
+    width: "100%",
+    borderRadius: 50,
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: "rgba(33, 16, 11, 0.1)",
+  },
+  logoutText: {
+    fontSize: 14,
+    fontWeight: "700",
     color: COLORS.error,
   },
   appInfo: {
@@ -403,12 +391,12 @@ const styles = StyleSheet.create({
   },
   appVersion: {
     fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.textLight,
+    fontWeight: "700",
+    color: COLORS.textMuted,
   },
   appCopyright: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
     marginTop: 4,
   },
 });
