@@ -1,0 +1,52 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv/
+venv/
+env/
+
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+# Optional: Ignore execution count/output if you use tools like nbstripout
+# *.ipynb
+
+datasets/crime/
+datasets/aqi/
+datasets/weather/
+datasets/accident/
+datasets/safetipin/
+
+processed/
+*.csv
+*.xlsx
+*.json
+*.geojson
+
+!datasets/**/README.md
+!datasets/samples/*.csv
+!frontend/public/data/police-boundaries.geojson  # Keep this if it's small & needed for UI
+
+# *.pkl
+*.joblib
+*.h5
+*.model
+*.pt
+*.pth
+
+# model.pkl
+# preprocessor.pkl
+# label_encoder.pkl
+
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+myenv
+myenv/
