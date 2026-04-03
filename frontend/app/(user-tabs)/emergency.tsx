@@ -226,7 +226,7 @@ export default function EmergencyScreen() {
         const { alertId, status } = event.payload;
         setBackendStatus(status);
         console.log(`[SOS Backend] Status update: ${alertId} → ${status}`);
-        
+
         if (status === "RESOLVED") {
           // Backend confirmed resolution
           setTimeout(() => {
@@ -302,7 +302,7 @@ export default function EmergencyScreen() {
               .filter(Boolean)
               .join(", ");
           }
-        } catch {}
+        } catch { }
 
         sendSOS({
           latitude: loc.coords.latitude,
@@ -350,12 +350,12 @@ export default function EmergencyScreen() {
   const resolveSOS = async () => {
     await sosService.resolve();
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+
     // Resolve on backend too
     if (backendAlertId) {
       resolveSOSBackend(backendAlertId);
     }
-    
+
     setTimeout(() => {
       setSosActive(false);
       setShowDispatchModal(false);
@@ -436,20 +436,20 @@ export default function EmergencyScreen() {
 
     const updatedContacts = [...familyContacts, newContact];
     setFamilyContacts(updatedContacts);
-    
+
     try {
       const key = `@sentry_contacts_${user?.id || 'default'}`;
       await AsyncStorage.setItem(key, JSON.stringify(updatedContacts));
     } catch (err) {
       console.error("[SOS] Failed to save contact:", err);
     }
-    
+
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setNewContactName("");
     setNewContactPhone("");
     setNewContactRelation("");
     setShowAddModal(false);
-    
+
     setAlertConfig({
       visible: true,
       type: "success",
@@ -481,7 +481,7 @@ export default function EmergencyScreen() {
         hideAlert();
         const updatedContacts = familyContacts.filter((c) => c.id !== contactId);
         setFamilyContacts(updatedContacts);
-        
+
         try {
           const key = `@sentry_contacts_${user?.id || 'default'}`;
           await AsyncStorage.setItem(key, JSON.stringify(updatedContacts));

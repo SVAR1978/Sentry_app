@@ -84,7 +84,7 @@ interface SOSStatusUpdateEvent {
   };
 }
 
-type IncomingMessage = UserLocationEvent | UserActivityEvent | LiveUsersCountEvent | SOSConfirmationEvent | SOSAlertEvent | SOSStatusUpdateEvent | { type: "CHAT_RESPONSE"; payload: { answer: string; conversationId?: string } } | { type: "CHAT_ERROR"; payload: { message: string; conversationId?: string } } | { type: string; [key: string]: any };
+type IncomingMessage = UserLocationEvent | UserActivityEvent | LiveUsersCountEvent | SOSConfirmationEvent | SOSAlertEvent | SOSStatusUpdateEvent | { type: "CHAT_RESPONSE"; payload: { answer: string; conversationId?: string } } | { type: "CHAT_ERROR"; payload: { message: string; conversationId?: string } } | { type: string;[key: string]: any };
 
 interface SocketContextType {
   socket: WebSocket | null;
@@ -105,15 +105,15 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
-  sendLocation: () => {},
-  sendSOS: () => {},
-  resolveSOSBackend: () => {},
-  onUserLocation: () => () => {},
-  onUserActivity: () => () => {},
-  onLiveUsersCount: () => () => {},
-  onSOSAlert: () => () => {},
-  sendChatAsk: () => {},
-  onChatMessage: () => () => {},
+  sendLocation: () => { },
+  sendSOS: () => { },
+  resolveSOSBackend: () => { },
+  onUserLocation: () => () => { },
+  onUserActivity: () => () => { },
+  onLiveUsersCount: () => () => { },
+  onSOSAlert: () => () => { },
+  sendChatAsk: () => { },
+  onChatMessage: () => () => { },
 });
 
 const WS_URL = process.env.EXPO_PUBLIC_WEBSOCKET_URL || "wss://websocket-backend-9p0o.onrender.com";
@@ -184,9 +184,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
               listener(data as UserActivityEvent);
             }
           } else if (data.type === "LIVE_USERS_COUNT") {
-             for (const listener of liveUsersCountListeners.current) {
-                listener(data as LiveUsersCountEvent);
-             }
+            for (const listener of liveUsersCountListeners.current) {
+              listener(data as LiveUsersCountEvent);
+            }
           } else if (data.type === "CHAT_RESPONSE" || data.type === "CHAT_ERROR") {
             for (const listener of chatListeners.current) {
               listener(data);
@@ -251,7 +251,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ─── SEND CHAT (for USER role) ─────────────────────────
-  
+
   const sendChatAsk = useCallback((question: string, conversationId?: string) => {
     const ws = socketRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -328,7 +328,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const onLiveUsersCount = useCallback((callback: (data: LiveUsersCountEvent) => void) => {
     liveUsersCountListeners.current.add(callback);
     return () => {
-       liveUsersCountListeners.current.delete(callback);
+      liveUsersCountListeners.current.delete(callback);
     };
   }, []);
 
