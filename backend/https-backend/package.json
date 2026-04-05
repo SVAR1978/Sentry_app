@@ -8,7 +8,8 @@
     "dev": "node --loader ts-node/esm src/index.ts",
     "build": "prisma generate && tsc && cp -r src/generated dist/",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "add-contact": "node scripts/addContactRaw.mjs"
+    "add-contact": "node scripts/addContactRaw.mjs",
+    "seed:partners": "node scripts/seedBookingPartners.mjs"
   },
   "keywords": [],
   "author": "",

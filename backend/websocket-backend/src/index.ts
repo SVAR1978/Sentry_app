@@ -10,6 +10,15 @@ import {
 
 dotenv.config();
 
+const runEmailWorkerInThisService =
+  (process.env.RUN_EMAIL_WORKER ?? "false").toLowerCase() === "true";
+
+if (runEmailWorkerInThisService) {
+  // Start BullMQ email worker in the same process to avoid a separate worker service.
+  await import("./workers/emailWorker.js");
+  console.log("Email worker enabled in websocket service");
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || "123123";
 
 type Role = "USER" | "ADMIN";
@@ -73,13 +82,26 @@ redisSubscriber.on("error", (err: Error) => {
 wss.on("connection", (ws, request) => {
     const { url } = request;
     if (!url) {
-        ws.close();
+        ws.send(JSON.stringify({ 
+            error: "INVALID_REQUEST", 
+            message: "Missing connection URL" 
+        }));
+        ws.close(4000, "Invalid request");
         return;
     }
 
     const query = url.split("?")[1] ?? "";
     const queryParams = new URLSearchParams(query);
     let token = queryParams.get("token") ?? "";
+
+    if (!token) {
+        ws.send(JSON.stringify({ 
+            error: "MISSING_TOKEN", 
+            message: "JWT token is required" 
+        }));
+        ws.close(4001, "Missing token");
+        return;
+    }
 
     if (token.startsWith("Bearer ")) {
         token = token.slice(7);
@@ -88,13 +110,32 @@ wss.on("connection", (ws, request) => {
     let decoded: DecodedToken;
     try {
         decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
-    } catch {
-        ws.close();
+    } catch (err: any) {
+        const errorMessage = err.name === "TokenExpiredError" 
+            ? "JWT token has expired. Please login again."
+            : "Invalid or malformed JWT token";
+        const errorCode = err.name === "TokenExpiredError" ? "TOKEN_EXPIRED" : "INVALID_TOKEN";
+
+        console.warn("[WebSocket] Authentication failed:", {
+            error: errorCode,
+            reason: err.message,
+        });
+
+        ws.send(JSON.stringify({ 
+            error: errorCode, 
+            message: errorMessage,
+            expiresAt: err.expiredAt || null
+        }));
+        ws.close(4002, errorCode);
         return;
     }
 
     if (!decoded?.userId) {
-        ws.close();
+        ws.send(JSON.stringify({ 
+            error: "INVALID_TOKEN", 
+            message: "Token does not contain valid userId" 
+        }));
+        ws.close(4002, "Invalid token");
         return;
     }
     console.log("New client connected:", decoded.userId);

@@ -163,7 +163,7 @@ const PulsingMarker = React.memo(
             />
           </View>
           {/* Heading indicator */}
-          {user.heading !== undefined && user.heading !== null && user.speed && user.speed > 0.5 && (
+          {user.heading !== undefined && user.heading !== null && (user.speed ?? 0) > 0.5 && (
             <View
               style={[
                 styles.headingArrow,
@@ -192,7 +192,38 @@ export default function AdminMapScreen() {
   const mapRef = useRef<MapView>(null);
 
   // State
-  const [activeUsers, setActiveUsers] = useState<Record<string, UserNode>>({});
+  const [activeUsers, setActiveUsers] = useState<Record<string, UserNode>>({
+    "mock-patrol-1": {
+      userId: "mock-patrol-1",
+      name: "Patrol Alpha",
+      latitude: 28.6139 + 0.005,
+      longitude: 77.2090 + 0.005,
+      accuracy: 10,
+      heading: 45,
+      speed: 1.2,
+      lastSeen: Date.now(),
+    },
+    "mock-patrol-2": {
+      userId: "mock-patrol-2",
+      name: "Guard Beta",
+      latitude: 28.6139 - 0.008,
+      longitude: 77.2090 + 0.002,
+      accuracy: 25,
+      heading: 120,
+      speed: 0,
+      lastSeen: Date.now() - 60000,
+    },
+    "mock-patrol-3": {
+      userId: "mock-patrol-3",
+      name: "Unit Charlie",
+      latitude: 28.6139,
+      longitude: 77.2090 - 0.006,
+      accuracy: 15,
+      heading: 310,
+      speed: 2.5,
+      lastSeen: Date.now(),
+    }
+  });
   const [selectedUser, setSelectedUser] = useState<UserNode | null>(null);
   const [userDirectory, setUserDirectory] = useState<Record<string, UserInfo>>({});
   const [showUserList, setShowUserList] = useState(false);
@@ -396,7 +427,8 @@ export default function AdminMapScreen() {
         style={styles.map}
         initialRegion={DELHI_REGION}
         customMapStyle={MAP_STYLE}
-        showsUserLocation={false}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
         showsCompass
         showsScale
         rotateEnabled

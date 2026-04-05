@@ -244,6 +244,17 @@ export default function UserTabsLayout() {
         <Tabs.Screen name="emergency" options={{ title: "SOS Bar" }} />
         <Tabs.Screen name="map" options={{ title: "Map" }} />
         <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+
+        {/* Sub-screens (Hidden from Tab Bar) */}
+        <Tabs.Screen name="personal-info" options={{ href: null }} />
+        <Tabs.Screen name="address-settings" options={{ href: null }} />
+        <Tabs.Screen name="my-tickets" options={{ href: null }} />
+        <Tabs.Screen name="help-center" options={{ href: null }} />
+        <Tabs.Screen name="contact-support" options={{ href: null }} />
+        <Tabs.Screen name="support-success" options={{ href: null }} />
+        <Tabs.Screen name="tip-detail" options={{ href: null }} />
+        <Tabs.Screen name="attraction-list" options={{ href: null }} />
+        <Tabs.Screen name="food-list" options={{ href: null }} />
       </Tabs>
 
       {!chatVisible && (

@@ -182,15 +182,15 @@ class SOSAlertDispatchService {
 
     // ── Step 2: Build the alert message ─────────────
     const locationStr = this.activeAlert.location
-      ? this.activeAlert.location.address || 
-        `${this.activeAlert.location.latitude.toFixed(6)}, ${this.activeAlert.location.longitude.toFixed(6)}`
+      ? this.activeAlert.location.address ||
+      `${this.activeAlert.location.latitude.toFixed(6)}, ${this.activeAlert.location.longitude.toFixed(6)}`
       : "Location unavailable";
 
     const mapsLink = this.activeAlert.location
       ? `https://www.google.com/maps?q=${this.activeAlert.location.latitude},${this.activeAlert.location.longitude}`
       : "";
 
-    this.activeAlert.messageBody = 
+    this.activeAlert.messageBody =
       `🚨 EMERGENCY ALERT — ${userName} requires immediate assistance.\n\n` +
       `📍 Location: ${locationStr}\n` +
       (mapsLink ? `🗺️ Map: ${mapsLink}\n` : "") +

@@ -34,7 +34,7 @@ export interface ChatAskMessage {
 
 export interface SOSContact {
   name: string;
-  phone: string;
+  email: string;
   relationship: string;
 }
 

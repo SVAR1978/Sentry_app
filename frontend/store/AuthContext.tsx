@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { DeviceEventEmitter } from "react-native";
 import { AuthContextType, Permission, ROLES, User } from "../types/rbac";
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -71,6 +72,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: data.user.id.toString(),
         email: data.user.email,
         name: data.user.name,
+        phone: data.user.phone,
+        avatar: data.user.avatar,
+        address: data.user.address,
         role: frontendRoleObj,
       };
 
@@ -106,6 +110,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: data.user.id.toString(),
         email: data.user.email,
         name: data.user.name,
+        phone: data.user.phone,
+        avatar: data.user.avatar,
+        address: data.user.address,
         role: frontendRoleObj,
       };
 
@@ -138,6 +145,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener("auth:unauthorized", () => {
+      console.log("[AuthContext] Unauthorized event received. Logging out...");
+      logout();
+    });
+    return () => sub.remove();
+  }, []);
+
   const hasPermission = (resource: string, action: string): boolean => {
     if (!user) return false;
 
@@ -152,13 +167,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return user?.role.name === role;
   };
 
-  const updateUser = (updatedUser: Partial<User>) => {
+  const updateUser = async (updatedUser: Partial<User>) => {
     if (user) {
       const newUser = { ...user, ...updatedUser };
       setUser(newUser);
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
 
-      // Update storage
-      AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
+      // Real-time backend sync
+      try {
+        const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+        if (token) {
+          const response = await fetch(`${BACKEND_URL}/auth/update-profile`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              name: updatedUser.name,
+              phone: updatedUser.phone,
+              avatar: updatedUser.avatar,
+              address: updatedUser.address,
+            }),
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || "Failed to sync with server");
+          }
+        }
+      } catch (error) {
+        console.error("Backend profile sync failed:", error);
+        // We still keep the local update, but notify the user if needed
+      }
     }
   };
 
