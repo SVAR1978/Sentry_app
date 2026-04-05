@@ -87,7 +87,7 @@ export default function ExploreScreen() {
 
   const fetchSafetyAlert = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/v1/alerts/active");
+      const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/alerts/active`);
       if (res.ok) {
         const data = await res.json();
         if (data.alerts && data.alerts.length > 0) {
