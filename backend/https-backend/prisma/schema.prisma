@@ -21,6 +21,7 @@ model User {
   password  String
   role      UserRole @default(USER)
   avatar    String?
+  address   String?
 
   locationLogs      LocationLog[]
   emergencyContacts EmergencyContact[]

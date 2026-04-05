@@ -327,7 +327,7 @@ router.patch("/update-profile", async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    const { name, phone, avatar } = req.body;
+    const { name, phone, avatar, address } = req.body;
 
     const updatedUser = await prisma.user.update({
       where: { id: decoded.userId },
@@ -335,6 +335,7 @@ router.patch("/update-profile", async (req: Request, res: Response) => {
         name: name || undefined,
         phone: phone || undefined,
         avatar: avatar || undefined,
+        address: address || undefined,
       },
     });
 
@@ -348,6 +349,7 @@ router.patch("/update-profile", async (req: Request, res: Response) => {
         email: updatedUser.email,
         phone: updatedUser.phone,
         avatar: updatedUser.avatar,
+        address: updatedUser.address,
         role: updatedUser.role,
       },
     });
