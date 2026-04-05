@@ -69,13 +69,7 @@ const COLORS = {
   warning: "#D97706",
 };
 
-const SAFETY_TIPS = [
-  "Share your live location with family",
-  "Keep emergency contacts saved offline",
-  "Note down local police station address",
-  "Keep a copy of ID documents separately",
-  "Store embassy contact for foreign travelers",
-];
+// removed static SAFETY_TIPS
 
 interface FamilyContact {
   id: string;
@@ -695,7 +689,7 @@ export default function EmergencyScreen() {
         </View>
 
         {/* Safety Tips Component */}
-        <SafetyTips tips={SAFETY_TIPS} colors={COLORS} />
+        <SafetyTips colors={COLORS} />
 
         {/* Share Location */}
         <View style={styles.section}>

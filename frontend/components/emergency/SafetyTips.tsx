@@ -1,9 +1,14 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Check } from "lucide-react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from "react-native";
+import { BookOpen } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { SAFETY_TIPS, SafetyTip } from "../../constants/exploreData";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const TIP_CARD_WIDTH = SCREEN_WIDTH * 0.7;
 
 interface SafetyTipsProps {
-  tips: string[];
   colors: {
     text: string;
     secondary: string;
@@ -12,33 +17,60 @@ interface SafetyTipsProps {
   };
 }
 
-export const SafetyTips: React.FC<SafetyTipsProps> = ({ tips, colors }) => {
+export const SafetyTips: React.FC<SafetyTipsProps> = ({ colors }) => {
+  const router = useRouter();
+
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Safety Tips</Text>
-      <View style={[styles.tipsCard, { backgroundColor: colors.surfaceContainer }]}>
-        {tips.map((tip, index) => (
-          <View
-            key={index}
-            style={[
-              styles.tipItem,
-              index === tips.length - 1 && { borderBottomWidth: 0 },
-            ]}
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>📰 Safety Tips for Tourists</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={TIP_CARD_WIDTH + 14}
+        decelerationRate="fast"
+      >
+        {SAFETY_TIPS.map((tip) => (
+          <TouchableOpacity
+            key={tip.id}
+            style={[styles.tipCard, { width: TIP_CARD_WIDTH }]}
+            onPress={() =>
+              router.push({
+                pathname: "/tip-detail",
+                params: { tipId: tip.id },
+              } as any)
+            }
+            activeOpacity={0.85}
           >
-            <View style={[styles.tipCheckmark, { backgroundColor: "rgba(33, 16, 11, 0.04)" }]}>
-              <Check size={14} color={colors.secondary} strokeWidth={3} />
-            </View>
-            <Text style={[styles.tipText, { color: colors.text }]}>{tip}</Text>
-          </View>
+            <LinearGradient
+              colors={tip.gradientColors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.tipGradient}
+            >
+              <View style={styles.tipCategoryBadge}>
+                <Text style={styles.tipCategoryText}>{tip.category}</Text>
+              </View>
+              <Text style={styles.tipTitle}>{tip.title}</Text>
+              <Text style={styles.tipPreview} numberOfLines={2}>
+                {tip.preview}
+              </Text>
+              <View style={styles.tipBottom}>
+                <View style={styles.tipReadTime}>
+                  <BookOpen size={12} color="rgba(255,255,255,0.8)" strokeWidth={2.5} />
+                  <Text style={styles.tipReadTimeText}>{tip.readTimeMin} min read</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   section: {
-    paddingHorizontal: 20,
+    paddingLeft: 20, // Only pad left so cards scroll off screen nicely on the right
     marginBottom: 24,
   },
   sectionTitle: {
@@ -47,34 +79,24 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     marginBottom: 14,
   },
-  tipsCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.08)",
+  tipCard: { marginRight: 14 },
+  tipGradient: {
+    borderRadius: 22,
+    padding: 20,
+    height: 200,
+    justifyContent: "space-between",
   },
-  tipItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(33, 16, 11, 0.05)",
-    gap: 12,
-  },
-  tipCheckmark: {
-    width: 28,
-    height: 28,
+  tipCategoryBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.08)",
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
-  tipText: {
-    fontSize: 14,
-    flex: 1,
-    fontWeight: "600",
-    lineHeight: 20,
-  },
+  tipCategoryText: { fontSize: 10, fontWeight: "800", color: "#FFF", letterSpacing: 0.5 },
+  tipTitle: { fontSize: 18, fontWeight: "900", color: "#FFF", letterSpacing: -0.3 },
+  tipPreview: { fontSize: 13, fontWeight: "500", color: "rgba(255,255,255,0.85)", lineHeight: 18 },
+  tipBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  tipReadTime: { flexDirection: "row", alignItems: "center", gap: 4 },
+  tipReadTimeText: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.8)" },
 });
