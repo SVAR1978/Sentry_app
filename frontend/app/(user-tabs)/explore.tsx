@@ -723,21 +723,6 @@ const MetroSection: React.FC<MetroSectionProps> = ({ nearestMetro }) => (
       </View>
     )}
 
-    {/* Airport Express */}
-    <LinearGradient
-      colors={["#F68B1F", "#E67E22"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.airportCard}
-    >
-      <Text style={styles.airportTitle}>✈️ Airport Express Line</Text>
-      <Text style={styles.airportSub}>
-        New Delhi Station ↔ IGI Airport in 20 mins
-      </Text>
-      <Text style={styles.airportNote}>
-        Runs every 10 min · First: 4:45 AM · Last: 11:30 PM
-      </Text>
-    </LinearGradient>
 
     {/* Route Finder CTA */}
     <TouchableOpacity
@@ -1012,14 +997,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   metroDirText: { fontSize: 14, fontWeight: "800", color: C.white },
-  airportCard: {
-    borderRadius: 20,
-    padding: 18,
-    gap: 6,
-  },
-  airportTitle: { fontSize: 16, fontWeight: "900", color: C.white },
-  airportSub: { fontSize: 14, fontWeight: "600", color: "rgba(255,255,255,0.9)" },
-  airportNote: { fontSize: 12, fontWeight: "500", color: "rgba(255,255,255,0.7)", marginTop: 4 },
+
   routeFinderBtn: {
     flexDirection: "row",
     alignItems: "center",

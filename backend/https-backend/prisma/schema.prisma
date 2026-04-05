@@ -155,3 +155,38 @@ enum TicketStatus {
   IN_PROGRESS
   RESOLVED
 }
+
+// ── Explore Tab Models ──
+model SafetyAlert {
+  id            String        @id @default(uuid())
+  title         String
+  description   String
+  severity      AlertSeverity
+  affectedAreas String[]
+  issuedBy      String?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  expiresAt     DateTime?
+}
+
+enum AlertSeverity {
+  CRITICAL
+  CAUTION
+  INFO
+}
+
+model SafetyZone {
+  id          String    @id @default(uuid())
+  areaName    String
+  safetyScore Float
+  zoneLevel   ZoneLevel
+  polygon     Json?     // GeoJSON polygon boundaries
+  notes       String?
+  updatedAt   DateTime  @default(now()) @updatedAt
+}
+
+enum ZoneLevel {
+  SAFE
+  MODERATE
+  AVOID
+}

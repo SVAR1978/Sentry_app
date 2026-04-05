@@ -252,6 +252,9 @@ export default function UserTabsLayout() {
         <Tabs.Screen name="help-center" options={{ href: null }} />
         <Tabs.Screen name="contact-support" options={{ href: null }} />
         <Tabs.Screen name="support-success" options={{ href: null }} />
+        <Tabs.Screen name="tip-detail" options={{ href: null }} />
+        <Tabs.Screen name="attraction-list" options={{ href: null }} />
+        <Tabs.Screen name="food-list" options={{ href: null }} />
       </Tabs>
 
       {!chatVisible && (
