@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DeviceEventEmitter } from "react-native";
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -57,6 +58,9 @@ export async function fetchBookingPartners(): Promise<BookingPartner[]> {
     const response = await fetch(`${BACKEND_URL}/booking-partners`);
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        DeviceEventEmitter.emit("auth:unauthorized");
+      }
       throw new Error(`Failed to fetch partners: ${response.status}`);
     }
 
@@ -88,6 +92,9 @@ export async function fetchRecentlyVisited(): Promise<BookingPartner[]> {
     );
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        DeviceEventEmitter.emit("auth:unauthorized");
+      }
       throw new Error(`Failed to fetch recent: ${response.status}`);
     }
 
