@@ -140,7 +140,9 @@ export default function ProfileScreen() {
     } else if (id === "address") {
       router.push("/address-settings");
     } else if (id === "tickets") {
-      router.push("/my-tickets");
+      router.push("/(user-tabs)/my-tickets");
+    } else if (id === "help") {
+      router.push("/(user-tabs)/help-center" as any);
     } else {
       console.log("Menu pressed:", id);
     }

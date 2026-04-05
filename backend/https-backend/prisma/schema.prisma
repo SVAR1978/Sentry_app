@@ -27,6 +27,7 @@ model User {
   emergencyContacts EmergencyContact[]
   itineraries       Itinerary[]
   bookingVisits     BookingVisit[]
+  supportTickets    SupportTicket[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -129,4 +130,28 @@ enum ItineraryStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+model SupportTicket {
+  id            String   @id @default(uuid())
+  ticketNumber  Int      @unique @default(autoincrement())
+  userId        String?
+  name          String
+  email         String
+  subject       String
+  message       String
+  status        TicketStatus @default(OPEN)
+
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
 }
