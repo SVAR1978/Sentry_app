@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { DeviceEventEmitter } from "react-native";
 import { AuthContextType, Permission, ROLES, User } from "../types/rbac";
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -143,6 +144,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error("Failed to logout:", error);
     }
   };
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener("auth:unauthorized", () => {
+      console.log("[AuthContext] Unauthorized event received. Logging out...");
+      logout();
+    });
+    return () => sub.remove();
+  }, []);
 
   const hasPermission = (resource: string, action: string): boolean => {
     if (!user) return false;
