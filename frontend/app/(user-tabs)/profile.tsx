@@ -139,6 +139,8 @@ export default function ProfileScreen() {
       router.push("/personal-info");
     } else if (id === "address") {
       router.push("/address-settings");
+    } else if (id === "tickets") {
+      router.push("/my-tickets");
     } else {
       console.log("Menu pressed:", id);
     }

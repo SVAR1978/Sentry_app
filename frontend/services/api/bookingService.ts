@@ -131,3 +131,50 @@ export async function recordPartnerVisit(
     return null;
   }
 }
+
+// ============================================================
+// Types for Ticket History
+// ============================================================
+export interface BookingTicket {
+  id: string;
+  partnerName: string;
+  partnerCategory: string;
+  partnerUrl: string;
+  partnerLogoUrl: string | null;
+  isVerified: boolean;
+  durationMs: number;
+  visitedAt: string;
+}
+
+interface TicketsResponse {
+  tickets: BookingTicket[];
+}
+
+// ============================================================
+// GET /booking-partners/my-tickets — Fetch user's ticket history
+// ============================================================
+export async function fetchMyTickets(): Promise<BookingTicket[]> {
+  try {
+    const token = await getAuthToken();
+    if (!token) return [];
+
+    const response = await fetch(
+      `${BACKEND_URL}/booking-partners/my-tickets`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch tickets: ${response.status}`);
+    }
+
+    const data: TicketsResponse = await response.json();
+    return data.tickets;
+  } catch (error) {
+    console.error("[BookingService] fetchMyTickets failed:", error);
+    return [];
+  }
+}
