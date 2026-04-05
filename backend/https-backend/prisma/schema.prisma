@@ -20,10 +20,13 @@ model User {
   phone     String
   password  String
   role      UserRole @default(USER)
+  avatar    String?
+  address   String?
 
   locationLogs      LocationLog[]
   emergencyContacts EmergencyContact[]
   itineraries       Itinerary[]
+  bookingVisits     BookingVisit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -87,6 +90,38 @@ enum UserRole {
 enum LocationSource {
   GPS
   NETWORK
+}
+
+model BookingPartner {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  url         String   // HTTPS only — validated in backend
+  logoUrl     String?
+  category    String   // e.g., "flights", "hotels", "buses", "trains"
+  isVerified  Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  priority    Int      @default(0) // higher = shown first
+
+  visits      BookingVisit[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BookingVisit {
+  id          String   @id @default(uuid())
+  userId      String
+  partnerId   String
+  durationMs  Int      // time spent — detect accidental opens (<5s)
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partner     BookingPartner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  visitedAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([partnerId])
 }
 
 enum ItineraryStatus {

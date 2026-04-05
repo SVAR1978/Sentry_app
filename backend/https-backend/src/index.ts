@@ -4,6 +4,7 @@ import sosRouter from "./routes/sos.js";
 import contactsRouter from "./routes/contacts.js";
 import riskZonesRouter from "./routes/risk-zones.js";
 import statsRouter from "./routes/stats.js";
+import bookingPartnersRouter from "./routes/booking-partners.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,7 @@ app.use("/api/risk-zones", riskZonesRouter);
 app.use("/sos", sosRouter);
 app.use("/contacts", contactsRouter);
 app.use("/stats", statsRouter);
+app.use("/booking-partners", bookingPartnersRouter);
 
 // Health check
 app.get("/", (req, res) => {

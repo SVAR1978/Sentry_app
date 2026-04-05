@@ -9,6 +9,7 @@ import QuickActions from "../../components/userHome/QuickActions";
 import SafetyTips from "../../components/userHome/SafetyTips";
 import UserHeader from "../../components/userHome/UserHeader";
 import WeatherWidget from "../../components/userHome/WeatherWidget";
+import BookingPartners from "../../components/userHome/BookingPartners";
 import {
     COLORS,
     QUICK_ACTIONS,
@@ -82,6 +83,7 @@ export default function UserHomeScreen() {
             </View>
           ) : null}
           <SafetyTips />
+          <BookingPartners />
           <WeatherWidget />
         </Animated.View>
       </ScrollView>

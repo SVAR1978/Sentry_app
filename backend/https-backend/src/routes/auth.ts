@@ -306,6 +306,60 @@ router.post("/reset-password", async (req: Request, res: Response) => {
 });
 
 /**
+ * UPDATE PROFILE Endpoint
+ * PATCH /auth/update-profile
+ */
+router.patch("/update-profile", async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+    if (!token) {
+      console.warn("[AUTH][UPDATE] No token provided");
+      return res.status(401).json({ message: "Token is required" });
+    }
+
+    let decoded: { userId: string } | null = null;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    } catch {
+      console.warn("[AUTH][UPDATE] Invalid token");
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    const { name, phone, avatar, address } = req.body;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: {
+        name: name || undefined,
+        phone: phone || undefined,
+        avatar: avatar || undefined,
+        address: address || undefined,
+      },
+    });
+
+    console.log("[AUTH][UPDATE] Profile updated successfully", { userId: decoded.userId });
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        avatar: updatedUser.avatar,
+        address: updatedUser.address,
+        role: updatedUser.role,
+      },
+    });
+  } catch (error) {
+    console.error("[AUTH][UPDATE] Update failed", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+/**
  * LOGOUT Endpoint
  * POST /auth/logout
  * 
