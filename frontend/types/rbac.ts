@@ -4,6 +4,7 @@ export interface User {
   name: string;
   role: UserRole;
   avatar?: string;
+  phone?: string;
   department?: string;
   permissions?: Permission[];
 }
@@ -34,7 +35,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   hasPermission: (resource: string, action: string) => boolean;
   hasRole: (role: string) => boolean;
-  updateUser: (user: Partial<User>) => void;
+  updateUser: (user: Partial<User>) => Promise<void>;
 }
 
 export interface DashboardCard {

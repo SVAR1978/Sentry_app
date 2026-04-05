@@ -71,6 +71,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: data.user.id.toString(),
         email: data.user.email,
         name: data.user.name,
+        phone: data.user.phone,
+        avatar: data.user.avatar,
         role: frontendRoleObj,
       };
 
@@ -106,6 +108,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: data.user.id.toString(),
         email: data.user.email,
         name: data.user.name,
+        phone: data.user.phone,
+        avatar: data.user.avatar,
         role: frontendRoleObj,
       };
 
@@ -152,13 +156,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return user?.role.name === role;
   };
 
-  const updateUser = (updatedUser: Partial<User>) => {
+  const updateUser = async (updatedUser: Partial<User>) => {
     if (user) {
       const newUser = { ...user, ...updatedUser };
       setUser(newUser);
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
 
-      // Update storage
-      AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
+      // Real-time backend sync
+      try {
+        const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+        if (token) {
+          const response = await fetch(`${BACKEND_URL}/auth/update-profile`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              name: updatedUser.name,
+              phone: updatedUser.phone,
+              avatar: updatedUser.avatar,
+            }),
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || "Failed to sync with server");
+          }
+        }
+      } catch (error) {
+        console.error("Backend profile sync failed:", error);
+        // We still keep the local update, but notify the user if needed
+      }
     }
   };
 

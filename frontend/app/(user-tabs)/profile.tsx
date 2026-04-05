@@ -1,10 +1,9 @@
 import { 
-  Wallet, 
+  User, 
   MapPin, 
   Ticket, 
   Languages, 
   HelpCircle, 
-  Bell, 
   LogOut, 
   ArrowLeft, 
   MoreVertical, 
@@ -45,9 +44,9 @@ const COLORS = {
 
 const ACCOUNT_ITEMS = [
   {
-    id: "wallet",
-    title: "My Wallet",
-    icon: Wallet,
+    id: "personal_info",
+    title: "Personal Information",
+    icon: User,
   },
   {
     id: "address",
@@ -71,11 +70,6 @@ const SETTINGS_ITEMS = [
     id: "help",
     title: "Help Center",
     icon: HelpCircle,
-  },
-  {
-    id: "notifications",
-    title: "Notification Settings",
-    icon: Bell,
   },
 ];
 
@@ -141,7 +135,11 @@ export default function ProfileScreen() {
   };
 
   const handleMenuPress = (id: string) => {
-    console.log("Menu pressed:", id);
+    if (id === "personal_info") {
+      router.push("/personal-info");
+    } else {
+      console.log("Menu pressed:", id);
+    }
   };
 
   return (
