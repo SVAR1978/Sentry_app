@@ -210,4 +210,64 @@ router.post(
   }
 );
 
+// ============================================================
+// GET /booking-partners/my-tickets — JWT required
+// Returns all genuine booking visits for ticket history
+// ============================================================
+router.get(
+  "/my-tickets",
+  authenticateJWT,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      console.log("[BOOKING_PARTNERS][TICKETS] Fetching for user", { userId });
+
+      const visits = await prisma.bookingVisit.findMany({
+        where: {
+          userId,
+          durationMs: { gte: 5000 }, // Genuine visits only
+        },
+        orderBy: { visitedAt: "desc" },
+        include: {
+          partner: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              url: true,
+              logoUrl: true,
+              category: true,
+              isVerified: true,
+            },
+          },
+        },
+      });
+
+      const tickets = visits.map((v) => ({
+        id: v.id,
+        partnerName: v.partner.name,
+        partnerCategory: v.partner.category,
+        partnerUrl: v.partner.url,
+        partnerLogoUrl: v.partner.logoUrl,
+        isVerified: v.partner.isVerified,
+        durationMs: v.durationMs,
+        visitedAt: v.visitedAt,
+      }));
+
+      console.log("[BOOKING_PARTNERS][TICKETS] Returning tickets", {
+        count: tickets.length,
+      });
+
+      return res.status(200).json({ tickets });
+    } catch (error) {
+      console.error("[BOOKING_PARTNERS][TICKETS] Failed", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
 export default router;
