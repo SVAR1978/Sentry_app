@@ -10,6 +10,15 @@ import {
 
 dotenv.config();
 
+const runEmailWorkerInThisService =
+  (process.env.RUN_EMAIL_WORKER ?? "false").toLowerCase() === "true";
+
+if (runEmailWorkerInThisService) {
+  // Start BullMQ email worker in the same process to avoid a separate worker service.
+  await import("./workers/emailWorker.js");
+  console.log("Email worker enabled in websocket service");
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || "123123";
 
 type Role = "USER" | "ADMIN";

@@ -13,7 +13,7 @@
 
 import WebSocket from "ws";
 import { prisma } from "../prisma.js";
-import { emailService } from "./emailService.js";
+import { emailQueue } from "../queues/emailQueue.js";
 import {
   Client,
   SOSContact,
@@ -297,10 +297,7 @@ async function notifyContactsByEmail(
       if (!contactEmail) continue;
 
       try {
-        await emailService.sendEmail(
-          contactEmail,
-          `EMERGENCY SOS ALERT — ${userName} needs help`,
-          `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        const htmlContent = `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #D93636; color: white; padding: 20px; border-radius: 12px 12px 0 0;">
               <h1 style="margin: 0; font-size: 24px;">EMERGENCY SOS ALERT</h1>
               <p style="margin: 8px 0 0; opacity: 0.9;">Immediate attention required</p>
@@ -315,11 +312,21 @@ async function notifyContactsByEmail(
               ${mapsLink ? `<a href="${mapsLink}" style="display: inline-block; background: #D93636; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">View Location on Map</a>` : ""}
               <p style="margin-top: 20px; color: #888; font-size: 13px;">This alert was dispatched via the Sentry Emergency App. Please respond immediately or contact local emergency services.</p>
             </div>
-          </div>`
+          </div>`;
+
+        // Queue email job instead of sending directly
+        await emailQueue.add(
+          "send-sos-email",
+          {
+            email: contactEmail,
+            subject: `EMERGENCY SOS ALERT — ${userName} needs help`,
+            htmlContent,
+          },
+          { removeOnComplete: true }
         );
-        console.log(`[SOSService] Email sent to ${contact.name} (${contactEmail})`);
-      } catch (emailErr) {
-        console.error(`[SOSService] Email to ${contactEmail} failed:`, emailErr);
+        console.log(`[SOSService] SOS email queued for ${contact.name} (${contactEmail})`);
+      } catch (err) {
+        console.error(`[SOSService] Failed to queue email to ${contactEmail}:`, err);
       }
     }
   } catch (err) {
