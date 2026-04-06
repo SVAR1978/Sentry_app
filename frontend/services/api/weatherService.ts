@@ -21,6 +21,8 @@ export interface WeatherData {
   humidity: number; // percentage
   windSpeed: number; // m/s
   feelsLike: number; // in Celsius
+  precipitationMm: number; // rain/snow in mm during latest hour bucket
+  visibilityKm: number | null; // in km
   city: string;
   country: string;
 }
@@ -113,6 +115,16 @@ export const getWeatherByLocation = async (
 
     const data = await response.json();
 
+    const rain1h = Number(data?.rain?.["1h"] ?? 0);
+    const rain3h = Number(data?.rain?.["3h"] ?? 0);
+    const snow1h = Number(data?.snow?.["1h"] ?? 0);
+    const snow3h = Number(data?.snow?.["3h"] ?? 0);
+    const precipitationMm = Math.max(rain1h, rain3h / 3, snow1h, snow3h / 3, 0);
+    const visibilityKm =
+      typeof data?.visibility === "number"
+        ? Math.round((data.visibility / 1000) * 10) / 10
+        : null;
+
     const weatherData: WeatherData = {
       temperature: Math.round(data.main.temp),
       condition: data.weather[0].main,
@@ -121,6 +133,8 @@ export const getWeatherByLocation = async (
       humidity: Math.round(data.main.humidity),
       windSpeed: Math.round(data.wind.speed * 10) / 10,
       feelsLike: Math.round(data.main.feels_like),
+      precipitationMm,
+      visibilityKm,
       city: data.name || "Current Location",
       country: data.sys?.country || "",
     };
@@ -145,6 +159,8 @@ export const getWeatherByLocation = async (
       humidity: 60,
       windSpeed: 5,
       feelsLike: 25,
+      precipitationMm: 0,
+      visibilityKm: null,
       city: "Current Location",
       country: "",
     };

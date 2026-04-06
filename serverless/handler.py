@@ -18,27 +18,6 @@ def load_feature_store():
         print(f"Loaded {len(data_cache)} areas")
     return data_cache
 
-def calculate_multipliers(hour, weather, event_density):
-    time_mult = 15 if (20 <= hour or hour <= 6) else 0
-    weather_mult = {
-        'clear': 0,
-        'rain': 5,
-        'monsoon': 10,
-        'fog': 10
-    }.get(weather, 0)
-    event_mult = {
-        'low': 0,
-        'medium': 5,
-        'high': 10
-    }.get(event_density, 0)
-    
-    return {
-        'time': time_mult,
-        'weather': weather_mult,
-        'event': event_mult,
-        'total': time_mult + weather_mult + event_mult
-    }
-
 
 def get_request_path(event):
     path = event.get('rawPath') or event.get('path') or '/'
@@ -121,13 +100,16 @@ def lambda_handler(event, context):
     if route_matches(path, '/score/area') and method == 'POST':
         body = parse_json_body(event)
         area_id = body.get('area_id')
-        try:
-            hour = int(body.get('hour', 12))
-        except (TypeError, ValueError):
-            hour = 12
-        hour = max(0, min(hour, 23))
-        weather = body.get('weather', 'clear')
-        event_density = body.get('event_density', 'low')
+
+        if not area_id or not isinstance(area_id, str):
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'area_id is required'})
+            }
         
         data = load_feature_store()
         area = data.get(area_id)
@@ -145,17 +127,6 @@ def lambda_handler(event, context):
         base_score = area['base_score']
         base_category = area['risk_category']
         
-        multipliers = calculate_multipliers(hour, weather, event_density)
-        
-        final_score = base_score + multipliers['total']
-        
-        if final_score < 33:
-            final_category = 'Low'
-        elif final_score < 66:
-            final_category = 'Medium'
-        else:
-            final_category = 'High'
-        
         return {
             'statusCode': 200,
             'headers': {
@@ -168,16 +139,6 @@ def lambda_handler(event, context):
                     'score': base_score,
                     'category': base_category,
                     'source': 'precomputed'
-                },
-                'multipliers': multipliers,
-                'final_risk': {
-                    'score': round(final_score, 2),
-                    'category': final_category
-                },
-                'context': {
-                    'hour': hour,
-                    'weather': weather,
-                    'event_density': event_density
                 }
             })
         }
