@@ -145,44 +145,11 @@ const BookingPartners: React.FC = () => {
 
   return (
     <View style={styles.section}>
-      {/* Disclaimer Banner */}
-      <View style={[styles.disclaimerBanner, { paddingHorizontal: 20 }]}>
-        <View style={styles.disclaimerInner}>
-          <Info size={14} color={COLORS.secondary} strokeWidth={2.5} />
-          <Text style={styles.disclaimerText}>
-            Bookings are handled securely by verified third-party platforms.
-          </Text>
-        </View>
-      </View>
-
-      {/* Recently Visited Strip */}
-      {recentPartners.length > 0 && (
-        <View style={styles.recentSection}>
-          <View style={styles.recentHeader}>
-            <Clock size={14} color={COLORS.secondary} strokeWidth={2.5} />
-            <Text style={styles.recentTitle}>Recently Visited</Text>
-          </View>
-          <FlatList
-            data={recentPartners}
-            keyExtractor={(item) => `recent-${item.id}`}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recentList}
-            renderItem={({ item }) => (
-              <RecentPartnerChip
-                partner={item}
-                onPress={() => handlePartnerPress(item)}
-              />
-            )}
-          />
-        </View>
-      )}
 
       {/* Section Header */}
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>Book Travel</Text>
-          <Text style={styles.sectionSubtitle}>Verified partner platforms</Text>
         </View>
       </View>
 
