@@ -4,9 +4,10 @@ import axios from "axios";
 
 const router = express.Router();
 
-const AWS_RISK_BASE_URL = (
-  process.env.AWS_RISK_BASE_URL
-).replace(/[/.]+$/, "");
+const AWS_RISK_BASE_URL = (process.env.AWS_RISK_BASE_URL ?? "").replace(
+  /[/.]+$/,
+  ""
+);
 
 const AWS_RISK_TIMEOUT_MS = Number(process.env.AWS_RISK_TIMEOUT_MS ?? 5000);
 
@@ -36,14 +37,13 @@ function forwardAxiosError(error: unknown, res: Response, fallbackMessage: strin
     message?: string;
   };
 
-  if (
-    maybeAxiosError?.response &&
-    typeof maybeAxiosError.response.status === "number"
-  ) {
-    const response = maybeAxiosError.response;
+  const status = maybeAxiosError?.response?.status;
+  const data = maybeAxiosError?.response?.data;
+
+  if (typeof status === "number") {
     return res
-      .status(response.status)
-      .json(response.data || { message: fallbackMessage });
+      .status(status)
+      .json(data || { message: fallbackMessage });
   }
 
   const message =
