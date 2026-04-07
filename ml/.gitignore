@@ -27,7 +27,7 @@ processed/
 !datasets/samples/*.csv
 !frontend/public/data/police-boundaries.geojson  # Keep this if it's small & needed for UI
 
-# *.pkl
+*.pkl
 *.joblib
 *.h5
 *.model
