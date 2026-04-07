@@ -82,10 +82,6 @@ export const MapFilterBar: React.FC<MapFilterBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    top: 16,
-    left: 0,
-    right: 0,
     zIndex: 10,
   },
   scrollContent: {

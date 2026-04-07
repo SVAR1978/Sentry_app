@@ -54,7 +54,7 @@ export default {
       reactCompiler: true,
     },
 
-    // ✅ Environment variables injected here
+    // Environment variables injected here
     extra: {
         openWeatherKey: process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY,
         openWeatherUrl: process.env.EXPO_PUBLIC_OPENWEATHER_API_URL,
@@ -69,6 +69,11 @@ export default {
 
         mapFetchTimeout: process.env.EXPO_PUBLIC_MAP_FETCH_TIMEOUT,
         fetchTimeout: process.env.EXPO_PUBLIC_FETCH_TIMEOUT,
+        awsRiskBaseUrl: process.env.EXPO_PUBLIC_AWS_RISK_BASE_URL,
+        policeStationLocationUrl:
+          process.env.EXPO_PUBLIC_POLICE_STATION_LOCATION_URL,
+        policeStationBoundaryUrl:
+          process.env.EXPO_PUBLIC_POLICE_STATION_BOUNDARY_URL,
     },
   },
   

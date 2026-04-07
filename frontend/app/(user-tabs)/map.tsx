@@ -32,6 +32,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
     DirectionsPanel,
     MapFilterBar,
+  RiskZonePolygon,
     SearchOverlay,
     UserLocationMarker,
 } from "../../components/map";
@@ -40,10 +41,12 @@ import {
 import {
     COLORS,
     DELHI_REGION,
+  RiskZone,
 } from "../../constants/mapData";
 
 // Location Services
 import {
+  calculateDistance,
     formatDistance,
     LocationCoordinate,
 } from "../../services/maps/locationService";
@@ -64,8 +67,36 @@ import {
     NavigationManager,
     NavigationState,
 } from "../../services/maps/navigationService";
+import { getCachedWeather } from "../../services/api/weatherService";
+import {
+  fetchAllAreaBaseScores,
+  fetchAreaBaseScore,
+  toMapRiskLevel,
+} from "../../services/api/riskService";
+import {
+  getAreaBoundaryPolygons,
+  getAreaId,
+  getPoliceStationLocations,
+  normalizeAreaId,
+} from "../../services/risk/areaLookup";
+import type { PoliceStationLocation } from "../../services/risk/areaLookup";
+import {
+  applyMultipliers,
+  AppliedRiskResult,
+} from "../../services/risk/riskMultipliers";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const RISK_REFRESH_INTERVAL_MS = 60_000;
+const RISK_REFRESH_DISTANCE_METERS = 120;
+
+interface LocationRiskResult extends AppliedRiskResult {
+  area_id: string;
+  base_category: string;
+}
+
+interface PoliceStationMarker extends PoliceStationLocation {
+  coordinate: LocationCoordinate;
+}
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
@@ -96,7 +127,18 @@ export default function MapScreen() {
 
   // ── Filters ──
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const shouldShowPoliceStations = selectedFilter === "all" || selectedFilter === "police";
   const [showRiskZones, setShowRiskZones] = useState(false);
+  const [riskZones, setRiskZones] = useState<RiskZone[]>([]);
+  const [loadingRiskZones, setLoadingRiskZones] = useState(false);
+  const [policeStations, setPoliceStations] = useState<PoliceStationMarker[]>([]);
+  const [loadingPoliceStations, setLoadingPoliceStations] = useState(false);
+  const [currentRisk, setCurrentRisk] = useState<LocationRiskResult | null>(null);
+  const lastRiskRefreshRef = useRef<{
+    location: LocationCoordinate;
+    timestamp: number;
+  } | null>(null);
+  const riskRequestIdRef = useRef(0);
 
   // ── Directions ──
   const [selectedPlace, setSelectedPlace] = useState<SearchResult | null>(null);
@@ -353,6 +395,183 @@ export default function MapScreen() {
   }, [userLocation, selectedFilter]);
 
   // ===================================================================
+  // 1C. LOAD ALL POLICE STATION POINTS FROM AWS LOCATION GEOJSON
+  // ===================================================================
+  useEffect(() => {
+    if (!shouldShowPoliceStations || policeStations.length > 0 || loadingPoliceStations) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadPoliceStations = async () => {
+      setLoadingPoliceStations(true);
+      try {
+        const stations = await getPoliceStationLocations();
+
+        if (!cancelled) {
+          setPoliceStations(
+            stations.map((station) => ({
+              ...station,
+              coordinate: {
+                latitude: station.latitude,
+                longitude: station.longitude,
+              },
+            }))
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn("[MapScreen] Unable to load police station locations:", error);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingPoliceStations(false);
+        }
+      }
+    };
+
+    loadPoliceStations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldShowPoliceStations, policeStations.length, loadingPoliceStations]);
+
+  // ===================================================================
+  // 1D. FETCH AND DRAW AREA RISK ZONES
+  // ===================================================================
+  useEffect(() => {
+    if (!showRiskZones || riskZones.length > 0 || loadingRiskZones) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadRiskZones = async () => {
+      setLoadingRiskZones(true);
+      try {
+        const [areaScores] = await Promise.all([fetchAllAreaBaseScores()]);
+
+        const scoreByArea = new Map(
+          areaScores.areas.map((area) => [normalizeAreaId(area.area_id), area])
+        );
+
+        const zonePolygons = await getAreaBoundaryPolygons();
+        const mappedZones: RiskZone[] = zonePolygons.map((polygon) => {
+          const areaScore = scoreByArea.get(normalizeAreaId(polygon.areaId));
+          const riskCategory = areaScore?.risk_category ?? "Low";
+
+          return {
+            id: polygon.id,
+            name: polygon.areaId,
+            level: toMapRiskLevel(riskCategory),
+            coordinates: polygon.coordinates,
+            description: areaScore
+              ? `Base score ${Math.round(areaScore.base_score)} (${riskCategory})`
+              : "Base score unavailable",
+          };
+        });
+
+        if (!cancelled) {
+          setRiskZones(mappedZones);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn("[MapScreen] Unable to load risk zones:", error);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingRiskZones(false);
+        }
+      }
+    };
+
+    loadRiskZones();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showRiskZones, riskZones.length, loadingRiskZones]);
+
+  // ===================================================================
+  // 1E. CURRENT LOCATION RISK = BASE SCORE + CLIENT MULTIPLIERS
+  // ===================================================================
+  useEffect(() => {
+    if (!userLocation) return;
+
+    const lastRefresh = lastRiskRefreshRef.current;
+    const now = Date.now();
+    if (lastRefresh) {
+      const movedMeters = calculateDistance(userLocation, lastRefresh.location);
+      if (
+        movedMeters < RISK_REFRESH_DISTANCE_METERS &&
+        now - lastRefresh.timestamp < RISK_REFRESH_INTERVAL_MS
+      ) {
+        return;
+      }
+    }
+
+    let cancelled = false;
+    const requestId = ++riskRequestIdRef.current;
+
+    const refreshCurrentRisk = async () => {
+      try {
+        const areaId = await getAreaId(userLocation.latitude, userLocation.longitude);
+
+        if (!areaId) {
+          if (!cancelled && requestId === riskRequestIdRef.current) {
+            setCurrentRisk(null);
+            lastRiskRefreshRef.current = {
+              location: userLocation,
+              timestamp: Date.now(),
+            };
+          }
+          return;
+        }
+
+        const [baseRisk, weather] = await Promise.all([
+          fetchAreaBaseScore(areaId),
+          getCachedWeather(userLocation),
+        ]);
+
+        const finalRisk = applyMultipliers(
+          baseRisk.base_score,
+          new Date(),
+          {
+            humidity: weather.humidity,
+            precipitation_mm: weather.precipitationMm,
+            visibility_km: weather.visibilityKm,
+          },
+          null
+        );
+
+        if (!cancelled && requestId === riskRequestIdRef.current) {
+          setCurrentRisk({
+            ...finalRisk,
+            area_id: baseRisk.area_id,
+            base_category: baseRisk.risk_category,
+          });
+          lastRiskRefreshRef.current = {
+            location: userLocation,
+            timestamp: Date.now(),
+          };
+        }
+      } catch (error) {
+        if (!cancelled && requestId === riskRequestIdRef.current) {
+          console.warn("[MapScreen] Failed to refresh current risk:", error);
+        }
+      }
+    };
+
+    refreshCurrentRisk();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userLocation]);
+
+  // ===================================================================
   // 2. DIRECTIONS – fetch route when destination is selected or initially
   // ===================================================================
   const initialUserLocationRef = useRef<LocationCoordinate | null>(null);
@@ -576,6 +795,24 @@ export default function MapScreen() {
   }
 
   const showDirections = !!selectedPlace;
+  const currentRiskTheme =
+    currentRisk?.risk_level === "High"
+      ? {
+          backgroundColor: "rgba(239, 68, 68, 0.15)",
+          borderColor: "rgba(239, 68, 68, 0.4)",
+          textColor: "#B91C1C",
+        }
+      : currentRisk?.risk_level === "Medium"
+        ? {
+            backgroundColor: "rgba(245, 158, 11, 0.18)",
+            borderColor: "rgba(245, 158, 11, 0.45)",
+            textColor: "#92400E",
+          }
+        : {
+            backgroundColor: "rgba(16, 185, 129, 0.18)",
+            borderColor: "rgba(16, 185, 129, 0.45)",
+            textColor: "#065F46",
+          };
 
   return (
     <View style={styles.container}>
@@ -605,6 +842,34 @@ export default function MapScreen() {
             left: 0,
           }}
         >
+
+          {/* Area risk zones from base score API */}
+          {showRiskZones &&
+            riskZones.map((zone) => (
+              <RiskZonePolygon
+                key={zone.id}
+                zone={zone}
+                onPress={(selectedZone) =>
+                  Alert.alert(selectedZone.name, selectedZone.description)
+                }
+              />
+            ))}
+
+          {/* All police stations from AWS location GeoJSON */}
+          {shouldShowPoliceStations &&
+            policeStations.map((station) => (
+              <Marker
+                key={station.id}
+                coordinate={station.coordinate}
+                title={station.name}
+                description={
+                  station.district
+                    ? `District: ${station.district}`
+                    : "Delhi Police Station"
+                }
+                pinColor="#2563EB"
+              />
+            ))}
 
 
           {/* Direction route polyline */}
@@ -651,6 +916,33 @@ export default function MapScreen() {
           )}
         </MapView>
 
+        <View style={[styles.filterContainer, { top: insets.top + 8 }]}>
+          <MapFilterBar
+            selectedFilter={selectedFilter}
+            onFilterChange={setSelectedFilter}
+            showRiskZones={showRiskZones}
+            onToggleRiskZones={() => setShowRiskZones((prev) => !prev)}
+          />
+        </View>
+
+        {currentRisk && (
+          <View
+            style={[
+              styles.riskIndicator,
+              {
+                top: insets.top + 70,
+                backgroundColor: currentRiskTheme.backgroundColor,
+                borderColor: currentRiskTheme.borderColor,
+              },
+            ]}
+          >
+            <Icon source="shield-alert" size={16} color={currentRiskTheme.textColor} />
+            <Text style={[styles.riskIndicatorText, { color: currentRiskTheme.textColor }]}>
+              {`${currentRisk.risk_level} Risk (${currentRisk.final_score}) • ${currentRisk.area_id}`}
+            </Text>
+          </View>
+        )}
+
         {/* ── SEARCH ── */}
         <SearchOverlay onSelectPlace={handlePlaceSelected} />
 
@@ -689,6 +981,25 @@ export default function MapScreen() {
           <View style={[styles.routeLoadingOverlay, { top: insets.top + 76 }]}>
             <ActivityIndicator size="small" color="#fff" />
             <Text style={styles.routeLoadingText}>Finding route...</Text>
+          </View>
+        )}
+
+        {showRiskZones && loadingRiskZones && (
+          <View style={[styles.routeLoadingOverlay, { top: insets.top + 118 }]}>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.routeLoadingText}>Loading risk zones...</Text>
+          </View>
+        )}
+
+        {shouldShowPoliceStations && loadingPoliceStations && (
+          <View
+            style={[
+              styles.routeLoadingOverlay,
+              { top: insets.top + (showRiskZones ? 160 : 118) },
+            ]}
+          >
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.routeLoadingText}>Loading police stations...</Text>
           </View>
         )}
 

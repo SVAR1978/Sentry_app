@@ -50,6 +50,23 @@ router.post("/signup", async (req, res) => {
             userId: newUser.id,
             role: newUser.role, // ✅ role in JWT
         }, JWT_SECRET, { expiresIn: "7d" });
+        // ============================================================
+        // Publish USER_SESSION SIGNUP event to Redis for real-time admin notifications
+        // ============================================================
+        try {
+            await redis.publish("user-session-events", JSON.stringify({
+                userId: newUser.id,
+                userName: newUser.name || newUser.email,
+                action: "SIGNUP",
+                timestamp: new Date().toISOString(),
+            }));
+            console.log("[AUTH][SIGNUP] Published USER_SESSION SIGNUP event to Redis", {
+                userId: newUser.id,
+            });
+        }
+        catch (publishErr) {
+            console.error("[AUTH][SIGNUP] Failed to publish USER_SESSION event:", publishErr);
+        }
         return res.status(201).json({
             message: "Signup successful",
             token,
@@ -94,6 +111,30 @@ router.post("/signin", async (req, res) => {
             userId: user.id,
             role: user.role, //  role in JWT
         }, JWT_SECRET, { expiresIn: "6h" });
+        // ============================================================
+        // Publish USER_SESSION event to Redis for real-time admin activity feed
+        // ============================================================
+        try {
+            const userSessionEvent = {
+                type: "USER_SESSION",
+                payload: {
+                    userId: user.id,
+                    userName: user.name || user.email,
+                    action: "LOGIN",
+                    timestamp: new Date().toISOString(),
+                },
+            };
+            // Publish to Redis for WebSocket backend to pick up and broadcast to admins
+            await redis.publish("user-session-events", JSON.stringify(userSessionEvent.payload));
+            console.log("[AUTH][SIGNIN] Published USER_SESSION LOGIN event to Redis", {
+                userId: user.id,
+                userName: user.name || user.email,
+            });
+        }
+        catch (publishErr) {
+            console.error("[AUTH][SIGNIN] Failed to publish USER_SESSION event:", publishErr);
+            // Don't fail the login if publishing fails - this is a non-critical operation
+        }
         return res.status(200).json({
             message: "Signin successful",
             token,
@@ -201,6 +242,123 @@ router.post("/reset-password", async (req, res) => {
     }
     catch (error) {
         console.error("[AUTH][RESET_PASSWORD] Unexpected error", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+/**
+ * UPDATE PROFILE Endpoint
+ * PATCH /auth/update-profile
+ */
+router.patch("/update-profile", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization || "";
+        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        if (!token) {
+            console.warn("[AUTH][UPDATE] No token provided");
+            return res.status(401).json({ message: "Token is required" });
+        }
+        let decoded = null;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        }
+        catch {
+            console.warn("[AUTH][UPDATE] Invalid token");
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const { name, phone, avatar, address } = req.body;
+        const updatedUser = await prisma.user.update({
+            where: { id: decoded.userId },
+            data: {
+                name: name || undefined,
+                phone: phone || undefined,
+                avatar: avatar || undefined,
+                address: address || undefined,
+            },
+        });
+        console.log("[AUTH][UPDATE] Profile updated successfully", { userId: decoded.userId });
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                avatar: updatedUser.avatar,
+                address: updatedUser.address,
+                role: updatedUser.role,
+            },
+        });
+    }
+    catch (error) {
+        console.error("[AUTH][UPDATE] Update failed", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+/**
+ * LOGOUT Endpoint
+ * POST /auth/logout
+ *
+ * Publishes a USER_SESSION LOGOUT event for real-time admin activity feed.
+ * Expects Bearer token in Authorization header.
+ */
+router.post("/logout", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization || "";
+        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        if (!token) {
+            console.warn("[AUTH][LOGOUT] No token provided");
+            return res.status(401).json({ message: "Token is required" });
+        }
+        let decoded = null;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        }
+        catch {
+            console.warn("[AUTH][LOGOUT] Invalid token");
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        if (!decoded?.userId) {
+            console.warn("[AUTH][LOGOUT] Invalid token payload");
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        // Fetch user details for the activity feed
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { id: true, name: true, email: true },
+        });
+        if (!user) {
+            console.warn("[AUTH][LOGOUT] User not found", { userId: decoded.userId });
+            return res.status(404).json({ message: "User not found" });
+        }
+        // ============================================================
+        // Publish USER_SESSION LOGOUT event to Redis for admin activity feed
+        // ============================================================
+        try {
+            const userSessionEvent = {
+                type: "USER_SESSION",
+                payload: {
+                    userId: user.id,
+                    userName: user.name || user.email,
+                    action: "LOGOUT",
+                    timestamp: new Date().toISOString(),
+                },
+            };
+            // Publish to Redis for WebSocket backend to pick up and broadcast to admins
+            await redis.publish("user-session-events", JSON.stringify(userSessionEvent.payload));
+            console.log("[AUTH][LOGOUT] Published USER_SESSION LOGOUT event to Redis", {
+                userId: user.id,
+                userName: user.name || user.email,
+            });
+        }
+        catch (publishErr) {
+            console.error("[AUTH][LOGOUT] Failed to publish USER_SESSION event:", publishErr);
+            // Don't fail the logout if publishing fails - this is a non-critical operation
+        }
+        console.log("[AUTH][LOGOUT] Logout successful", { userId: user.id });
+        return res.status(200).json({ message: "Logout successful" });
+    }
+    catch (error) {
+        console.error("[AUTH][LOGOUT] Unexpected error", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 });

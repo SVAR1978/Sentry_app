@@ -129,6 +129,8 @@ exports.Prisma.UserScalarFieldEnum = {
   phone: 'phone',
   password: 'password',
   role: 'role',
+  avatar: 'avatar',
+  address: 'address',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -164,6 +166,78 @@ exports.Prisma.ItineraryScalarFieldEnum = {
   endTime: 'endTime',
   status: 'status',
   checklist: 'checklist'
+};
+
+exports.Prisma.BookingPartnerScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  url: 'url',
+  logoUrl: 'logoUrl',
+  category: 'category',
+  isVerified: 'isVerified',
+  isActive: 'isActive',
+  priority: 'priority',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BookingVisitScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  partnerId: 'partnerId',
+  durationMs: 'durationMs',
+  visitedAt: 'visitedAt'
+};
+
+exports.Prisma.SOSAlertScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  status: 'status',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  address: 'address',
+  emergencyContacts: 'emergencyContacts',
+  resolvedAt: 'resolvedAt',
+  cancelledAt: 'cancelledAt',
+  acknowledgedAt: 'acknowledgedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SupportTicketScalarFieldEnum = {
+  id: 'id',
+  ticketNumber: 'ticketNumber',
+  userId: 'userId',
+  name: 'name',
+  email: 'email',
+  subject: 'subject',
+  message: 'message',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SafetyAlertScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  severity: 'severity',
+  affectedAreas: 'affectedAreas',
+  issuedBy: 'issuedBy',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt'
+};
+
+exports.Prisma.SafetyZoneScalarFieldEnum = {
+  id: 'id',
+  areaName: 'areaName',
+  safetyScore: 'safetyScore',
+  zoneLevel: 'zoneLevel',
+  polygon: 'polygon',
+  notes: 'notes',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -208,11 +282,43 @@ exports.ItineraryStatus = exports.$Enums.ItineraryStatus = {
   CANCELLED: 'CANCELLED'
 };
 
+exports.SOSStatus = exports.$Enums.SOSStatus = {
+  ACTIVE: 'ACTIVE',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  RESOLVED: 'RESOLVED',
+  CANCELLED: 'CANCELLED',
+  ESCALATED: 'ESCALATED'
+};
+
+exports.TicketStatus = exports.$Enums.TicketStatus = {
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  RESOLVED: 'RESOLVED'
+};
+
+exports.AlertSeverity = exports.$Enums.AlertSeverity = {
+  CRITICAL: 'CRITICAL',
+  CAUTION: 'CAUTION',
+  INFO: 'INFO'
+};
+
+exports.ZoneLevel = exports.$Enums.ZoneLevel = {
+  SAFE: 'SAFE',
+  MODERATE: 'MODERATE',
+  AVOID: 'AVOID'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   LocationLog: 'LocationLog',
   EmergencyContact: 'EmergencyContact',
-  Itinerary: 'Itinerary'
+  Itinerary: 'Itinerary',
+  BookingPartner: 'BookingPartner',
+  BookingVisit: 'BookingVisit',
+  SOSAlert: 'SOSAlert',
+  SupportTicket: 'SupportTicket',
+  SafetyAlert: 'SafetyAlert',
+  SafetyZone: 'SafetyZone'
 };
 
 /**
