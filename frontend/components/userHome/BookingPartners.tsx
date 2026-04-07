@@ -4,7 +4,6 @@ import {
   Animated,
   AppState,
   Dimensions,
-  FlatList,
   Linking,
   StyleSheet,
   TouchableOpacity,
@@ -19,7 +18,6 @@ import {
   Bus,
   Train,
   Clock,
-  Info,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { COLORS } from "../../constants/userHomeData";
@@ -33,7 +31,7 @@ import {
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // ============================================================
-// Category Icon Mapping
+// Category Icon Mapping & Brand Colors
 // ============================================================
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ size: number; color: string; strokeWidth: number }>> = {
   flights: Plane,
@@ -41,6 +39,32 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ size: number; color: 
   buses: Bus,
   trains: Train,
 };
+
+// Attractive brand-inspired colors for fallback initials
+const BRAND_COLORS: Record<string, { bg: string; text: string }> = {
+  "MakeMyTrip": { bg: "#0057B8", text: "#FFFFFF" },
+  "Goibibo":    { bg: "#EC5B24", text: "#FFFFFF" },
+  "OYO Rooms":  { bg: "#EE2E24", text: "#FFFFFF" },
+  "Yatra":      { bg: "#E42121", text: "#FFFFFF" },
+  "RedBus":     { bg: "#D84233", text: "#FFFFFF" },
+  "IRCTC":      { bg: "#1A5276", text: "#FFFFFF" },
+  "Ola":        { bg: "#1C8C3C", text: "#FFFFFF" },
+  "Uber":       { bg: "#000000", text: "#FFFFFF" },
+};
+
+const DEFAULT_BRAND_COLORS = [
+  { bg: "#4A4341", text: "#FFFFFF" },
+  { bg: "#8C7D79", text: "#FFFFFF" },
+  { bg: "#21100B", text: "#FFFFFF" },
+  { bg: "#5C4033", text: "#FFFFFF" },
+];
+
+function getBrandColor(name: string) {
+  if (BRAND_COLORS[name]) return BRAND_COLORS[name];
+  // Deterministic color from name hash
+  const idx = name.charCodeAt(0) % DEFAULT_BRAND_COLORS.length;
+  return DEFAULT_BRAND_COLORS[idx];
+}
 
 function getCategoryIcon(category: string) {
   return CATEGORY_ICONS[category.toLowerCase()] || Plane;
@@ -150,6 +174,7 @@ const BookingPartners: React.FC = () => {
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>Book Travel</Text>
+          <Text style={styles.sectionSubtitle}>Trusted travel partners</Text>
         </View>
       </View>
 
@@ -167,6 +192,29 @@ const BookingPartners: React.FC = () => {
           />
         ))}
       </ScrollView>
+
+      {/* Recently Visited Section */}
+      {recentPartners.length > 0 && (
+        <View style={styles.recentSection}>
+          <View style={styles.recentHeader}>
+            <Clock size={13} color={COLORS.secondary} strokeWidth={2.5} />
+            <Text style={styles.recentTitle}>Recently Visited</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recentList}
+          >
+            {recentPartners.map((partner) => (
+              <RecentPartnerChip
+                key={partner.id}
+                partner={partner}
+                onPress={() => handlePartnerPress(partner)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 };
@@ -199,7 +247,7 @@ const RecentPartnerChip: React.FC<RecentChipProps> = ({ partner, onPress }) => {
 };
 
 // ============================================================
-// Partner Card Component (Modern Tile)
+// Partner Card Component (Modern Tile with Image Error Handling)
 // ============================================================
 interface PartnerCardProps {
   partner: BookingPartner;
@@ -208,7 +256,10 @@ interface PartnerCardProps {
 
 const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onPress }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const CategoryIcon = getCategoryIcon(partner.category);
+  const brandColor = getBrandColor(partner.name);
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
@@ -224,6 +275,9 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onPress }) => {
     }).start();
   };
 
+  const showLogo = partner.logoUrl && !imageError;
+  const initial = partner.name.charAt(0).toUpperCase();
+
   return (
     <TouchableOpacity
       activeOpacity={1}
@@ -235,15 +289,39 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onPress }) => {
       accessibilityRole="button"
     >
       <Animated.View style={[styles.tileCard, { transform: [{ scale: scaleAnim }] }]}>
-        <View style={styles.logoContainer}>
-          {partner.logoUrl ? (
-            <Image 
-              source={{ uri: partner.logoUrl }} 
-              style={styles.logoImage} 
-              resizeMode="contain"
-            />
+        <View style={[
+          styles.logoContainer,
+          !showLogo && { backgroundColor: brandColor.bg, borderColor: brandColor.bg },
+        ]}>
+          {showLogo ? (
+            <>
+              <Image 
+                source={{ uri: partner.logoUrl! }} 
+                style={styles.logoImage} 
+                resizeMode="cover"
+                onError={() => {
+                  console.log(`[BookingPartners] Logo failed for ${partner.name}: ${partner.logoUrl}`);
+                  setImageError(true);
+                }}
+                onLoadEnd={() => setImageLoading(false)}
+              />
+              {imageLoading && (
+                <View style={styles.logoPlaceholder}>
+                  <Text style={[styles.initialText, { color: brandColor.text, backgroundColor: brandColor.bg }]}>
+                    {initial}
+                  </Text>
+                </View>
+              )}
+            </>
           ) : (
-            <CategoryIcon size={24} color={COLORS.primary} strokeWidth={2} />
+            <View style={styles.fallbackContainer}>
+              <Text style={[styles.initialText, { color: brandColor.text }]}>
+                {initial}
+              </Text>
+              <View style={styles.categoryBadge}>
+                <CategoryIcon size={12} color={brandColor.text} strokeWidth={2.5} />
+              </View>
+            </View>
           )}
         </View>
         <Text style={styles.tileName} numberOfLines={1}>
@@ -275,32 +353,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // Disclaimer
-  disclaimerBanner: {
-    marginBottom: 20,
-  },
-  disclaimerInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "rgba(33, 16, 11, 0.03)",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.06)",
-  },
-  disclaimerText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
-    color: COLORS.secondary,
-    fontWeight: "600",
-  },
-
   // Recently Visited
   recentSection: {
-    marginBottom: 24,
+    marginTop: 20,
   },
   recentHeader: {
     flexDirection: "row",
@@ -377,26 +432,45 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
+    width: 68,
+    height: 68,
+    borderRadius: 18,
     backgroundColor: COLORS.white,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.06)",
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 4,
     overflow: "hidden",
-    padding: 12,
   },
   logoImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: "100%",
+    height: "100%",
+    // Overflow hidden on container will naturally clip the image exactly.
+  },
+  logoPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fallbackContainer: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  initialText: {
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -1,
+  },
+  categoryBadge: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    opacity: 0.5,
   },
   tileName: {
     fontSize: 12,
