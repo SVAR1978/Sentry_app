@@ -284,12 +284,16 @@ async function notifyContactsByEmail(
       where: { userId },
     });
 
-    const mapsLink = Number.isFinite(latitude) && Number.isFinite(longitude)
-      ? `https://www.google.com/maps?q=${latitude},${longitude}`
+    const hasCoordinates = typeof latitude === "number" && typeof longitude === "number";
+    const lat = hasCoordinates ? latitude : null;
+    const lng = hasCoordinates ? longitude : null;
+
+    const mapsLink = lat !== null && lng !== null
+      ? `https://www.google.com/maps?q=${lat},${lng}`
       : "";
 
-    const locationStr = address || (Number.isFinite(latitude) && Number.isFinite(longitude)
-      ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    const locationStr = address || (lat !== null && lng !== null
+      ? `${lat.toFixed(6)}, ${lng.toFixed(6)}`
       : "Location unavailable");
 
     const recipients = new Map<string, { name: string; email: string }>();
