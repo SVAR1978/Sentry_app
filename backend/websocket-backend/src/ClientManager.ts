@@ -105,10 +105,11 @@ export class ClientManager {
 
     const location = message.payload;
     
-    // Calculate real risk using geofencing
-    const riskResult = await RiskZoneService.calculateRisk(
+    // Calculate real risk using HTTPS backend API 
+    const riskResult = await RiskZoneService.getRealtimeRisk(
       location.latitude,
-      location.longitude
+      location.longitude,
+      location.areaId
     );
     const risk = riskResult.score;
 

@@ -148,4 +148,45 @@ export class RiskZoneService {
       level: "low",
     };
   }
+
+  static async getRealtimeRisk(lat: number, lng: number, areaId?: string): Promise<RiskCalculationResult> {
+    if (!areaId) {
+      return this.calculateRisk(lat, lng);
+    }
+    
+    try {
+      // 4000 is the typical https-backend port here, but could be ENV driven
+      const httpsBackendUrl = process.env.HTTPS_BACKEND_URL || "http://localhost:4000";
+      const response = await axios.post(`${httpsBackendUrl}/api/risk-scores/area`, {
+        area_id: areaId,
+        latitude: lat,
+        longitude: lng
+      }, { timeout: 4000 });
+
+      if (response.data && typeof response.data.final_score === 'number') {
+        const finalScore = response.data.final_score;
+        let pLevel: "low" | "medium" | "high" = "low";
+        let levelScore = 2;
+
+        if (finalScore > 55) {
+          pLevel = "high";
+          levelScore = 9;
+        } else if (finalScore > 30) {
+          pLevel = "medium";
+          levelScore = 6;
+        }
+
+        return {
+          score: levelScore,
+          level: pLevel,
+          zoneId: areaId,
+          zoneName: response.data.area_id
+        };
+      }
+    } catch(err: any) {
+      console.warn("[RiskZoneService] Realtime risk fetch failed", err?.message);
+    }
+
+    return this.calculateRisk(lat, lng);
+  }
 }

@@ -15,6 +15,7 @@ export interface LocationPayload {
   speed?: number;
   heading?: number;
   source: "GPS" | "NETWORK";
+  areaId?: string;
 }
 
 export interface LocationMessage {
