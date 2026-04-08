@@ -71,6 +71,7 @@ import { getCachedWeather } from "../../services/api/weatherService";
 import {
   fetchAllAreaBaseScores,
   fetchAreaBaseScore,
+  fetchRiskByLocation,
   toMapRiskLevel,
 } from "../../services/api/riskService";
 import {
@@ -100,7 +101,7 @@ interface PoliceStationMarker extends PoliceStationLocation {
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
-  const { sendLocation } = useSocket();
+  const { sendLocation, onRiskAlert } = useSocket();
   // Get route params (from QuickActions)
   const params = useLocalSearchParams<{ filter?: string }>();
 
@@ -169,7 +170,31 @@ export default function MapScreen() {
   const [loadingNearby, setLoadingNearby] = useState(false);
 
   // ===================================================================
-  // 1. REAL LOCATION TRACKING (smooth, like Google Maps)
+  // 1A. WEBSOCKET RISK ALERTS
+  // ===================================================================
+  useEffect(() => {
+    const unsub = onRiskAlert((data) => {
+      const score = data.payload.score;
+      if (typeof score === "number") {
+        const level = score > 55 ? "High" : score > 30 ? "Medium" : "Low";
+        
+        Alert.alert("Risk Status Updated", data.payload.message, [{ text: "OK" }]);
+
+        setCurrentRisk(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            final_score: score,
+            risk_level: level as "Low" | "Medium" | "High",
+          };
+        });
+      }
+    });
+    return unsub;
+  }, [onRiskAlert]);
+
+  // ===================================================================
+  // 1B. REAL LOCATION TRACKING (smooth, like Google Maps)
   // ===================================================================
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
@@ -245,13 +270,32 @@ export default function MapScreen() {
           setSpeed(update.coords.speed);
 
           // ── Send location to WebSocket backend ──
-          sendLocation({
-            latitude: update.coords.latitude,
-            longitude: update.coords.longitude,
-            accuracy: update.coords.accuracy,
-            speed: update.coords.speed,
-            heading: update.coords.heading,
-            source: "GPS",
+          getAreaId(update.coords.latitude, update.coords.longitude).then((areaId) => {
+            if (areaId) {
+              sendLocation({
+                latitude: update.coords.latitude,
+                longitude: update.coords.longitude,
+                accuracy: update.coords.accuracy,
+                speed: update.coords.speed,
+                heading: update.coords.heading,
+                source: "GPS",
+                areaId: areaId || undefined,
+              });
+            } else {
+              import("../../services/risk/areaResolver").then(({ resolveAreaFromLocation }) => {
+                resolveAreaFromLocation(update.coords.latitude, update.coords.longitude).then((newAreaId) => {
+                  sendLocation({
+                    latitude: update.coords.latitude,
+                    longitude: update.coords.longitude,
+                    accuracy: update.coords.accuracy,
+                    speed: update.coords.speed,
+                    heading: update.coords.heading,
+                    source: "GPS",
+                    areaId: newAreaId || undefined,
+                  });
+                });
+              });
+            }
           });
 
           // Append to breadcrumb trail
@@ -519,7 +563,19 @@ export default function MapScreen() {
       try {
         const areaId = await getAreaId(userLocation.latitude, userLocation.longitude);
 
-        if (!areaId) {
+        let baseRisk;
+        if (areaId) {
+          baseRisk = await fetchAreaBaseScore(
+            areaId,
+            userLocation.latitude,
+            userLocation.longitude
+          );
+        } else {
+          // Fallback to nominatim reverse-geocoding if polygon lookup failed (e.g. missing GeoJSON)
+          baseRisk = await fetchRiskByLocation(userLocation.latitude, userLocation.longitude);
+        }
+
+        if (!baseRisk) {
           if (!cancelled && requestId === riskRequestIdRef.current) {
             setCurrentRisk(null);
             lastRiskRefreshRef.current = {
@@ -530,25 +586,17 @@ export default function MapScreen() {
           return;
         }
 
-        const [baseRisk, weather] = await Promise.all([
-          fetchAreaBaseScore(areaId),
-          getCachedWeather(userLocation),
-        ]);
-
-        const finalRisk = applyMultipliers(
-          baseRisk.base_score,
-          new Date(),
-          {
-            humidity: weather.humidity,
-            precipitation_mm: weather.precipitationMm,
-            visibility_km: weather.visibilityKm,
-          },
-          null
-        );
+        const finalScore = baseRisk.final_score ?? baseRisk.base_score;
+        const riskLevel = finalScore > 55 ? "High" : finalScore > 30 ? "Medium" : "Low";
 
         if (!cancelled && requestId === riskRequestIdRef.current) {
           setCurrentRisk({
-            ...finalRisk,
+            base_score: baseRisk.base_score,
+            final_score: finalScore,
+            risk_level: riskLevel as "Low" | "Medium" | "High",
+            breakdown: baseRisk.breakdown || {
+              time: 0, weather: 0, aqi: 0, festival: 0, weekend: 0, season: 0
+            },
             area_id: baseRisk.area_id,
             base_category: baseRisk.risk_category,
           });

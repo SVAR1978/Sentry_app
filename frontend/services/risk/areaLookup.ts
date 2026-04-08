@@ -116,6 +116,11 @@ function isFeatureCollection(value: unknown): value is { type: string; features:
 }
 
 async function fetchBoundaryData(): Promise<BoundaryFeatureCollection> {
+  if (!POLICE_STATION_BOUNDARY_URL) {
+    console.warn("[AreaLookup] EXPO_PUBLIC_POLICE_STATION_BOUNDARY_URL is not configured — boundary lookup disabled");
+    return { type: "FeatureCollection", features: [] };
+  }
+
   const data = await fetchJsonWithTimeout<unknown>(POLICE_STATION_BOUNDARY_URL);
   if (!isFeatureCollection(data)) {
     throw new Error("Police boundary GeoJSON is invalid or not a FeatureCollection");
@@ -125,6 +130,11 @@ async function fetchBoundaryData(): Promise<BoundaryFeatureCollection> {
 }
 
 async function fetchLocationData(): Promise<LocationFeatureCollection> {
+  if (!POLICE_STATION_LOCATION_URL) {
+    console.warn("[AreaLookup] EXPO_PUBLIC_POLICE_STATION_LOCATION_URL is not configured — station lookup disabled");
+    return { type: "FeatureCollection", features: [] };
+  }
+
   const data = await fetchJsonWithTimeout<unknown>(POLICE_STATION_LOCATION_URL);
   if (!isFeatureCollection(data)) {
     throw new Error("Police location GeoJSON is invalid or not a FeatureCollection");
@@ -329,7 +339,8 @@ async function getPreparedPolygons(): Promise<PreparedPolygon[]> {
       .then((boundaryData) => preparePolygons(boundaryData))
       .catch((error) => {
         preparedPolygonsPromise = null;
-        throw error;
+        console.warn("[AreaLookup] Failed to getPreparedPolygons:", error);
+        return [];
       });
   }
 
@@ -340,16 +351,20 @@ export async function getAreaId(
   userLat: number,
   userLon: number
 ): Promise<string | null> {
-  const preparedPolygons = await getPreparedPolygons();
+  try {
+    const preparedPolygons = await getPreparedPolygons();
 
-  for (const polygon of preparedPolygons) {
-    if (!isInsideBoundingBox(userLat, userLon, polygon.bbox)) {
-      continue;
-    }
+    for (const polygon of preparedPolygons) {
+      if (!isInsideBoundingBox(userLat, userLon, polygon.bbox)) {
+        continue;
+      }
 
-    if (pointInPolygon(userLat, userLon, polygon)) {
-      return polygon.areaId;
+      if (pointInPolygon(userLat, userLon, polygon)) {
+        return polygon.areaId;
+      }
     }
+  } catch (error) {
+    console.warn("[AreaLookup] getAreaId failed:", error);
   }
 
   return null;
@@ -361,7 +376,8 @@ export async function getAreaBoundaryPolygons(): Promise<AreaBoundaryPolygon[]> 
       .then((preparedPolygons) => buildAreaBoundaryPolygons(preparedPolygons))
       .catch((error) => {
         boundaryPolygonsPromise = null;
-        throw error;
+        console.warn("[AreaLookup] Failed to getAreaBoundaryPolygons:", error);
+        return [];
       });
   }
 
@@ -374,7 +390,8 @@ export async function getPoliceStationLocations(): Promise<PoliceStationLocation
       .then((locationData) => parsePoliceStationLocations(locationData))
       .catch((error) => {
         stationLocationsPromise = null;
-        throw error;
+        console.warn("[AreaLookup] Failed to getPoliceStationLocations:", error);
+        return [];
       });
   }
 

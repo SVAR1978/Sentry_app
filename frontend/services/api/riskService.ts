@@ -7,7 +7,9 @@ const AWS_RISK_BASE_URL = (process.env.EXPO_PUBLIC_AWS_RISK_BASE_URL || "").repl
 export interface AreaBaseScore {
   area_id: string;
   base_score: number;
+  final_score?: number;
   risk_category: string;
+  breakdown?: any;
 }
 
 interface AreasResponse {
@@ -22,7 +24,9 @@ interface SingleAreaResponse {
     category?: string;
   };
   base_score?: number;
+  final_score?: number;
   risk_category?: string;
+  breakdown?: any;
 }
 
 function toMapRiskLevel(category: string): "safe" | "moderate" | "high" {
@@ -65,7 +69,11 @@ export async function fetchAllAreaBaseScores(): Promise<AreasResponse> {
   );
 }
 
-export async function fetchAreaBaseScore(areaId: string): Promise<AreaBaseScore> {
+export async function fetchAreaBaseScore(
+  areaId: string,
+  latitude?: number,
+  longitude?: number
+): Promise<AreaBaseScore> {
   const endpoint = BACKEND_URL
     ? `${BACKEND_URL}/api/risk-scores/area`
     : AWS_RISK_BASE_URL
@@ -83,7 +91,7 @@ export async function fetchAreaBaseScore(areaId: string): Promise<AreaBaseScore>
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ area_id: areaId }),
+    body: JSON.stringify({ area_id: areaId, latitude, longitude }),
   });
 
   const baseScore =
@@ -101,8 +109,28 @@ export async function fetchAreaBaseScore(areaId: string): Promise<AreaBaseScore>
   return {
     area_id: response.area_id || areaId,
     base_score: baseScore,
+    final_score: response.final_score,
     risk_category: riskCategory,
+    breakdown: response.breakdown,
   };
+}
+
+/**
+ * High-level helper: given just lat/lon, resolves the police-station area
+ * via Nominatim + fuzzy matching, then fetches the risk score from backend.
+ * Returns null if the area cannot be determined.
+ */
+export async function fetchRiskByLocation(
+  latitude: number,
+  longitude: number
+): Promise<AreaBaseScore | null> {
+  // Dynamic import avoids circular dependency
+  const { resolveAreaFromLocation } = await import("../risk/areaResolver");
+
+  const areaId = await resolveAreaFromLocation(latitude, longitude);
+  if (!areaId) return null;
+
+  return fetchAreaBaseScore(areaId, latitude, longitude);
 }
 
 export { toMapRiskLevel };

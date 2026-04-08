@@ -197,73 +197,86 @@ export const searchNearbyPlaces = async (
       hotel: ["tourism=hotel", "tourism=guest_house"],
       restaurant: ["amenity=restaurant", "amenity=cafe", "amenity=fast_food"],
     };
+    // Collect all OSM tags we need to query
+    const allOsmTags = new Set<string>();
+    for (const type of searchTypes) {
+      const tags = typeOSMMap[type] || [`tourism=${type}`];
+      tags.forEach(t => allOsmTags.add(t));
+    }
 
-    const searchPromises = searchTypes.map(async (type) => {
-      try {
-        const osmTags = typeOSMMap[type] || [`tourism=${type}`];
+    // Build a single Overpass query bridging all tags
+    const queries = Array.from(allOsmTags)
+      .map((tag) => `node[${tag}](around:${radius},${location.latitude},${location.longitude});`)
+      .join("\n");
+    
+    // Single request! (15s timeout on Overpass side, 15000 timeout on our fetch side)
+    const overpassQuery = `[out:json][timeout:15];(${queries});out body;>;out skel qt;`;
 
-        const queries = osmTags
-          .map(
-            (tag) =>
-              `node[${tag}](around:${radius},${location.latitude},${location.longitude});`
-          )
-          .join("\n");
-        const overpassQuery = `[out:json][timeout:10];(${queries});out body;>;out skel qt;`;
+    let allPlaces: any[] = [];
+    
+    try {
+      const response = await fetchWithTimeout(
+        OVERPASS_API,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `data=${encodeURIComponent(overpassQuery)}`,
+        },
+        15000
+      );
 
-        const response = await fetchWithTimeout(
-          OVERPASS_API,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `data=${encodeURIComponent(overpassQuery)}`,
-          },
-          15000
-        );
-
-        if (!response.ok) {
-          console.warn(`OSM ${type} search failed (${response.status})`);
-          return [];
-        }
-
+      if (!response.ok) {
+        console.warn(`OSM search failed (${response.status})`);
+      } else {
         const data = await response.json();
+        
+        if (data.elements && data.elements.length > 0) {
+          console.log(`✅ Found ${data.elements.length} places from OSM`);
+          
+          allPlaces = data.elements
+            .filter((item: any) => item.lat && item.lon && item.tags?.name)
+            .map((item: any) => {
+              // Determine the mapped "type" simply by inspecting the tags returned.
+              // We'll just grab the first matching category from our requested typeOSMMap.
+              let matchedType = "place";
+              for (const searchType of searchTypes) {
+                const searchTags = typeOSMMap[searchType] || [`tourism=${searchType}`];
+                for (const t of searchTags) {
+                  const [k, v] = t.split("=");
+                  if (item.tags[k] === v) {
+                    matchedType = searchType;
+                    break;
+                  }
+                }
+                if (matchedType !== "place") break;
+              }
 
-        if (!data.elements || data.elements.length === 0) {
-          console.log(`No ${type} results from OSM`);
-          return [];
+              return {
+                id: `osm_${item.id}`,
+                name: item.tags.name || matchedType,
+                displayName: [
+                  item.tags.name,
+                  item.tags["addr:street"],
+                  item.tags["addr:city"] || item.tags["addr:suburb"],
+                ]
+                  .filter(Boolean)
+                  .join(", "),
+                coordinate: {
+                  latitude: item.lat,
+                  longitude: item.lon,
+                },
+                type: matchedType,
+                category: item.tags.amenity || item.tags.tourism || matchedType,
+                icon: mapOSMCategoryToIcon(item.tags, matchedType),
+              };
+            });
+        } else {
+          console.log(`No results from OSM`);
         }
-
-        console.log(`✅ Found ${data.elements.length} ${type} from OSM`);
-
-        return data.elements
-          .filter((item: any) => item.lat && item.lon && item.tags?.name)
-          .map((item: any) => ({
-            id: `osm_${item.id}`,
-            name: item.tags.name || type,
-            displayName: [
-              item.tags.name,
-              item.tags["addr:street"],
-              item.tags["addr:city"] || item.tags["addr:suburb"],
-            ]
-              .filter(Boolean)
-              .join(", "),
-            coordinate: {
-              latitude: item.lat,
-              longitude: item.lon,
-            },
-            type,
-            category: item.tags.amenity || item.tags.tourism || type,
-            icon: mapOSMCategoryToIcon(item.tags, type),
-          }));
-      } catch (err: any) {
-        console.warn(`Error searching ${type} on OSM:`, err.message || err);
-        return [];
       }
-    });
-
-    const results = await Promise.allSettled(searchPromises);
-    const allPlaces = results
-      .filter((r) => r.status === "fulfilled")
-      .flatMap((r: any) => r.value);
+    } catch (err: any) {
+      console.warn(`Error searching OSM:`, err.message || err);
+    }
 
     // Deduplicate
     const uniquePlaces = Array.from(
