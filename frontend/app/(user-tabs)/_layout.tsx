@@ -167,9 +167,13 @@ function TabItem({ route, index, options, isFocused, navigation }: any) {
   );
 }
 
+import { TabVisibilityProvider, useTabVisibility } from "../../store/TabVisibilityContext";
+
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const translateX = useSharedValue(state.index * TAB_WIDTH);
+  const { isTabBarVisible } = useTabVisibility();
+  const translateY = useSharedValue(0);
 
   useEffect(() => {
     translateX.value = withSpring(state.index * TAB_WIDTH, {
@@ -179,12 +183,24 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     });
   }, [state.index]);
 
+  useEffect(() => {
+    translateY.value = withSpring(isTabBarVisible ? 0 : 150, {
+      damping: 20,
+      stiffness: 180,
+      mass: 0.8,
+    });
+  }, [isTabBarVisible]);
+
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
 
+  const wrapperAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   return (
-    <View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+    <Animated.View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 16) }, wrapperAnimatedStyle]}>
       <View style={styles.container}>
         
         {/* Pill Background with Shadow and Blur */}
@@ -218,7 +234,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         </View>
 
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -226,7 +242,7 @@ export default function UserTabsLayout() {
   const [chatVisible, setChatVisible] = useState(false);
 
   return (
-    <>
+    <TabVisibilityProvider>
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
@@ -265,7 +281,7 @@ export default function UserTabsLayout() {
         visible={chatVisible}
         onClose={() => setChatVisible(false)}
       />
-    </>
+    </TabVisibilityProvider>
   );
 }
 

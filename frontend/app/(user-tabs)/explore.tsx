@@ -17,6 +17,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTabVisibility } from "../../store/TabVisibilityContext";
 import * as Location from "expo-location";
 import {
   Search,
@@ -74,6 +75,8 @@ export default function ExploreScreen() {
   const [safetyAlert, setSafetyAlert] = useState<{ title: string; description: string; severity: "critical" | "caution" | "info" } | null>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const { setTabBarVisible } = useTabVisibility();
+  const lastScrollY = useRef(0);
 
   // Section refs for auto-scroll
   const sectionPositions = useRef<Record<string, number>>({});
@@ -251,6 +254,20 @@ export default function ExploreScreen() {
         contentContainerStyle={styles.scrollContent}
         stickyHeaderIndices={[0]}
         keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          const currentScrollY = event.nativeEvent.contentOffset.y;
+          if (currentScrollY <= 0) {
+            setTabBarVisible(true);
+            return;
+          }
+          if (currentScrollY > lastScrollY.current + 10) {
+            setTabBarVisible(false);
+          } else if (currentScrollY < lastScrollY.current - 10) {
+            setTabBarVisible(true);
+          }
+          lastScrollY.current = currentScrollY;
+        }}
       >
         {/* ── STICKY SEARCH BAR ── */}
         <View style={styles.searchSection}>

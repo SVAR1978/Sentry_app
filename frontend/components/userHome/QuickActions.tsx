@@ -15,8 +15,6 @@ import { Text } from "react-native-paper";
 import { COLORS, QuickAction } from "../../constants/userHomeData";
 import HelplineModal from "./HelplineModal";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-
 interface QuickActionsProps {
   actions: QuickAction[];
 }
@@ -205,7 +203,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cardWrapper: {
-    width: (SCREEN_WIDTH - 52) / 2, // 2 items per row
+    flexBasis: "48%", // Responsive 2-column grid instead of fixed arithmetic width
   },
   card: {
     backgroundColor: COLORS.white,
