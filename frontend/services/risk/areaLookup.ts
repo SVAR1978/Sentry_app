@@ -75,7 +75,10 @@ const POLICE_STATION_LOCATION_URL =
 const POLICE_STATION_BOUNDARY_URL =
   process.env.EXPO_PUBLIC_POLICE_STATION_BOUNDARY_URL;
 
-const FETCH_TIMEOUT_MS = Number(process.env.EXPO_PUBLIC_FETCH_TIMEOUT ?? 15000);
+// Large GeoJSON files (boundary = ~2.8MB) need a longer timeout than typical API calls
+const GEOJSON_FETCH_TIMEOUT_MS = 60000;
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 2000;
 
 let preparedPolygonsPromise: Promise<PreparedPolygon[]> | null = null;
 let boundaryPolygonsPromise: Promise<AreaBoundaryPolygon[]> | null = null;
@@ -86,24 +89,54 @@ export function normalizeAreaId(value: string): string {
 }
 
 async function fetchJsonWithTimeout<T>(url: string): Promise<T> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let lastError: Error | null = null;
 
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${url} (status ${response.status})`);
-    }
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      GEOJSON_FETCH_TIMEOUT_MS
+    );
 
-    return (await response.json()) as T;
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`Timed out fetching ${url}`);
+    try {
+      console.log(
+        `[AreaLookup] Fetch attempt ${attempt}/${MAX_RETRIES}: ${url}`
+      );
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${url} (status ${response.status})`);
+      }
+
+      const data = (await response.json()) as T;
+      console.log(`[AreaLookup] Fetch succeeded on attempt ${attempt}`);
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === "AbortError") {
+        lastError = new Error(
+          `Timed out fetching ${url} (attempt ${attempt}/${MAX_RETRIES}, timeout ${GEOJSON_FETCH_TIMEOUT_MS}ms)`
+        );
+      } else {
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+
+      console.warn(
+        `[AreaLookup] Attempt ${attempt}/${MAX_RETRIES} failed:`,
+        lastError.message
+      );
+
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        console.log(`[AreaLookup] Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  throw lastError!;
 }
 
 function isFeatureCollection(value: unknown): value is { type: string; features: unknown[] } {
@@ -121,11 +154,13 @@ async function fetchBoundaryData(): Promise<BoundaryFeatureCollection> {
     return { type: "FeatureCollection", features: [] };
   }
 
+  console.log("[AreaLookup] Fetching boundary data from:", POLICE_STATION_BOUNDARY_URL);
   const data = await fetchJsonWithTimeout<unknown>(POLICE_STATION_BOUNDARY_URL);
   if (!isFeatureCollection(data)) {
     throw new Error("Police boundary GeoJSON is invalid or not a FeatureCollection");
   }
 
+  console.log(`[AreaLookup] Boundary data loaded: ${(data as BoundaryFeatureCollection).features.length} features`);
   return data as BoundaryFeatureCollection;
 }
 
@@ -135,11 +170,13 @@ async function fetchLocationData(): Promise<LocationFeatureCollection> {
     return { type: "FeatureCollection", features: [] };
   }
 
+  console.log("[AreaLookup] Fetching location data from:", POLICE_STATION_LOCATION_URL);
   const data = await fetchJsonWithTimeout<unknown>(POLICE_STATION_LOCATION_URL);
   if (!isFeatureCollection(data)) {
     throw new Error("Police location GeoJSON is invalid or not a FeatureCollection");
   }
 
+  console.log(`[AreaLookup] Location data loaded: ${(data as LocationFeatureCollection).features.length} features`);
   return data as LocationFeatureCollection;
 }
 

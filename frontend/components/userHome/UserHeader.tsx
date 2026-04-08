@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Search, CircleX, SlidersHorizontal, MapPin } from "lucide-react-native";
+import { MapPin, ShieldAlert, ShieldCheck, Shield } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { Avatar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../constants/userHomeData";
@@ -9,31 +9,35 @@ import {
   getCurrentLocation,
   reverseGeocode,
 } from "../../services/maps/locationService";
+import { getAreaId } from "../../services/risk/areaLookup";
+import { resolveAreaFromLocation } from "../../services/risk/areaResolver";
+import { fetchAreaBaseScore } from "../../services/api/riskService";
 
 interface UserHeaderProps {
   user: any;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
 }
 
-const UserHeader: React.FC<UserHeaderProps> = ({
-  user,
-  searchQuery,
-  setSearchQuery,
-}) => {
+export interface LocationRiskResult {
+  risk_level: "Safe" | "Low" | "Medium" | "High";
+  final_score: number;
+  area_id: string;
+}
+
+const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
   const insets = useSafeAreaInsets();
   const [locationName, setLocationName] = useState("Locating...");
+  const [currentRisk, setCurrentRisk] = useState<LocationRiskResult | null>(null);
+  const [isLoadingRisk, setIsLoadingRisk] = useState(true);
 
   useEffect(() => {
-    const fetchLocation = async () => {
+    const fetchLocationAndRisk = async () => {
       try {
         const coords = await getCurrentLocation();
         if (coords) {
+          // 1. Resolve Display Address
           const address = await reverseGeocode(coords);
           if (address) {
-            // Address usually returns "Name, Street, City, Region"
             const parts = address.split(", ");
-            // Grab City and Region if available (e.g. "Gurgaon, Haryana")
             const displayCity =
               parts.length >= 3
                 ? `${parts[parts.length - 2]}, ${parts[parts.length - 1]}`
@@ -42,16 +46,52 @@ const UserHeader: React.FC<UserHeaderProps> = ({
           } else {
             setLocationName("Location Found");
           }
+
+          // 2. Resolve Area ID for Risk Model
+          try {
+            let areaId = await getAreaId(coords.latitude, coords.longitude);
+            if (!areaId) {
+              areaId = await resolveAreaFromLocation(coords.latitude, coords.longitude);
+            }
+            // 3. Fetch Base Risk Score
+            if (areaId) {
+              const baseRisk = await fetchAreaBaseScore(areaId);
+              if (baseRisk) {
+                const finalScore = baseRisk.final_score ?? baseRisk.base_score;
+                const riskLevel = finalScore > 55 ? "High" : finalScore > 30 ? "Medium" : "Safe";
+                setCurrentRisk({
+                  risk_level: riskLevel,
+                  final_score: Math.round(finalScore),
+                  area_id: baseRisk.area_id
+                });
+              }
+            }
+          } catch (riskError) {
+            console.warn("[UserHeader] Error fetching risk score:", riskError);
+          }
         } else {
           setLocationName("India");
         }
       } catch (error) {
         setLocationName("Explore India");
+      } finally {
+        setIsLoadingRisk(false);
       }
     };
 
-    fetchLocation();
+    fetchLocationAndRisk();
   }, []);
+
+  const getRiskTheme = (level: string) => {
+    switch (level) {
+      case "High":
+        return { bg: "#FEF2F2", text: "#991B1B", border: "#F87171", Icon: ShieldAlert };
+      case "Medium":
+        return { bg: "#FFFBEB", text: "#92400E", border: "#FBBF24", Icon: Shield };
+      default:
+        return { bg: "#ECFDF5", text: "#065F46", border: "#34D399", Icon: ShieldCheck };
+    }
+  };
 
   return (
     <View style={styles.headerWrapper}>
@@ -95,48 +135,41 @@ const UserHeader: React.FC<UserHeaderProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Hero Section */}
+          {/* Hero Section & Risk Score */}
           <View style={styles.heroSection}>
             <Text style={styles.headerTitle}>Find your next safe</Text>
             <Text style={[styles.headerTitle, { color: COLORS.secondary }]}>
               adventure
             </Text>
-          </View>
-
-          {/* Premium Search Bar */}
-          <View style={styles.searchBarWrapper}>
-            <View style={styles.searchBar}>
-              <Search
-                size={20}
-                color={COLORS.primaryContainer}
-                strokeWidth={2.5}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search destinations..."
-                placeholderTextColor={COLORS.textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                returnKeyType="search"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery("")}
-                  style={styles.clearButton}
-                >
-                  <CircleX size={18} color={COLORS.textMuted} strokeWidth={2} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.filterButton} activeOpacity={0.7}>
-                <SlidersHorizontal
-                  size={18}
-                  color={COLORS.white}
-                  strokeWidth={2.5}
-                />
-              </TouchableOpacity>
+            
+            <View style={styles.riskCardWrapper}>
+              {isLoadingRisk ? (
+                 <View style={styles.riskLoading}>
+                   <ActivityIndicator size="small" color={COLORS.white} />
+                   <Text style={styles.loadingText}>Analyzing regional safety...</Text>
+                 </View>
+              ) : currentRisk ? (
+                <View style={[styles.riskCard, { backgroundColor: getRiskTheme(currentRisk.risk_level).bg, borderColor: getRiskTheme(currentRisk.risk_level).border }]}>
+                  <View style={styles.riskRow}>
+                    {React.createElement(getRiskTheme(currentRisk.risk_level).Icon, {
+                      size: 24,
+                      color: getRiskTheme(currentRisk.risk_level).text,
+                      strokeWidth: 2.5
+                    })}
+                    <View style={styles.riskInfo}>
+                      <Text style={[styles.riskLevelText, { color: getRiskTheme(currentRisk.risk_level).text }]}>
+                        {currentRisk.risk_level} Risk Zone
+                      </Text>
+                      <Text style={[styles.riskDetailsText, { color: getRiskTheme(currentRisk.risk_level).text }]}>
+                        Score: {currentRisk.final_score} • {currentRisk.area_id}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
             </View>
           </View>
+
         </View>
       </LinearGradient>
     </View>
@@ -150,7 +183,7 @@ const styles = StyleSheet.create({
   header: {
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
-    paddingBottom: 48, 
+    paddingBottom: 24, 
   },
   headerContent: {
     paddingHorizontal: 24,
@@ -159,7 +192,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 24,
   },
   greetingContainer: {
     flex: 1,
@@ -205,7 +238,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   heroSection: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   headerTitle: {
     fontSize: 32,
@@ -214,51 +247,55 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     letterSpacing: -1,
   },
-  searchBarWrapper: {
-    marginTop: 12,
+  riskCardWrapper: {
+    marginTop: 20,
+    minHeight: 64,
+    justifyContent: "center",
   },
-  searchBar: {
+  riskLoading: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    height: 64,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8, // reduced slightly
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.05)", // slightly less visible border
-  },
-  searchIcon: {
-    marginLeft: 10,
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.text,
-    fontWeight: "600",
-  },
-  clearButton: {
-    padding: 10,
-  },
-  filterButton: {
-    width: 48,
-    height: 48,
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderRadius: 16,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-    shadowColor: COLORS.primary,
+    alignSelf: "flex-start",
+  },
+  loadingText: {
+    color: COLORS.white,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  riskCard: {
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 6,
+    elevation: 4,
+  },
+  riskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  riskInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  riskLevelText: {
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  riskDetailsText: {
+    fontSize: 13,
+    fontWeight: "600",
+    opacity: 0.8,
+    marginTop: 2,
   },
 });
 

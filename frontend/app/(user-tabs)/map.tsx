@@ -2,27 +2,27 @@ import * as Location from "expo-location";
 import { useSocket } from "../../store/SocketContext";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Linking,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  Linking,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import MapView, {
-    Marker,
-    Polyline,
-    PROVIDER_GOOGLE,
-    Region,
+  Marker,
+  Polyline,
+  PROVIDER_GOOGLE,
+  Region,
 } from "react-native-maps";
 import { ActivityIndicator, FAB, Icon, Text } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
@@ -30,42 +30,42 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Map Components
 import {
-    DirectionsPanel,
-    MapFilterBar,
+  DirectionsPanel,
+  MapFilterBar,
   RiskZonePolygon,
-    SearchOverlay,
-    UserLocationMarker,
+  SearchOverlay,
+  UserLocationMarker,
 } from "../../components/map";
 
 // Map Data
 import {
-    COLORS,
-    DELHI_REGION,
+  COLORS,
+  DELHI_REGION,
   RiskZone,
 } from "../../constants/mapData";
 
 // Location Services
 import {
   calculateDistance,
-    formatDistance,
-    LocationCoordinate,
+  formatDistance,
+  LocationCoordinate,
 } from "../../services/maps/locationService";
 
 // Places & Directions
 import {
-    getDirections,
-    RouteInfo,
-    searchNearbyPlaces,
-    SearchResult,
-    testPhotonConnection, 
-    testOSRMConnection 
+  getDirections,
+  RouteInfo,
+  searchNearbyPlaces,
+  SearchResult,
+  testPhotonConnection,
+  testOSRMConnection
 } from "../../services/maps/placesService";
 
 // Navigation Service
 import {
-    createNavigationManager,
-    NavigationManager,
-    NavigationState,
+  createNavigationManager,
+  NavigationManager,
+  NavigationState,
 } from "../../services/maps/navigationService";
 import { getCachedWeather } from "../../services/api/weatherService";
 import {
@@ -129,7 +129,7 @@ export default function MapScreen() {
   // ── Filters ──
   const [selectedFilter, setSelectedFilter] = useState("all");
   const shouldShowPoliceStations = selectedFilter === "all" || selectedFilter === "police";
-  const [showRiskZones, setShowRiskZones] = useState(false);
+  const [showRiskZones, setShowRiskZones] = useState(true);
   const [riskZones, setRiskZones] = useState<RiskZone[]>([]);
   const [loadingRiskZones, setLoadingRiskZones] = useState(false);
   const [policeStations, setPoliceStations] = useState<PoliceStationMarker[]>([]);
@@ -177,7 +177,7 @@ export default function MapScreen() {
       const score = data.payload.score;
       if (typeof score === "number") {
         const level = score > 55 ? "High" : score > 30 ? "Medium" : "Low";
-        
+
         Alert.alert("Risk Status Updated", data.payload.message, [{ text: "OK" }]);
 
         setCurrentRisk(prev => {
@@ -230,7 +230,7 @@ export default function MapScreen() {
       setLocationHistory([initial]);
       setIsLoading(false);
 
-      
+
       testPhotonConnection();
       testOSRMConnection();
 
@@ -248,7 +248,7 @@ export default function MapScreen() {
             [addr.name, addr.street, addr.city].filter(Boolean).join(", "),
           );
         }
-      } catch {}
+      } catch { }
 
 
 
@@ -380,13 +380,13 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (!userLocation) return;
-    
+
     // THROTTLE: Only search if moved > 500m or if filter changed
     if (lastSearchLocation.current) {
       const dx = (userLocation.latitude - lastSearchLocation.current.latitude) * 111000;
       const dy = (userLocation.longitude - lastSearchLocation.current.longitude) * 111000;
-      const distanceMoved = Math.sqrt(dx*dx + dy*dy);
-      
+      const distanceMoved = Math.sqrt(dx * dx + dy * dy);
+
       // If we haven't moved far enough and the filter hasn't changed, don't search
       // Note: selectedFilter change will still trigger this useEffect
       if (distanceMoved < 500 && lastSearchLocation.current.filter === selectedFilter) {
@@ -420,10 +420,10 @@ export default function MapScreen() {
             const dy = (p.coordinate.longitude - userLocation.longitude) * 111_000 * Math.cos((userLocation.latitude * Math.PI) / 180);
             return { ...p, distanceValue: Math.sqrt(dx * dx + dy * dy) };
           });
-          
+
           withDistance.sort((a, b) => a.distanceValue - b.distanceValue);
           setNearbyPlaces(withDistance.slice(0, 5));
-          
+
           // Store this location as the last searched location
           lastSearchLocation.current = { ...userLocation, filter: selectedFilter };
         }
@@ -442,7 +442,7 @@ export default function MapScreen() {
   // 1C. LOAD ALL POLICE STATION POINTS FROM AWS LOCATION GEOJSON
   // ===================================================================
   useEffect(() => {
-    if (!shouldShowPoliceStations || policeStations.length > 0 || loadingPoliceStations) {
+    if (policeStations.length > 0 || loadingPoliceStations) {
       return;
     }
 
@@ -451,9 +451,11 @@ export default function MapScreen() {
     const loadPoliceStations = async () => {
       setLoadingPoliceStations(true);
       try {
+        console.log("[MapScreen] Loading police station locations from S3...");
         const stations = await getPoliceStationLocations();
+        console.log(`[MapScreen] Loaded ${stations.length} police stations`);
 
-        if (!cancelled) {
+        if (!cancelled && stations.length > 0) {
           setPoliceStations(
             stations.map((station) => ({
               ...station,
@@ -480,13 +482,13 @@ export default function MapScreen() {
     return () => {
       cancelled = true;
     };
-  }, [shouldShowPoliceStations, policeStations.length, loadingPoliceStations]);
+  }, []);
 
   // ===================================================================
   // 1D. FETCH AND DRAW AREA RISK ZONES
   // ===================================================================
   useEffect(() => {
-    if (!showRiskZones || riskZones.length > 0 || loadingRiskZones) {
+    if (riskZones.length > 0 || loadingRiskZones) {
       return;
     }
 
@@ -495,13 +497,21 @@ export default function MapScreen() {
     const loadRiskZones = async () => {
       setLoadingRiskZones(true);
       try {
-        const [areaScores] = await Promise.all([fetchAllAreaBaseScores()]);
-
-        const scoreByArea = new Map(
-          areaScores.areas.map((area) => [normalizeAreaId(area.area_id), area])
-        );
-
+        console.log("[MapScreen] Loading boundary polygons from S3...");
         const zonePolygons = await getAreaBoundaryPolygons();
+        console.log(`[MapScreen] Loaded ${zonePolygons.length} boundary polygons`);
+
+        let scoreByArea = new Map<string, { base_score: number; risk_category: string }>();
+        try {
+          const areaScores = await fetchAllAreaBaseScores();
+          scoreByArea = new Map(
+            areaScores.areas.map((area) => [normalizeAreaId(area.area_id), area])
+          );
+          console.log(`[MapScreen] Loaded ${areaScores.areas.length} area risk scores`);
+        } catch (scoreError) {
+          console.warn("[MapScreen] Could not fetch area scores, using default risk levels:", scoreError);
+        }
+
         const mappedZones: RiskZone[] = zonePolygons.map((polygon) => {
           const areaScore = scoreByArea.get(normalizeAreaId(polygon.areaId));
           const riskCategory = areaScore?.risk_category ?? "Low";
@@ -517,7 +527,7 @@ export default function MapScreen() {
           };
         });
 
-        if (!cancelled) {
+        if (!cancelled && mappedZones.length > 0) {
           setRiskZones(mappedZones);
         }
       } catch (error) {
@@ -536,7 +546,7 @@ export default function MapScreen() {
     return () => {
       cancelled = true;
     };
-  }, [showRiskZones, riskZones.length, loadingRiskZones]);
+  }, []);
 
   // ===================================================================
   // 1E. CURRENT LOCATION RISK = BASE SCORE + CLIENT MULTIPLIERS
@@ -623,7 +633,7 @@ export default function MapScreen() {
   // 2. DIRECTIONS – fetch route when destination is selected or initially
   // ===================================================================
   const initialUserLocationRef = useRef<LocationCoordinate | null>(null);
-  
+
   // Store initial user location
   useEffect(() => {
     if (userLocation && !initialUserLocationRef.current) {
@@ -693,7 +703,7 @@ export default function MapScreen() {
     setRouteInfo(null);
     setShowNearbyPanel(true);
     setFollowUser(true);
-    
+
     // Stop navigation if active
     if (isNavigating) {
       setIsNavigating(false);
@@ -703,7 +713,7 @@ export default function MapScreen() {
         navigationManagerRef.current = null;
       }
     }
-    
+
     Animated.timing(nearbyPanelAnim, {
       toValue: 1,
       duration: 200,
@@ -767,7 +777,7 @@ export default function MapScreen() {
   const handleChangeTravelMode = useCallback(
     async (mode: "driving" | "walking" | "cycling") => {
       setTravelMode(mode);
-      
+
       // Refetch route with new travel mode if we have a destination
       if (selectedPlace && userLocation) {
         setLoadingRoute(true);
@@ -776,15 +786,15 @@ export default function MapScreen() {
           selectedPlace.coordinate,
           mode
         );
-        
+
         if (newRoute) {
           setRouteInfo(newRoute);
-          
+
           // If navigating, restart navigation with new route and mode
           if (isNavigating) {
             navigationManagerRef.current?.cleanup();
             navigationManagerRef.current = createNavigationManager(newRoute, mode);
-            
+
             // Update navigation state immediately with new route
             const navState = navigationManagerRef.current.getNavigationState(userLocation);
             setNavigationState(navState);
@@ -816,7 +826,7 @@ export default function MapScreen() {
   const handleStopNavigation = useCallback(() => {
     setIsNavigating(false);
     setNavigationState(null);
-    
+
     if (navigationManagerRef.current) {
       navigationManagerRef.current.cleanup();
       navigationManagerRef.current = null;
@@ -846,21 +856,21 @@ export default function MapScreen() {
   const currentRiskTheme =
     currentRisk?.risk_level === "High"
       ? {
-          backgroundColor: "rgba(239, 68, 68, 0.15)",
-          borderColor: "rgba(239, 68, 68, 0.4)",
-          textColor: "#B91C1C",
-        }
+        backgroundColor: "rgba(239, 68, 68, 0.15)",
+        borderColor: "rgba(239, 68, 68, 0.4)",
+        textColor: "#B91C1C",
+      }
       : currentRisk?.risk_level === "Medium"
         ? {
-            backgroundColor: "rgba(245, 158, 11, 0.18)",
-            borderColor: "rgba(245, 158, 11, 0.45)",
-            textColor: "#92400E",
-          }
+          backgroundColor: "rgba(245, 158, 11, 0.18)",
+          borderColor: "rgba(245, 158, 11, 0.45)",
+          textColor: "#92400E",
+        }
         : {
-            backgroundColor: "rgba(16, 185, 129, 0.18)",
-            borderColor: "rgba(16, 185, 129, 0.45)",
-            textColor: "#065F46",
-          };
+          backgroundColor: "rgba(16, 185, 129, 0.18)",
+          borderColor: "rgba(16, 185, 129, 0.45)",
+          textColor: "#065F46",
+        };
 
   return (
     <View style={styles.container}>
@@ -940,16 +950,7 @@ export default function MapScreen() {
             />
           )}
 
-          {/* Breadcrumb trail */}
-          {locationHistory.length > 1 && !showDirections && (
-            <Polyline
-              coordinates={locationHistory}
-              strokeColor="#10B981"
-              strokeWidth={3}
-              lineCap="round"
-              lineJoin="round"
-            />
-          )}
+          {/* Breadcrumb trail intentionally disabled to match industry standards and prevent ugly GPS drift scribbling */}
 
 
 
@@ -964,7 +965,7 @@ export default function MapScreen() {
           )}
         </MapView>
 
-        <View style={[styles.filterContainer, { top: insets.top + 8 }]}>
+        <View style={[styles.filterContainer, { top: insets.top + 80 }]}>
           <MapFilterBar
             selectedFilter={selectedFilter}
             onFilterChange={setSelectedFilter}
@@ -978,7 +979,7 @@ export default function MapScreen() {
             style={[
               styles.riskIndicator,
               {
-                top: insets.top + 70,
+                top: insets.top + 132,
                 backgroundColor: currentRiskTheme.backgroundColor,
                 borderColor: currentRiskTheme.borderColor,
               },
@@ -1026,14 +1027,14 @@ export default function MapScreen() {
 
         {/* ── LOADING ROUTE OVERLAY ── */}
         {loadingRoute && (
-          <View style={[styles.routeLoadingOverlay, { top: insets.top + 76 }]}>
+          <View style={[styles.routeLoadingOverlay, { top: insets.top + 180 }]}>
             <ActivityIndicator size="small" color="#fff" />
             <Text style={styles.routeLoadingText}>Finding route...</Text>
           </View>
         )}
 
         {showRiskZones && loadingRiskZones && (
-          <View style={[styles.routeLoadingOverlay, { top: insets.top + 118 }]}>
+          <View style={[styles.routeLoadingOverlay, { top: insets.top + 180 }]}>
             <ActivityIndicator size="small" color="#fff" />
             <Text style={styles.routeLoadingText}>Loading risk zones...</Text>
           </View>
@@ -1043,7 +1044,7 @@ export default function MapScreen() {
           <View
             style={[
               styles.routeLoadingOverlay,
-              { top: insets.top + (showRiskZones ? 160 : 118) },
+              { top: insets.top + (showRiskZones ? 220 : 180) },
             ]}
           >
             <ActivityIndicator size="small" color="#fff" />
@@ -1124,7 +1125,7 @@ export default function MapScreen() {
                         {
                           backgroundColor:
                             place.type === "hospital" ||
-                            place.category === "amenity"
+                              place.category === "amenity"
                               ? "#FEE2E2"
                               : place.type === "police"
                                 ? "#DBEAFE"
@@ -1137,7 +1138,7 @@ export default function MapScreen() {
                         size={20}
                         color={
                           place.type === "hospital" ||
-                          place.category === "amenity"
+                            place.category === "amenity"
                             ? "#EF4444"
                             : place.type === "police"
                               ? "#3B82F6"
@@ -1336,7 +1337,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   nearbyEmptyText: { fontSize: 13, color: "#9CA3AF", fontWeight: "500" },
-  
+
   stopNavButton: {
     position: "absolute",
     right: 16,

@@ -60,11 +60,7 @@ export default function UserHomeScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <UserHeader
-          user={user}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
+        <UserHeader user={user} />
         <Animated.View
           style={[
             styles.content,
@@ -75,13 +71,6 @@ export default function UserHomeScreen() {
           ]}
         >
           <QuickActions actions={QUICK_ACTIONS} />
-          {searchQuery ? (
-            <View style={styles.noResultsContainer}>
-              <Text style={styles.noResultsText}>
-                No results found for "{searchQuery}"
-              </Text>
-            </View>
-          ) : null}
           <SafetyTips />
           <BookingPartners />
           <WeatherWidget />
