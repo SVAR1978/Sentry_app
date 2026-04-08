@@ -4,23 +4,20 @@ import {
   Animated,
   AppState,
   Dimensions,
-  FlatList,
   Linking,
   StyleSheet,
   TouchableOpacity,
   View,
+  ScrollView,
+  Image,
 } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import {
-  ShieldCheck,
-  ExternalLink,
   Plane,
   Hotel,
   Bus,
   Train,
-  ChevronRight,
   Clock,
-  Info,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { COLORS } from "../../constants/userHomeData";
@@ -34,7 +31,7 @@ import {
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // ============================================================
-// Category Icon Mapping
+// Category Icon Mapping & Brand Colors
 // ============================================================
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ size: number; color: string; strokeWidth: number }>> = {
   flights: Plane,
@@ -42,6 +39,32 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ size: number; color: 
   buses: Bus,
   trains: Train,
 };
+
+// Attractive brand-inspired colors for fallback initials
+const BRAND_COLORS: Record<string, { bg: string; text: string }> = {
+  "MakeMyTrip": { bg: "#0057B8", text: "#FFFFFF" },
+  "Goibibo":    { bg: "#EC5B24", text: "#FFFFFF" },
+  "OYO Rooms":  { bg: "#EE2E24", text: "#FFFFFF" },
+  "Yatra":      { bg: "#E42121", text: "#FFFFFF" },
+  "RedBus":     { bg: "#D84233", text: "#FFFFFF" },
+  "IRCTC":      { bg: "#1A5276", text: "#FFFFFF" },
+  "Ola":        { bg: "#1C8C3C", text: "#FFFFFF" },
+  "Uber":       { bg: "#000000", text: "#FFFFFF" },
+};
+
+const DEFAULT_BRAND_COLORS = [
+  { bg: "#4A4341", text: "#FFFFFF" },
+  { bg: "#8C7D79", text: "#FFFFFF" },
+  { bg: "#21100B", text: "#FFFFFF" },
+  { bg: "#5C4033", text: "#FFFFFF" },
+];
+
+function getBrandColor(name: string) {
+  if (BRAND_COLORS[name]) return BRAND_COLORS[name];
+  // Deterministic color from name hash
+  const idx = name.charCodeAt(0) % DEFAULT_BRAND_COLORS.length;
+  return DEFAULT_BRAND_COLORS[idx];
+}
 
 function getCategoryIcon(category: string) {
   return CATEGORY_ICONS[category.toLowerCase()] || Plane;
@@ -146,48 +169,21 @@ const BookingPartners: React.FC = () => {
 
   return (
     <View style={styles.section}>
-      {/* Disclaimer Banner */}
-      <View style={styles.disclaimerBanner}>
-        <Info size={14} color={COLORS.secondary} strokeWidth={2.5} />
-        <Text style={styles.disclaimerText}>
-          Bookings are handled by third-party platforms. Our app does not store
-          your payment information.
-        </Text>
-      </View>
-
-      {/* Recently Visited Strip */}
-      {recentPartners.length > 0 && (
-        <View style={styles.recentSection}>
-          <View style={styles.recentHeader}>
-            <Clock size={14} color={COLORS.secondary} strokeWidth={2.5} />
-            <Text style={styles.recentTitle}>Recently Visited</Text>
-          </View>
-          <FlatList
-            data={recentPartners}
-            keyExtractor={(item) => `recent-${item.id}`}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recentList}
-            renderItem={({ item }) => (
-              <RecentPartnerChip
-                partner={item}
-                onPress={() => handlePartnerPress(item)}
-              />
-            )}
-          />
-        </View>
-      )}
 
       {/* Section Header */}
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>Book Travel</Text>
-          <Text style={styles.sectionSubtitle}>Verified partner platforms</Text>
+          <Text style={styles.sectionSubtitle}>Trusted travel partners</Text>
         </View>
       </View>
 
-      {/* Partner Cards */}
-      <View style={styles.cardsContainer}>
+      {/* Partner Grid/Scroll */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.cardsContainer}
+      >
         {partners.map((partner) => (
           <PartnerCard
             key={partner.id}
@@ -195,7 +191,30 @@ const BookingPartners: React.FC = () => {
             onPress={() => handlePartnerPress(partner)}
           />
         ))}
-      </View>
+      </ScrollView>
+
+      {/* Recently Visited Section */}
+      {recentPartners.length > 0 && (
+        <View style={styles.recentSection}>
+          <View style={styles.recentHeader}>
+            <Clock size={13} color={COLORS.secondary} strokeWidth={2.5} />
+            <Text style={styles.recentTitle}>Recently Visited</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recentList}
+          >
+            {recentPartners.map((partner) => (
+              <RecentPartnerChip
+                key={partner.id}
+                partner={partner}
+                onPress={() => handlePartnerPress(partner)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 };
@@ -228,7 +247,7 @@ const RecentPartnerChip: React.FC<RecentChipProps> = ({ partner, onPress }) => {
 };
 
 // ============================================================
-// Partner Card Component
+// Partner Card Component (Modern Tile with Image Error Handling)
 // ============================================================
 interface PartnerCardProps {
   partner: BookingPartner;
@@ -237,11 +256,14 @@ interface PartnerCardProps {
 
 const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onPress }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const CategoryIcon = getCategoryIcon(partner.category);
+  const brandColor = getBrandColor(partner.name);
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.96,
+      toValue: 0.92,
       useNativeDriver: true,
     }).start();
   };
@@ -253,6 +275,9 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onPress }) => {
     }).start();
   };
 
+  const showLogo = partner.logoUrl && !imageError;
+  const initial = partner.name.charAt(0).toUpperCase();
+
   return (
     <TouchableOpacity
       activeOpacity={1}
@@ -263,76 +288,45 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onPress }) => {
       accessibilityLabel={`Book with ${partner.name}${partner.isVerified ? ", verified partner" : ""}`}
       accessibilityRole="button"
     >
-      <Animated.View
-        style={[styles.card, { transform: [{ scale: scaleAnim }] }]}
-      >
-        {/* Top Row: Icon + Info */}
-        <View style={styles.cardTop}>
-          <View
-            style={[
-              styles.categoryIconContainer,
-              {
-                backgroundColor:
-                  partner.category === "flights"
-                    ? "rgba(33, 16, 11, 0.06)"
-                    : partner.category === "hotels"
-                    ? "rgba(16, 185, 129, 0.08)"
-                    : partner.category === "trains"
-                    ? "rgba(59, 130, 246, 0.08)"
-                    : "rgba(140, 125, 121, 0.08)",
-              },
-            ]}
-          >
-            <CategoryIcon
-              size={22}
-              color={
-                partner.category === "flights"
-                  ? COLORS.primary
-                  : partner.category === "hotels"
-                  ? "#10B981"
-                  : partner.category === "trains"
-                  ? "#3B82F6"
-                  : COLORS.secondary
-              }
-              strokeWidth={2.5}
-            />
-          </View>
-
-          <View style={styles.cardInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.cardName} numberOfLines={1}>
-                {partner.name}
-              </Text>
-              {partner.isVerified && (
-                <ShieldCheck
-                  size={16}
-                  color="#10B981"
-                  strokeWidth={2.5}
-                />
+      <Animated.View style={[styles.tileCard, { transform: [{ scale: scaleAnim }] }]}>
+        <View style={[
+          styles.logoContainer,
+          !showLogo && { backgroundColor: brandColor.bg, borderColor: brandColor.bg },
+        ]}>
+          {showLogo ? (
+            <>
+              <Image 
+                source={{ uri: partner.logoUrl! }} 
+                style={styles.logoImage} 
+                resizeMode="cover"
+                onError={() => {
+                  console.log(`[BookingPartners] Logo failed for ${partner.name}: ${partner.logoUrl}`);
+                  setImageError(true);
+                }}
+                onLoadEnd={() => setImageLoading(false)}
+              />
+              {imageLoading && (
+                <View style={styles.logoPlaceholder}>
+                  <Text style={[styles.initialText, { color: brandColor.text, backgroundColor: brandColor.bg }]}>
+                    {initial}
+                  </Text>
+                </View>
               )}
+            </>
+          ) : (
+            <View style={styles.fallbackContainer}>
+              <Text style={[styles.initialText, { color: brandColor.text }]}>
+                {initial}
+              </Text>
+              <View style={styles.categoryBadge}>
+                <CategoryIcon size={12} color={brandColor.text} strokeWidth={2.5} />
+              </View>
             </View>
-            <Text style={styles.cardDescription} numberOfLines={1}>
-              {partner.description}
-            </Text>
-          </View>
-
-          <View style={styles.openButton}>
-            <ExternalLink size={16} color={COLORS.primary} strokeWidth={2.5} />
-          </View>
-        </View>
-
-        {/* Category Tag */}
-        <View style={styles.cardBottom}>
-          <View style={styles.categoryTag}>
-            <Text style={styles.categoryTagText}>
-              {partner.category.charAt(0).toUpperCase() +
-                partner.category.slice(1)}
-            </Text>
-          </View>
-          {partner.isVerified && (
-            <Text style={styles.verifiedText}>Verified Partner</Text>
           )}
         </View>
+        <Text style={styles.tileName} numberOfLines={1}>
+          {partner.name}
+        </Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -343,7 +337,7 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onPress }) => {
 // ============================================================
 const styles = StyleSheet.create({
   section: {
-    paddingHorizontal: 20,
+    paddingVertical: 12,
     marginBottom: 32,
   },
   loadingContainer: {
@@ -351,6 +345,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 20,
+    paddingHorizontal: 20,
   },
   loadingText: {
     fontSize: 14,
@@ -358,37 +353,16 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // Disclaimer
-  disclaimerBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: "rgba(33, 16, 11, 0.03)",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.06)",
-    marginBottom: 20,
-  },
-  disclaimerText: {
-    flex: 1,
-    fontSize: 11,
-    lineHeight: 16,
-    color: COLORS.secondary,
-    fontWeight: "600",
-  },
-
   // Recently Visited
   recentSection: {
-    marginBottom: 20,
+    marginTop: 20,
   },
   recentHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     marginBottom: 10,
-    paddingHorizontal: 4,
+    paddingHorizontal: 24,
   },
   recentTitle: {
     fontSize: 13,
@@ -398,6 +372,7 @@ const styles = StyleSheet.create({
   },
   recentList: {
     gap: 8,
+    paddingHorizontal: 20,
   },
   recentChip: {
     flexDirection: "row",
@@ -428,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -443,91 +418,66 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Cards
+  // Partner Grid/Tiles
   cardsContainer: {
-    gap: 12,
-  },
-  cardWrapper: {
-    width: "100%",
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.05)",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
+    paddingHorizontal: 20,
     gap: 14,
   },
-  categoryIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+  cardWrapper: {
+    width: 90,
+  },
+  tileCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  logoContainer: {
+    width: 68,
+    height: 68,
+    borderRadius: 18,
+    backgroundColor: COLORS.white,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+    overflow: "hidden",
+  },
+  logoImage: {
+    width: "100%",
+    height: "100%",
+    // Overflow hidden on container will naturally clip the image exactly.
+  },
+  logoPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
   },
-  cardInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  nameRow: {
-    flexDirection: "row",
+  fallbackContainer: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
     alignItems: "center",
-    gap: 6,
   },
-  cardName: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.primary,
-    letterSpacing: -0.3,
+  initialText: {
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -1,
   },
-  cardDescription: {
+  categoryBadge: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    opacity: 0.5,
+  },
+  tileName: {
     fontSize: 12,
-    color: COLORS.textMuted,
-    fontWeight: "600",
-  },
-  openButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: "rgba(33, 16, 11, 0.04)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cardBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(33, 16, 11, 0.04)",
-  },
-  categoryTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "rgba(33, 16, 11, 0.04)",
-    borderRadius: 20,
-  },
-  categoryTagText: {
-    fontSize: 11,
     fontWeight: "700",
-    color: COLORS.secondary,
-    letterSpacing: 0.3,
-  },
-  verifiedText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#10B981",
-    letterSpacing: -0.2,
+    color: COLORS.primary,
+    textAlign: "center",
+    paddingHorizontal: 2,
   },
 });
 

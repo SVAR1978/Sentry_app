@@ -14,9 +14,9 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useAuth } from "../../store/AuthContext";
-import { 
-  MapPin, 
-  Navigation, 
+import {
+  MapPin,
+  Navigation,
   ChevronLeft,
   Save,
   Map as MapIcon,
@@ -31,7 +31,7 @@ const COLORS = {
   secondary: "#8C7D79",
   textPrimary: "#1A1818",
   textSecondary: "#8C7D79",
-  accent: "#8C7D79", 
+  accent: "#8C7D79",
   success: "#4CAF50",
 };
 
@@ -53,7 +53,7 @@ export default function AddressSettingsScreen() {
       await updateUser({
         address: address,
       });
-      
+
       Alert.alert("Success", "Address updated successfully");
       router.navigate("/profile");
     } catch (error) {
@@ -93,12 +93,12 @@ export default function AddressSettingsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <StatusBar style="light" />
-      
+
       <LinearGradient
         colors={[COLORS.primary, COLORS.primaryContainer]}
         start={{ x: 0, y: 0 }}
@@ -106,8 +106,8 @@ export default function AddressSettingsScreen() {
         style={styles.header}
       >
         <View style={styles.headerTop}>
-          <TouchableOpacity 
-            onPress={() => router.navigate("/profile")} 
+          <TouchableOpacity
+            onPress={() => router.navigate("/profile")}
             style={styles.backButton}
           >
             <ChevronLeft color={COLORS.white} size={28} />
@@ -125,15 +125,15 @@ export default function AddressSettingsScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.formSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>SAVED ADDRESS</Text>
-            <TouchableOpacity 
-              onPress={getCurrentLocation} 
+            <TouchableOpacity
+              onPress={getCurrentLocation}
               style={styles.locateButton}
               disabled={locating}
             >
@@ -147,7 +147,7 @@ export default function AddressSettingsScreen() {
               )}
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.inputContainer}>
             <View style={styles.inputIcon}>
               <MapIcon size={20} color={COLORS.secondary} />
@@ -165,14 +165,10 @@ export default function AddressSettingsScreen() {
               numberOfLines={3}
             />
           </View>
-          
-          <Text style={styles.infoText}>
-            This address will be used for emergency response dispatch and safety alerts in your area.
-          </Text>
         </View>
 
-        <TouchableOpacity 
-          style={styles.saveButton} 
+        <TouchableOpacity
+          style={styles.saveButton}
           onPress={handleUpdate}
           disabled={loading || locating}
         >
