@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 import { Circle, Marker } from "react-native-maps";
-import { Icon } from "react-native-paper";
 import { LocationCoordinate } from "../../services/maps/locationService";
 
 interface UserLocationMarkerProps {
@@ -14,99 +13,78 @@ interface UserLocationMarkerProps {
 
 export const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({
   coordinate,
-  heading,
   accuracy,
   isPanic = false,
   showAccuracyCircle = true,
 }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(0.7)).current;
+  const opacityAnim = useRef(new Animated.Value(0.4)).current;
+  const markerColor = isPanic ? "#EF4444" : "#4285F4"; // Threat Red vs Google Blue
 
   useEffect(() => {
+    pulseAnim.setValue(1);
+    opacityAnim.setValue(isPanic ? 0.6 : 0.4);
+
     if (isPanic) {
-      // Flashing animation for panic mode
+      // Rapid pulse for high-risk red zone
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.parallel([
-            Animated.timing(pulseAnim, {
-              toValue: 1.5,
-              duration: 500,
-              easing: Easing.out(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityAnim, {
-              toValue: 0.3,
-              duration: 500,
-              useNativeDriver: true,
-            }),
+            Animated.timing(pulseAnim, { toValue: 3, duration: 800, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+            Animated.timing(opacityAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
           ]),
           Animated.parallel([
-            Animated.timing(pulseAnim, {
-              toValue: 1,
-              duration: 500,
-              easing: Easing.in(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityAnim, {
-              toValue: 0.7,
-              duration: 500,
-              useNativeDriver: true,
-            }),
+            Animated.timing(pulseAnim, { toValue: 1, duration: 0, useNativeDriver: true }),
+            Animated.timing(opacityAnim, { toValue: 0.6, duration: 0, useNativeDriver: true }),
           ]),
-        ]),
+          Animated.delay(100),
+        ])
       );
       pulse.start();
-
       return () => pulse.stop();
     } else {
-      // Normal breathing animation
+      // Slow, sweeping radar pulse for safe status
       const breathe = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
+          Animated.parallel([
+            Animated.timing(pulseAnim, { toValue: 4, duration: 2500, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+            Animated.timing(opacityAnim, { toValue: 0, duration: 2500, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(pulseAnim, { toValue: 1, duration: 0, useNativeDriver: true }),
+            Animated.timing(opacityAnim, { toValue: 0.4, duration: 0, useNativeDriver: true }),
+          ]),
+          Animated.delay(800),
+        ])
       );
       breathe.start();
-
       return () => breathe.stop();
     }
   }, [isPanic, pulseAnim, opacityAnim]);
 
-  const markerColor = isPanic ? "#EF4444" : "#4285F4"; // Google Maps blue
-  const rotation = heading ? `${heading}deg` : "0deg";
-
   return (
     <>
-      {/* Accuracy circle (Google Maps style) */}
+      {/* Surrounding GPS Accuracy Bubble */}
       {showAccuracyCircle && accuracy && accuracy > 10 && (
         <Circle
           center={coordinate}
           radius={accuracy}
-          fillColor="rgba(66, 133, 244, 0.15)"
-          strokeColor="rgba(66, 133, 244, 0.4)"
-          strokeWidth={1.5}
+          fillColor={isPanic ? "rgba(239, 68, 68, 0.12)" : "rgba(66, 133, 244, 0.12)"}
+          strokeColor={isPanic ? "rgba(239, 68, 68, 0.3)" : "rgba(66, 133, 244, 0.3)"}
+          strokeWidth={1}
+          zIndex={1}
         />
       )}
 
       <Marker
         coordinate={coordinate}
         anchor={{ x: 0.5, y: 0.5 }}
-        flat={true}
-        tracksViewChanges={false}
+        flat={true} // Rotates alongside the map if the user spins the map overview
         zIndex={1000}
+        tracksViewChanges={false} // Performance critical for static geometry markers
       >
         <View style={styles.container}>
-          {/* Pulse ring (more prominent) */}
+          {/* Animated Sonar Expansion Ring */}
           <Animated.View
             style={[
               styles.pulseRing,
@@ -118,31 +96,14 @@ export const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({
             ]}
           />
 
-          {/* Main marker (Google Maps style) */}
+          {/* Minimalist, Premium Center Node */}
           <View
             style={[
-              styles.markerOuter,
+              styles.coreDot,
               { backgroundColor: markerColor },
-              isPanic && styles.panicMarker,
+              isPanic && styles.panicShadow,
             ]}
-          >
-            <View style={styles.markerInner}>
-              {heading !== null && heading !== undefined ? (
-                <View
-                  style={[
-                    styles.directionContainer,
-                    { transform: [{ rotate: rotation }] },
-                  ]}
-                >
-                  <Icon source="navigation" size={20} color={markerColor} />
-                </View>
-              ) : (
-                <View
-                  style={[styles.centerDot, { backgroundColor: markerColor }]}
-                />
-              )}
-            </View>
-          </View>
+          />
         </View>
       </Marker>
     </>
@@ -153,60 +114,32 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    width: 70,
-    height: 70,
+    width: 100, // Large bounds prevent sonar from getting clipped on scaling
+    height: 100,
   },
   pulseRing: {
     position: "absolute",
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 20, // Baseline perfectly identically sized to inner radius
+    height: 20,
+    borderRadius: 10,
   },
-  markerOuter: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
+  coreDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 3.5, // Crisp solid white frame ring
+    borderColor: "#FFFFFF",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  panicShadow: {
+    shadowColor: "#EF4444",
+    shadowOpacity: 0.7,
     shadowRadius: 8,
     elevation: 10,
-    borderWidth: 4,
-    borderColor: "#FFFFFF",
-  },
-  panicMarker: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 5,
-    borderColor: "#fff",
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-  },
-  markerInner: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  directionContainer: {
-    width: 26,
-    height: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  centerDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    shadowColor: "#4285F4",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
   },
 });
 

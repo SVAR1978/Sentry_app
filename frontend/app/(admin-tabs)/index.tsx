@@ -177,24 +177,33 @@ export default function AdminDashboard() {
       try {
         // Fetch stats
         const statsRes = await fetch(`${BACKEND_URL}/stats`);
-        const statsData = await statsRes.json();
-        if (statsData.totalUsers !== undefined) {
-          setTotalUsers(statsData.totalUsers);
+        if (statsRes.ok) {
+          const contentType = statsRes.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const statsData = await statsRes.json();
+            if (statsData.totalUsers !== undefined) {
+              setTotalUsers(statsData.totalUsers);
+            }
+          }
         }
 
-        // Fetch recent activity
         const activityRes = await fetch(`${BACKEND_URL}/stats/recent-activity`);
-        const activityData = await activityRes.json();
-        if (activityData.activities) {
-          const mapped: ActivityItem[] = activityData.activities.map((a: any) => ({
-            id: a.id,
-            type: a.type as ActivityItem["type"],
-            action: a.action,
-            user: a.user,
-            timestamp: a.timestamp,
-            read: true, // Historical data → already "read"
-          }));
-          setActivities(mapped);
+        if (activityRes.ok) {
+          const contentType = activityRes.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const activityData = await activityRes.json();
+            if (activityData.activities) {
+              const mapped: ActivityItem[] = activityData.activities.map((a: any) => ({
+                id: a.id,
+                type: a.type as ActivityItem["type"],
+                action: a.action,
+                user: a.user,
+                timestamp: a.timestamp,
+                read: true, // Historical data → already "read"
+              }));
+              setActivities(mapped);
+            }
+          }
         }
 
 
