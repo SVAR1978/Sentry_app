@@ -1,95 +1,78 @@
 import axios from "axios";
-import { RiskZone, RiskCalculationResult } from "../types/riskZones.js";
+import { RiskCalculationResult } from "../types/riskZones.js";
 
-const ML_BACKEND_URL = process.env.ML_BACKEND_URL || "http://localhost:4141";
-const CACHE_TTL_MS = 30000; // 30 seconds
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache for boundaries
 
-// Fallback dummy zones
-const FALLBACK_ZONES: RiskZone[] = [
-  {
-    id: "high_risk_1",
-    name: "Downtown High-Risk Area",
-    level: "high",
-    coordinates: [
-      [40.7128, -74.006],
-      [40.7138, -74.006],
-      [40.7138, -74.0050],
-      [40.7128, -74.0050],
-    ],
-  },
-  {
-    id: "medium_risk_1",
-    name: "Commerce District",
-    level: "medium",
-    coordinates: [
-      [40.71, -74.01],
-      [40.715, -74.01],
-      [40.715, -74.005],
-      [40.71, -74.005],
-    ],
-  },
-  {
-    id: "low_risk_1",
-    name: "Residential Area",
-    level: "low",
-    coordinates: [
-      [40.72, -74.02],
-      [40.725, -74.02],
-      [40.725, -74.015],
-      [40.72, -74.015],
-    ],
-  },
-];
+interface Feature {
+  type: string;
+  properties: {
+    POL_STN_NM: string;
+    [key: string]: any;
+  };
+  geometry: {
+    type: string;
+    coordinates: number[][][]; // GeoJSON is [lng, lat]
+  };
+}
 
-interface CacheEntry {
-  zones: RiskZone[];
-  timestamp: number;
+interface FeatureCollection {
+  type: "FeatureCollection";
+  features: Feature[];
+}
+
+interface BoundaryZone {
+  id: string; // POL_STN_NM
+  name: string;
+  polygonLatLon: [number, number][]; // [lat, lng]
 }
 
 export class RiskZoneService {
-  private static cache: CacheEntry | null = null;
+  private static cachedZones: BoundaryZone[] | null = null;
+  private static lastCacheTime: number = 0;
 
   /**
-   * Fetch risk zones from ML backend with fallback
+   * Fetch police station boundaries from S3, transforming GeoJSON [lng, lat]
+   * to our internal [lat, lng] array.
    */
-  static async fetchZones(): Promise<RiskZone[]> {
-    // Check cache first
-    if (RiskZoneService.cache && Date.now() - RiskZoneService.cache.timestamp < CACHE_TTL_MS) {
-      console.log("[RiskZoneService] Using cached zones");
-      return RiskZoneService.cache.zones;
+  static async fetchZones(): Promise<BoundaryZone[]> {
+    if (this.cachedZones && Date.now() - this.lastCacheTime < CACHE_TTL_MS) {
+      return this.cachedZones;
     }
 
     try {
-      console.log(`[RiskZoneService] Fetching zones from ML backend: ${ML_BACKEND_URL}/zones`);
-      const response = await axios.get<{ zones: RiskZone[] }>(`${ML_BACKEND_URL}/zones`, {
-        timeout: 5000, // 5-second timeout
-      });
-
-      if (response.data && Array.isArray(response.data.zones)) {
-        const zones = response.data.zones;
-        console.log(`[RiskZoneService] Successfully fetched ${zones.length} zones from ML backend`);
-
-        // Update cache
-        RiskZoneService.cache = {
-          zones,
-          timestamp: Date.now(),
-        };
-
-        return zones;
+      const boundaryUrl = process.env.POLICE_STATION_BOUNDARY_URL;
+      if (!boundaryUrl) {
+        console.warn("[RiskZoneService] POLICE_STATION_BOUNDARY_URL not set in .env!");
+        return [];
       }
+
+      console.log(`[RiskZoneService] Fetching boundaries from S3: ${boundaryUrl}`);
+      const response = await axios.get<FeatureCollection>(boundaryUrl, { timeout: 10000 });
+      
+      const zones: BoundaryZone[] = [];
+
+      for (const feature of response.data.features) {
+        if (feature.geometry.type === "Polygon" && feature.geometry.coordinates.length > 0) {
+          const polyLngLat = feature.geometry.coordinates[0];
+          // Transform to [lat, lng]
+          const polyLatLon: [number, number][] = polyLngLat.map(([lng, lat]) => [lat, lng]);
+          
+          zones.push({
+            id: feature.properties.POL_STN_NM,
+            name: feature.properties.POL_STN_NM,
+            polygonLatLon: polyLatLon
+          });
+        }
+      }
+
+      this.cachedZones = zones;
+      this.lastCacheTime = Date.now();
+      console.log(`[RiskZoneService] Successfully cached ${zones.length} boundaries.`);
+      return zones;
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      console.warn(`[RiskZoneService] ML backend fetch failed: ${errorMsg}. Using fallback zones.`);
+      console.warn(`[RiskZoneService] Failed to fetch boundaries:`, (err as any).message);
+      return [];
     }
-
-    // Return fallback zones if ML backend fails
-    console.log("[RiskZoneService] Using fallback zones");
-    RiskZoneService.cache = {
-      zones: FALLBACK_ZONES,
-      timestamp: Date.now(),
-    };
-
-    return FALLBACK_ZONES;
   }
 
   /**
@@ -98,7 +81,6 @@ export class RiskZoneService {
    */
   private static pointInPolygon(lat: number, lng: number, polygon: [number, number][]): boolean {
     let inside = false;
-
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
       const [lat1, lng1] = polygon[i];
       const [lat2, lng2] = polygon[j];
@@ -111,38 +93,80 @@ export class RiskZoneService {
         inside = !inside;
       }
     }
-
     return inside;
   }
 
   /**
-   * Calculate risk score based on location
+   * Fetch live risk from AWS
+   */
+  private static async fetchRiskFromAWS(areaId: string, lat: number, lng: number): Promise<RiskCalculationResult | null> {
+    const awsUrl = process.env.AWS_RISK_BASE_URL;
+    if (!awsUrl) {
+      console.warn("[RiskZoneService] AWS_RISK_BASE_URL is not set.");
+      return null;
+    }
+
+    try {
+      const url = `${awsUrl}/score/area`;
+      const response = await axios.post(url, {
+        area_id: areaId,
+        latitude: lat,
+        longitude: lng
+      }, { timeout: 4000 });
+
+      const finalScore = response.data?.final_score ?? response.data?.base_risk?.score ?? response.data?.base_score ?? 0;
+      
+      let pLevel: "low" | "medium" | "high" = "low";
+      let levelScore = 2; // Arbitrary numerical score for low
+
+      if (finalScore > 55) {
+        pLevel = "high";
+        levelScore = 9;
+      } else if (finalScore > 30) {
+        pLevel = "medium";
+        levelScore = 6;
+      }
+
+      return {
+        score: levelScore,
+        level: pLevel,
+        zoneId: areaId,
+        zoneName: areaId
+      };
+    } catch (err) {
+      console.warn(`[RiskZoneService] Failed to fetch live risk for ${areaId}:`, (err as any).message);
+      return null;
+    }
+  }
+
+  /**
+   * Detect polygon collision and fetch risk. If areaId is pre-supplied by frontend 
+   * (via `getRealtimeRisk` proxy call), skip polygon detection and use it.
    */
   static async calculateRisk(lat: number, lng: number): Promise<RiskCalculationResult> {
-    const zones = await RiskZoneService.fetchZones();
+    const zones = await this.fetchZones();
 
-    // Check from highest to lowest risk
-    const riskLevels: Array<"high" | "medium" | "low"> = ["high", "medium", "low"];
-    const scoreMap = { high: 9, medium: 6, low: 2 };
-
-    for (const level of riskLevels) {
-      for (const zone of zones) {
-        if (zone.level === level && RiskZoneService.pointInPolygon(lat, lng, zone.coordinates)) {
-          const score = scoreMap[level];
-          console.log(
-            `[RiskZoneService] Risk detected at (${lat}, ${lng}): ${zone.name} (${level}) - score: ${score}`
-          );
-          return {
-            score,
-            level,
-            zoneId: zone.id,
-            zoneName: zone.name,
-          };
+    for (const zone of zones) {
+      if (this.pointInPolygon(lat, lng, zone.polygonLatLon)) {
+        console.log(`[RiskZoneService] User at (${lat}, ${lng}) is inside ${zone.name}`);
+        
+        // Now fetch actual risk
+        const risk = await this.fetchRiskFromAWS(zone.name, lat, lng);
+        if (risk) {
+          return risk;
         }
+
+        // Fallback if AWS fails but we know they are in a zone
+        return {
+          score: 6,
+          level: "medium", // assume medium if we fail to fetch
+          zoneId: zone.id,
+          zoneName: zone.name
+        };
       }
     }
 
-    console.log(`[RiskZoneService] No risk zone detected at (${lat}, ${lng})`);
+    // Default to low/safe if not in any boundary
     return {
       score: 2,
       level: "low",
@@ -150,43 +174,13 @@ export class RiskZoneService {
   }
 
   static async getRealtimeRisk(lat: number, lng: number, areaId?: string): Promise<RiskCalculationResult> {
-    if (!areaId) {
-      return this.calculateRisk(lat, lng);
+    // If the frontend already knows what area they are in, skip polygon math
+    if (areaId) {
+      const risk = await this.fetchRiskFromAWS(areaId, lat, lng);
+      if (risk) return risk;
     }
     
-    try {
-      // 4000 is the typical https-backend port here, but could be ENV driven
-      const httpsBackendUrl = process.env.HTTPS_BACKEND_URL || "http://localhost:4000";
-      const response = await axios.post(`${httpsBackendUrl}/api/risk-scores/area`, {
-        area_id: areaId,
-        latitude: lat,
-        longitude: lng
-      }, { timeout: 4000 });
-
-      if (response.data && typeof response.data.final_score === 'number') {
-        const finalScore = response.data.final_score;
-        let pLevel: "low" | "medium" | "high" = "low";
-        let levelScore = 2;
-
-        if (finalScore > 55) {
-          pLevel = "high";
-          levelScore = 9;
-        } else if (finalScore > 30) {
-          pLevel = "medium";
-          levelScore = 6;
-        }
-
-        return {
-          score: levelScore,
-          level: pLevel,
-          zoneId: areaId,
-          zoneName: response.data.area_id
-        };
-      }
-    } catch(err: any) {
-      console.warn("[RiskZoneService] Realtime risk fetch failed", err?.message);
-    }
-
+    // Otherwise fallback to point-in-poly check
     return this.calculateRisk(lat, lng);
   }
 }

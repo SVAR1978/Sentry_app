@@ -56,12 +56,12 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function fetchAllAreaBaseScores(): Promise<AreasResponse> {
-  if (BACKEND_URL) {
-    return requestJson<AreasResponse>(`${BACKEND_URL}/api/risk-scores/areas`);
-  }
-
   if (AWS_RISK_BASE_URL) {
     return requestJson<AreasResponse>(`${AWS_RISK_BASE_URL}/areas/scores`);
+  }
+
+  if (BACKEND_URL) {
+    return requestJson<AreasResponse>(`${BACKEND_URL}/api/risk-scores/areas`);
   }
 
   throw new Error(
@@ -74,10 +74,10 @@ export async function fetchAreaBaseScore(
   latitude?: number,
   longitude?: number
 ): Promise<AreaBaseScore> {
-  const endpoint = BACKEND_URL
-    ? `${BACKEND_URL}/api/risk-scores/area`
-    : AWS_RISK_BASE_URL
-      ? `${AWS_RISK_BASE_URL}/score/area`
+  const endpoint = AWS_RISK_BASE_URL
+    ? `${AWS_RISK_BASE_URL}/score/area`
+    : BACKEND_URL
+      ? `${BACKEND_URL}/api/risk-scores/area`
       : null;
 
   if (!endpoint) {
