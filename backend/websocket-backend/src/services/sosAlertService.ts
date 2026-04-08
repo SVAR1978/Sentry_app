@@ -278,23 +278,47 @@ async function notifyContactsByEmail(
   longitude?: number,
   address?: string
 ) {
-  // Also check DB for contacts with email
+  // Build a unique recipient list from payload + DB contacts.
   try {
     const dbContacts = await prisma.emergencyContact.findMany({
       where: { userId },
     });
 
-    const mapsLink = latitude && longitude
+    const mapsLink = Number.isFinite(latitude) && Number.isFinite(longitude)
       ? `https://www.google.com/maps?q=${latitude},${longitude}`
       : "";
 
-    const locationStr = address || (latitude && longitude
+    const locationStr = address || (Number.isFinite(latitude) && Number.isFinite(longitude)
       ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
       : "Location unavailable");
 
+    const recipients = new Map<string, { name: string; email: string }>();
+
+    for (const contact of contacts) {
+      const email = contact?.email?.trim().toLowerCase();
+      if (!email) continue;
+      recipients.set(email, {
+        name: contact.name?.trim() || "Emergency Contact",
+        email,
+      });
+    }
+
     for (const contact of dbContacts) {
-      const contactEmail = (contact as any).email as string | undefined;
-      if (!contactEmail) continue;
+      const email = ((contact as any).email as string | undefined)?.trim().toLowerCase();
+      if (!email) continue;
+      recipients.set(email, {
+        name: contact.name || "Emergency Contact",
+        email,
+      });
+    }
+
+    if (recipients.size === 0) {
+      console.warn(`[SOSService] No emergency contact email found for user ${userId}`);
+      return;
+    }
+
+    for (const recipient of recipients.values()) {
+      const contactEmail = recipient.email;
 
       try {
         const htmlContent = `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -324,7 +348,7 @@ async function notifyContactsByEmail(
           },
           { removeOnComplete: true }
         );
-        console.log(`[SOSService] SOS email queued for ${contact.name} (${contactEmail})`);
+        console.log(`[SOSService] SOS email queued for ${recipient.name} (${contactEmail})`);
       } catch (err) {
         console.error(`[SOSService] Failed to queue email to ${contactEmail}:`, err);
       }
