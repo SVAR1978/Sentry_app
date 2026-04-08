@@ -10,6 +10,7 @@ interface LocationPayload {
   speed?: number | null;
   heading?: number | null;
   source: "GPS" | "NETWORK";
+  areaId?: string;
 }
 
 interface UserLocationEvent {
@@ -84,7 +85,18 @@ interface SOSStatusUpdateEvent {
   };
 }
 
-type IncomingMessage = UserLocationEvent | UserActivityEvent | LiveUsersCountEvent | SOSConfirmationEvent | SOSAlertEvent | SOSStatusUpdateEvent | { type: "CHAT_RESPONSE"; payload: { answer: string; conversationId?: string } } | { type: "CHAT_ERROR"; payload: { message: string; conversationId?: string } } | { type: string;[key: string]: any };
+interface RiskAlertEvent {
+  type: "RISK_ALERT";
+  payload: {
+    level: "low" | "medium" | "high";
+    score: number;
+    message: string;
+    zoneName?: string;
+    timestamp: string;
+  };
+}
+
+type IncomingMessage = UserLocationEvent | UserActivityEvent | LiveUsersCountEvent | SOSConfirmationEvent | SOSAlertEvent | SOSStatusUpdateEvent | RiskAlertEvent | { type: "CHAT_RESPONSE"; payload: { answer: string; conversationId?: string } } | { type: "CHAT_ERROR"; payload: { message: string; conversationId?: string } } | { type: string;[key: string]: any };
 
 interface SocketContextType {
   socket: WebSocket | null;
@@ -96,6 +108,7 @@ interface SocketContextType {
   onUserActivity: (callback: (data: UserActivityEvent) => void) => () => void;
   onLiveUsersCount: (callback: (data: LiveUsersCountEvent) => void) => () => void;
   onSOSAlert: (callback: (data: SOSAlertEvent | SOSStatusUpdateEvent | SOSConfirmationEvent) => void) => () => void;
+  onRiskAlert: (callback: (data: RiskAlertEvent) => void) => () => void;
   sendChatAsk: (question: string, conversationId?: string) => void;
   onChatMessage: (callback: (data: any) => void) => () => void;
 }
@@ -112,6 +125,7 @@ const SocketContext = createContext<SocketContextType>({
   onUserActivity: () => () => { },
   onLiveUsersCount: () => () => { },
   onSOSAlert: () => () => { },
+  onRiskAlert: () => () => { },
   sendChatAsk: () => { },
   onChatMessage: () => () => { },
 });
@@ -133,6 +147,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const userActivityListeners = useRef<Set<(data: UserActivityEvent) => void>>(new Set());
   const liveUsersCountListeners = useRef<Set<(data: LiveUsersCountEvent) => void>>(new Set());
   const chatListeners = useRef<Set<(data: any) => void>>(new Set());
+  const riskAlertListeners = useRef<Set<(data: RiskAlertEvent) => void>>(new Set());
   const sosListeners = useRef<Set<(data: SOSAlertEvent | SOSStatusUpdateEvent | SOSConfirmationEvent) => void>>(new Set());
 
   // ─── CONNECT ──────────────────────────────────────────
@@ -191,6 +206,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             for (const listener of chatListeners.current) {
               listener(data);
             }
+          } else if (data.type === "RISK_ALERT") {
+            for (const listener of riskAlertListeners.current) {
+              listener(data as RiskAlertEvent);
+            }
           } else if (data.type === "SOS_CONFIRMED" || data.type === "SOS_ALERT" || data.type === "SOS_STATUS_UPDATE") {
             for (const listener of sosListeners.current) {
               listener(data as SOSAlertEvent | SOSStatusUpdateEvent | SOSConfirmationEvent);
@@ -244,6 +263,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         speed: location.speed ?? undefined,
         heading: location.heading ?? undefined,
         source: location.source,
+        areaId: location.areaId,
       },
     });
 
@@ -350,6 +370,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const onRiskAlert = useCallback((callback: (data: RiskAlertEvent) => void) => {
+    riskAlertListeners.current.add(callback);
+    return () => {
+      riskAlertListeners.current.delete(callback);
+    };
+  }, []);
+
   // ─── LIFECYCLE ────────────────────────────────────────
 
   useEffect(() => {
@@ -366,7 +393,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [connectWebSocket]);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, sendLocation, sendSOS, resolveSOSBackend, onUserLocation, onUserActivity, onLiveUsersCount, onSOSAlert, sendChatAsk, onChatMessage }}>
+    <SocketContext.Provider value={{ socket, isConnected, sendLocation, sendSOS, resolveSOSBackend, onUserLocation, onUserActivity, onLiveUsersCount, onSOSAlert, onRiskAlert, sendChatAsk, onChatMessage }}>
       {children}
     </SocketContext.Provider>
   );
