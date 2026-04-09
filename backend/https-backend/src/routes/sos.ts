@@ -30,19 +30,29 @@ router.post("/", async (req: Request, res: Response) => {
       const to = (c as any).email as string | undefined;
       if (!to) continue;
       try {
-        await emailQueue.add("sendEmail", {
-          email: to,
-          subject: `SOS from user ${userId}`,
-          htmlContent: `<p>SOS request from user ${userId}</p><p>${message ?? ""}</p>`,
-          userId,
-          contactId: c.id,
-        });
+        await emailService.sendEmail(
+          to,
+          `SOS from user ${userId}`,
+          `<p>SOS request from user ${userId}</p><p>${message ?? ""}</p>`
+        );
+        console.log("[SOS][CREATE] Email sent directly", { userId, contactId: c.id, to });
       } catch (err) {
-        console.warn("emailQueue.add failed in /sos, falling back to direct send:", (err as any)?.message ?? err);
         try {
-          await emailService.sendEmail(to, `SOS from user ${userId}`, `<p>SOS request from user ${userId}</p><p>${message ?? ""}</p>`);
+          await emailQueue.add("sendEmail", {
+            email: to,
+            subject: `SOS from user ${userId}`,
+            htmlContent: `<p>SOS request from user ${userId}</p><p>${message ?? ""}</p>`,
+            userId,
+            contactId: c.id,
+          });
+          console.warn("[SOS][CREATE] Direct send failed; queued fallback email", {
+            userId,
+            contactId: c.id,
+            to,
+            error: (err as any)?.message ?? err,
+          });
         } catch (err2) {
-          console.error("Direct email send failed for /sos:", err2);
+          console.error("[SOS][CREATE] Direct send and queue fallback failed:", err2);
         }
       }
       enqueued++;

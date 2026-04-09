@@ -14,6 +14,7 @@
 import WebSocket from "ws";
 import { prisma } from "../prisma.js";
 import { emailQueue } from "../queues/emailQueue.js";
+import { emailService } from "../services/emailService.js";
 import {
   Client,
   SOSContact,
@@ -323,6 +324,11 @@ async function notifyContactsByEmail(
 
     for (const recipient of recipients.values()) {
       const contactEmail = recipient.email;
+      const emailPayload = {
+        email: contactEmail,
+        subject: `EMERGENCY SOS ALERT — ${userName} needs help`,
+        htmlContent: "",
+      };
 
       try {
         const htmlContent = `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -342,19 +348,25 @@ async function notifyContactsByEmail(
             </div>
           </div>`;
 
-        // Queue email job instead of sending directly
-        await emailQueue.add(
-          "send-sos-email",
-          {
-            email: contactEmail,
-            subject: `EMERGENCY SOS ALERT — ${userName} needs help`,
-            htmlContent,
-          },
-          { removeOnComplete: true }
+        emailPayload.htmlContent = htmlContent;
+
+        await emailService.sendEmail(
+          contactEmail,
+          `EMERGENCY SOS ALERT — ${userName} needs help`,
+          htmlContent
         );
-        console.log(`[SOSService] SOS email queued for ${recipient.name} (${contactEmail})`);
+        console.log(`[SOSService] SOS email sent directly for ${recipient.name} (${contactEmail})`);
       } catch (err) {
-        console.error(`[SOSService] Failed to queue email to ${contactEmail}:`, err);
+        try {
+          await emailQueue.add(
+            "send-sos-email",
+            emailPayload,
+            { removeOnComplete: true }
+          );
+          console.warn(`[SOSService] Direct send failed; queued SOS email for ${recipient.name} (${contactEmail})`, err);
+        } catch (queueErr) {
+          console.error(`[SOSService] Failed to send or queue email to ${contactEmail}:`, queueErr);
+        }
       }
     }
   } catch (err) {
