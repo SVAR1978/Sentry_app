@@ -279,36 +279,51 @@ async function notifyContactsByEmail(
   address?: string
 ) {
   try {
-    // Collect unique emails from the incoming payload
-    const emailTargets = new Map<string, string>(); // email -> name
-    
-    // 1. From the SOS payload (frontend localStorage)
-    for (const c of contacts) {
-      if (c.email && c.email.trim() !== "") {
-        emailTargets.set(c.email.trim(), c.name);
-      }
+    // Build a unique recipient list from payload + DB contacts.
+    const recipients = new Map<string, { name: string; email: string }>();
+
+    for (const contact of contacts) {
+      const email = contact?.email?.trim().toLowerCase();
+      if (!email) continue;
+      recipients.set(email, {
+        name: contact.name?.trim() || "Emergency Contact",
+        email,
+      });
     }
 
-    // 2. Also check DB for contacts just in case
     const dbContacts = await prisma.emergencyContact.findMany({
       where: { userId },
     });
+
     for (const contact of dbContacts) {
-      const contactEmail = (contact as any).email as string | undefined;
-      if (contactEmail && contactEmail.trim() !== "") {
-        emailTargets.set(contactEmail.trim(), contact.name);
-      }
+      const email = ((contact as any).email as string | undefined)?.trim().toLowerCase();
+      if (!email) continue;
+      recipients.set(email, {
+        name: contact.name || "Emergency Contact",
+        email,
+      });
     }
 
-    const mapsLink = latitude && longitude
-      ? `https://www.google.com/maps?q=${latitude},${longitude}`
+    if (recipients.size === 0) {
+      console.warn(`[SOSService] No emergency contact email found for user ${userId}`);
+      return;
+    }
+
+    const hasCoordinates = typeof latitude === "number" && typeof longitude === "number";
+    const lat = hasCoordinates ? latitude : null;
+    const lng = hasCoordinates ? longitude : null;
+
+    const mapsLink = lat !== null && lng !== null
+      ? `https://www.google.com/maps?q=${lat},${lng}`
       : "";
 
-    const locationStr = address || (latitude && longitude
-      ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    const locationStr = address || (lat !== null && lng !== null
+      ? `${lat.toFixed(6)}, ${lng.toFixed(6)}`
       : "Location unavailable");
 
-    for (const [contactEmail, contactName] of emailTargets.entries()) {
+    for (const recipient of recipients.values()) {
+      const contactEmail = recipient.email;
+
       try {
         const htmlContent = `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #D93636; color: white; padding: 20px; border-radius: 12px 12px 0 0;">
@@ -337,7 +352,7 @@ async function notifyContactsByEmail(
           },
           { removeOnComplete: true }
         );
-        console.log(`[SOSService] SOS email queued for ${contactName} (${contactEmail})`);
+        console.log(`[SOSService] SOS email queued for ${recipient.name} (${contactEmail})`);
       } catch (err) {
         console.error(`[SOSService] Failed to queue email to ${contactEmail}:`, err);
       }
