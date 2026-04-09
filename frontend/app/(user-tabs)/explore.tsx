@@ -6,60 +6,165 @@ import {
   TouchableOpacity,
   TextInput as RNTextInput,
   Dimensions,
-  Linking,
-  LayoutAnimation,
   Platform,
   UIManager,
-  Image,
+  Animated,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTabVisibility } from "../../store/TabVisibilityContext";
 import * as Location from "expo-location";
 import {
   Search,
   X,
-  Shield,
-  Clock,
   MapPin,
-  Heart,
-  Phone,
-  Navigation,
-  Train,
-  ChevronRight,
-  AlertTriangle,
   Star,
-  Utensils,
-  Sparkles,
+  ChevronRight,
+  Shield,
+  ShieldCheck,
+  Zap,
+  Landmark,
+  Church,
+  UtensilsCrossed,
+  TreePine,
+  ShoppingBag,
+  LayoutGrid,
+  Map,
+  Maximize2,
+  Navigation,
+  SlidersHorizontal,
+  RefreshCw,
+  AlertCircle,
+  Clock,
+  Compass,
+  Building2,
 } from "lucide-react-native";
 import {
-  EXPLORE_COLORS as C,
-  CATEGORY_GRID,
-  DELHI_ATTRACTIONS,
-  DELHI_FOOD_SPOTS,
-  DELHI_METRO_STATIONS,
-  SEARCH_FILTER_CHIPS,
-  EMERGENCY_SERVICES,
-  haversineDistance,
-  formatDistanceKm,
-  type DelhiAttraction,
-  type DelhiFoodSpot,
-  type Coordinates,
-  type SearchFilterChip,
-  type EmergencyService,
-} from "../../constants/exploreData";
+  searchNearbyPlaces,
+  type SearchResult,
+} from "../../services/maps/placesService";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.75;
-const FOOD_CARD_WIDTH = SCREEN_WIDTH * 0.6;
-const SAVED_KEY = "@sentry:saved_places";
+const TRENDING_CARD_WIDTH = 165;
+
+// ── Color System ──────────────────────────────────────────
+const C = {
+  primary: "#1D9E75",
+  primaryDark: "#167A5B",
+  primaryLight: "#E8F8F2",
+  background: "#F7F8FA",
+  surface: "#FFFFFF",
+  textPrimary: "#1A1D26",
+  textSecondary: "#6B7280",
+  textTertiary: "#9CA3AF",
+  border: "rgba(0,0,0,0.06)",
+  cardBorder: "rgba(0,0,0,0.05)",
+  shadow: "#0F172A",
+  white: "#FFFFFF",
+  // Safety
+  safeBg: "#E1F5EE",
+  safeText: "#0F6E56",
+  busyBg: "#FAEEDA",
+  busyText: "#854F0B",
+  dangerBg: "#FEE2E2",
+  dangerText: "#991B1B",
+};
+
+// ── Category Chips ──────────────────────────────────────────
+type CategoryKey = "all" | "monument" | "food" | "park" | "shopping" | "religious";
+
+interface CategoryChip {
+  key: CategoryKey;
+  label: string;
+  icon: React.ReactNode;
+  osmTypes: string[];
+}
+
+const CATEGORIES: CategoryChip[] = [
+  { key: "all", label: "All", icon: <LayoutGrid size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["tourism", "attraction", "restaurant", "hotel"] },
+  { key: "monument", label: "Monuments", icon: <Landmark size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["tourism", "attraction"] },
+  { key: "food", label: "Food", icon: <UtensilsCrossed size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["restaurant"] },
+  { key: "park", label: "Parks", icon: <TreePine size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["tourism"] },
+  { key: "shopping", label: "Shopping", icon: <ShoppingBag size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["tourism"] },
+  { key: "religious", label: "Religious", icon: <Church size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["tourism", "attraction"] },
+];
+
+// ── Place Type Configs ──────────────────────────────────────
+const PLACE_TYPE_CONFIG: Record<string, { bg: string; label: string }> = {
+  tourism: { bg: "#EDE9FE", label: "Monument" },
+  attraction: { bg: "#EDE9FE", label: "Attraction" },
+  monument: { bg: "#FEF3C7", label: "Monument" },
+  museum: { bg: "#DBEAFE", label: "Museum" },
+  restaurant: { bg: "#FEE2E2", label: "Food" },
+  cafe: { bg: "#FEE2E2", label: "Cafe" },
+  fast_food: { bg: "#FEE2E2", label: "Fast Food" },
+  hotel: { bg: "#E0F2FE", label: "Hotel" },
+  guest_house: { bg: "#E0F2FE", label: "Stay" },
+  park: { bg: "#D1FAE5", label: "Park" },
+  place: { bg: "#F3F4F6", label: "Place" },
+};
+
+// ── Helper: Icon for place type ──────────────────────────────
+const getPlaceIcon = (type: string, category: string, size: number = 20, color: string = C.primary) => {
+  const t = (type + category).toLowerCase();
+  if (t.includes("restaurant") || t.includes("food") || t.includes("cafe") || t.includes("fast_food"))
+    return <UtensilsCrossed size={size} color={color} strokeWidth={2} />;
+  if (t.includes("hotel") || t.includes("guest"))
+    return <Building2 size={size} color={color} strokeWidth={2} />;
+  if (t.includes("museum") || t.includes("monument") || t.includes("historic"))
+    return <Landmark size={size} color={color} strokeWidth={2} />;
+  if (t.includes("park") || t.includes("garden"))
+    return <TreePine size={size} color={color} strokeWidth={2} />;
+  if (t.includes("temple") || t.includes("mosque") || t.includes("church") || t.includes("gurudwara"))
+    return <Church size={size} color={color} strokeWidth={2} />;
+  if (t.includes("shop") || t.includes("market") || t.includes("mall"))
+    return <ShoppingBag size={size} color={color} strokeWidth={2} />;
+  return <MapPin size={size} color={color} strokeWidth={2} />;
+};
+
+// ── Helper: Safety Badge logic ──────────────────────────────
+const getSafetyBadge = (type: string, category: string): { label: string; bg: string; color: string; icon: React.ReactNode } => {
+  const t = (type + category).toLowerCase();
+  // "Busy" categories: food, market, popular tourist spots
+  const busyTypes = ["restaurant", "cafe", "fast_food", "market", "mall", "shop", "attraction"];
+  const isBusyType = busyTypes.some(bt => t.includes(bt));
+
+  if (isBusyType) {
+    return {
+      label: "Busy",
+      bg: C.busyBg,
+      color: C.busyText,
+      icon: <Zap size={12} color={C.busyText} strokeWidth={2.5} />,
+    };
+  }
+  return {
+    label: "Safe",
+    bg: C.safeBg,
+    color: C.safeText,
+    icon: <ShieldCheck size={12} color={C.safeText} strokeWidth={2.5} />,
+  };
+};
+
+// ── Helper: Distance formatting ──────────────────────────────
+const formatDist = (meters: number): string => {
+  if (meters < 1000) return `${Math.round(meters)}m`;
+  return `${(meters / 1000).toFixed(1)} km`;
+};
+
+// ── Horizontal card background colors based on type ─────────
+const CARD_BG_COLORS = ["#E8F8F2", "#EDE9FE", "#FEF3C7", "#DBEAFE", "#FEE2E2", "#E0F2FE", "#D1FAE5", "#F3E8FF"];
+
+// ── Place + distance type ───────────────────────────────
+interface PlaceWithDist extends SearchResult {
+  distanceValue: number;
+}
 
 // ============================================================
 // Main Explore Screen
@@ -67,184 +172,141 @@ const SAVED_KEY = "@sentry:saved_places";
 export default function ExploreScreen() {
   // ── State ──
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<SearchFilterChip>("All");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
-  const [safetyAlert, setSafetyAlert] = useState<{ title: string; description: string; severity: "critical" | "caution" | "info" } | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
+  const [places, setPlaces] = useState<PlaceWithDist[]>([]);
+  const [trendingPlaces, setTrendingPlaces] = useState<PlaceWithDist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const { setTabBarVisible } = useTabVisibility();
   const lastScrollY = useRef(0);
+  const headerOpacity = useRef(new Animated.Value(0)).current;
 
-  // Section refs for auto-scroll
-  const sectionPositions = useRef<Record<string, number>>({});
-
-  // ── Load saved places & location on mount ──
+  // ── Mount: get location & fetch places ──
   useEffect(() => {
-    loadSavedPlaces();
+    Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }).start();
     getUserLocation();
-    fetchSafetyAlert();
   }, []);
 
-  const fetchSafetyAlert = async () => {
-    try {
-      const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/alerts/active`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.alerts && data.alerts.length > 0) {
-          setSafetyAlert(data.alerts[0]);
-          return;
-        }
-      }
-    } catch {}
-    // Fallback if backend not reachable (user mentioned backend is on another laptop)
-    setSafetyAlert({
-      title: "Yellow Alert: Heavy Rain",
-      description: "Heavy rain expected in Delhi today. Expect traffic delays and localized waterlogging.",
-      severity: "caution",
-    });
-  };
+  // ── Re-fetch when location or category changes ──
+  useEffect(() => {
+    if (userLocation) {
+      fetchPlaces();
+    }
+  }, [userLocation, selectedCategory]);
 
-  const loadSavedPlaces = async () => {
-    try {
-      const raw = await AsyncStorage.getItem(SAVED_KEY);
-      if (raw) setSavedIds(new Set(JSON.parse(raw)));
-    } catch {}
-  };
-
+  // ── Get user GPS ──
   const getUserLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-    } catch {}
-  };
-
-  const toggleSave = useCallback(async (id: string) => {
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      AsyncStorage.setItem(SAVED_KEY, JSON.stringify([...next])).catch(() => {});
-      return next;
-    });
-  }, []);
-
-  // ── Search (debounced 300ms) ──
-  const handleSearch = useCallback((text: string) => {
-    setSearchQuery(text);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      setDebouncedQuery(text.trim().toLowerCase());
-    }, 300);
-  }, []);
-
-  // ── Filtered data ──
-  const filteredAttractions = useMemo(() => {
-    let data = DELHI_ATTRACTIONS;
-    if (debouncedQuery) {
-      data = data.filter(
-        (a) =>
-          a.name.toLowerCase().includes(debouncedQuery) ||
-          a.category.toLowerCase().includes(debouncedQuery)
-      );
-    }
-    if (activeFilter === "All" || activeFilter === "Attractions") return data;
-    return [];
-  }, [debouncedQuery, activeFilter]);
-
-  const filteredFood = useMemo(() => {
-    let data = DELHI_FOOD_SPOTS;
-    if (debouncedQuery) {
-      data = data.filter(
-        (f) =>
-          f.name.toLowerCase().includes(debouncedQuery) ||
-          f.cuisine.toLowerCase().includes(debouncedQuery) ||
-          f.area.toLowerCase().includes(debouncedQuery)
-      );
-    }
-    if (activeFilter === "All" || activeFilter === "Food") return data;
-    return [];
-  }, [debouncedQuery, activeFilter]);
-
-  const getDistance = useCallback(
-    (coords: Coordinates): string => {
-      if (!userLocation) return "";
-      return formatDistanceKm(haversineDistance(userLocation, coords));
-    },
-    [userLocation]
-  );
-
-  // Nearest metro
-  const nearestMetro = useMemo(() => {
-    if (!userLocation) return null;
-    let nearest = DELHI_METRO_STATIONS[0];
-    let minDist = Infinity;
-    for (const s of DELHI_METRO_STATIONS) {
-      const d = haversineDistance(userLocation, s.coordinates);
-      if (d < minDist) {
-        minDist = d;
-        nearest = s;
-      }
-    }
-    return { station: nearest, distance: minDist };
-  }, [userLocation]);
-
-  // Nearest emergency services
-  const nearestEmergency = useMemo(() => {
-    if (!userLocation) return { hospital: null, police: null };
-    let nHosp: EmergencyService | null = null;
-    let nPol: EmergencyService | null = null;
-    let mdH = Infinity, mdP = Infinity;
-    
-    for (const e of EMERGENCY_SERVICES) {
-      const d = haversineDistance(userLocation, e.coordinates);
-      if (e.type === "hospital" && d < mdH) { mdH = d; nHosp = e; }
-      else if (e.type === "police" && d < mdP) { mdP = d; nPol = e; }
-    }
-    return { hospital: nHosp, police: nPol, hospDist: mdH, polDist: mdP };
-  }, [userLocation]);
-
-  const handleCategoryPress = useCallback(
-    (filterKey: string) => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setActiveCategory((prev) => (prev === filterKey ? null : filterKey));
-
-      if (filterKey === "tickets") {
-        router.push("/" as any);
+      if (status !== "granted") {
+        setError("Location permission denied. Please enable it to see nearby places.");
+        setIsLoading(false);
         return;
       }
-      if (filterKey === "attractions") setActiveFilter("Attractions");
-      else if (filterKey === "food") setActiveFilter("Food");
-      else if (filterKey === "hospitals" || filterKey === "police" || filterKey === "pharmacies") {
-        router.push({ pathname: "/(user-tabs)/map", params: { filter: filterKey === "hospitals" ? "hospital" : filterKey } } as any);
-      } else if (filterKey === "metro") {
-        // scroll to metro section
-      } else if (filterKey === "parks") {
-        setActiveFilter("Attractions");
-      }
-    },
-    []
-  );
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    } catch {
+      // Fallback to Delhi center
+      setUserLocation({ latitude: 28.6139, longitude: 77.2090 });
+    }
+  };
 
-  const noResults =
-    debouncedQuery.length > 0 &&
-    filteredAttractions.length === 0 &&
-    filteredFood.length === 0;
+  // ── API: Fetch nearby places ──
+  const fetchPlaces = async () => {
+    if (!userLocation) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const cat = CATEGORIES.find(c => c.key === selectedCategory) || CATEGORIES[0];
+      const results = await searchNearbyPlaces(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        3000,
+        cat.osmTypes
+      );
 
-  // ── Saved places data ──
-  const savedAttractions = useMemo(
-    () => DELHI_ATTRACTIONS.filter((a) => savedIds.has(a.id)),
-    [savedIds]
-  );
-  const savedFood = useMemo(
-    () => DELHI_FOOD_SPOTS.filter((f) => savedIds.has(f.id)),
-    [savedIds]
-  );
+      // Compute distance
+      const withDist: PlaceWithDist[] = results.map((p) => {
+        const dx = (p.coordinate.latitude - userLocation.latitude) * 111000;
+        const dy = (p.coordinate.longitude - userLocation.longitude) * 111000 * Math.cos((userLocation.latitude * Math.PI) / 180);
+        return { ...p, distanceValue: Math.sqrt(dx * dx + dy * dy) };
+      });
 
+      withDist.sort((a, b) => a.distanceValue - b.distanceValue);
+
+      // Split: first 6 for trending, rest for all places
+      setTrendingPlaces(withDist.slice(0, 6));
+      setPlaces(withDist);
+    } catch (err) {
+      console.warn("[Explore] Failed to fetch places:", err);
+      setError("Unable to load places. Check your connection.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Pull-to-refresh ──
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await getUserLocation();
+    setRefreshing(false);
+  }, []);
+
+  // ── Search filter (local, debounced) ──
+  const handleSearch = useCallback((text: string) => {
+    setSearchQuery(text);
+  }, []);
+
+  const filteredPlaces = useMemo(() => {
+    if (!searchQuery.trim()) return places;
+    const q = searchQuery.toLowerCase();
+    return places.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.displayName.toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
+    );
+  }, [searchQuery, places]);
+
+  const filteredTrending = useMemo(() => {
+    if (!searchQuery.trim()) return trendingPlaces;
+    const q = searchQuery.toLowerCase();
+    return trendingPlaces.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q)
+    );
+  }, [searchQuery, trendingPlaces]);
+
+  // ── Category select ──
+  const handleCategorySelect = useCallback((key: CategoryKey) => {
+    setSelectedCategory(key);
+    setSearchQuery("");
+  }, []);
+
+  // ── Get place type config ──
+  const getTypeConfig = (type: string, category: string) => {
+    const t = (type + category).toLowerCase();
+    for (const [key, val] of Object.entries(PLACE_TYPE_CONFIG)) {
+      if (t.includes(key)) return val;
+    }
+    return PLACE_TYPE_CONFIG.place;
+  };
+
+  // ── Retry handler ──
+  const handleRetry = useCallback(() => {
+    setError(null);
+    getUserLocation();
+  }, []);
+
+  // ════════════════════════════════════════════════════════════
+  // RENDER
+  // ════════════════════════════════════════════════════════════
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -252,289 +314,242 @@ export default function ExploreScreen() {
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        stickyHeaderIndices={[0]}
         keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
-        onScroll={(event) => {
-          const currentScrollY = event.nativeEvent.contentOffset.y;
-          if (currentScrollY <= 0) {
-            setTabBarVisible(true);
-            return;
-          }
-          if (currentScrollY > lastScrollY.current + 10) {
-            setTabBarVisible(false);
-          } else if (currentScrollY < lastScrollY.current - 10) {
-            setTabBarVisible(true);
-          }
-          lastScrollY.current = currentScrollY;
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} colors={[C.primary]} />
+        }
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          if (y <= 0) { setTabBarVisible(true); return; }
+          if (y > lastScrollY.current + 10) setTabBarVisible(false);
+          else if (y < lastScrollY.current - 10) setTabBarVisible(true);
+          lastScrollY.current = y;
         }}
       >
-        {/* ── STICKY SEARCH BAR ── */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchBarOuter}>
-            <View style={styles.searchBar}>
-              <Search size={18} color={C.secondary} strokeWidth={2.5} />
-              <RNTextInput
-                style={styles.searchInput}
-                placeholder="Search places, food, safety tips..."
-                placeholderTextColor={C.secondary}
-                value={searchQuery}
-                onChangeText={handleSearch}
-                accessibilityLabel="Search help articles"
-                returnKeyType="search"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSearchQuery("");
-                    setDebouncedQuery("");
-                  }}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <X size={18} color={C.secondary} strokeWidth={2.5} />
-                </TouchableOpacity>
-              )}
-            </View>
-            {/* Filter Chips */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterChips}
-            >
-              {SEARCH_FILTER_CHIPS.map((chip) => (
-                <TouchableOpacity
-                  key={chip}
-                  style={[styles.chip, activeFilter === chip && styles.chipActive]}
-                  onPress={() => setActiveFilter(chip)}
-                >
-                  <Text style={[styles.chipText, activeFilter === chip && styles.chipTextActive]}>
-                    {chip}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-
         {/* ── HEADER ── */}
-        <View style={styles.headerSection}>
-          <Text style={styles.headerTitle}>Explore Delhi</Text>
-          <Text style={styles.headerSub}>Discover, dine, and stay safe</Text>
-        </View>
-
-        {/* ── SAFETY ALERT BANNER ── */}
-        {safetyAlert && !debouncedQuery && (
-          <View style={styles.alertWrapper}>
-            <LinearGradient
-              colors={safetyAlert.severity === "critical" ? ["#EF4444", "#DC2626"] : safetyAlert.severity === "caution" ? ["#F59E0B", "#D97706"] : ["#3B82F6", "#2563EB"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.alertBanner}
-            >
-              <View style={styles.alertIconBg}>
-                <AlertTriangle size={24} color="#FFF" strokeWidth={2.5} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.alertTitle}>{safetyAlert.title}</Text>
-                <Text style={styles.alertDesc}>{safetyAlert.description}</Text>
-              </View>
-            </LinearGradient>
-          </View>
-        )}
-
-        {/* ── NEAR ME RIGHT NOW ── */}
-        {userLocation && !debouncedQuery && (
-          <View style={styles.nearMeSection}>
-            <Text style={styles.sectionTitle}>📍 Near Me Right Now</Text>
-            <View style={styles.nearMeGrid}>
-              {nearestEmergency.hospital && (
-                <TouchableOpacity
-                  style={styles.nearMeCard}
-                  onPress={() => Linking.openURL(`geo:${nearestEmergency.hospital!.coordinates.latitude},${nearestEmergency.hospital!.coordinates.longitude}`)}
-                >
-                  <View style={[styles.nearMeIcon, { backgroundColor: "rgba(239, 68, 68, 0.1)" }]}>
-                    <Shield size={20} color="#EF4444" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.nearMeLabel}>Nearest Hospital</Text>
-                    <Text style={styles.nearMeName} numberOfLines={1}>{nearestEmergency.hospital.name}</Text>
-                    <Text style={styles.nearMeDist}>{formatDistanceKm(nearestEmergency.hospDist)} away</Text>
-                  </View>
-                  <ChevronRight size={16} color={C.secondary} />
-                </TouchableOpacity>
-              )}
-              {nearestEmergency.police && (
-                <TouchableOpacity
-                  style={styles.nearMeCard}
-                  onPress={() => Linking.openURL(`geo:${nearestEmergency.police!.coordinates.latitude},${nearestEmergency.police!.coordinates.longitude}`)}
-                >
-                  <View style={[styles.nearMeIcon, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
-                    <Shield size={20} color="#3B82F6" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.nearMeLabel}>Nearest Police</Text>
-                    <Text style={styles.nearMeName} numberOfLines={1}>{nearestEmergency.police.name}</Text>
-                    <Text style={styles.nearMeDist}>{formatDistanceKm(nearestEmergency.polDist)} away</Text>
-                  </View>
-                  <ChevronRight size={16} color={C.secondary} />
-                </TouchableOpacity>
-              )}
+        <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
+          <View>
+            <Text style={styles.headerTitle}>Explore Delhi</Text>
+            <View style={styles.headerSubRow}>
+              <MapPin size={13} color={C.textSecondary} strokeWidth={2} />
+              <Text style={styles.headerSub}>New Delhi, India</Text>
             </View>
           </View>
-        )}
+        </Animated.View>
 
-        {/* ── NO RESULTS ── */}
-        {noResults && (
-          <View style={styles.noResults}>
-            <Search size={40} color={C.secondary} strokeWidth={1.5} />
-            <Text style={styles.noResultsTitle}>No results for &quot;{searchQuery}&quot;</Text>
-            <Text style={styles.noResultsSub}>
-              Try searching &quot;Red Fort&quot; or &quot;hospital near me&quot;
-            </Text>
+        {/* ── SEARCH BAR ── */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Search size={18} color={C.textTertiary} strokeWidth={2} />
+            <RNTextInput
+              style={styles.searchInput}
+              placeholder="Search places, monuments..."
+              placeholderTextColor={C.textTertiary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <X size={16} color={C.textTertiary} strokeWidth={2} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8}>
+            <SlidersHorizontal size={18} color={C.white} strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── CATEGORY CHIPS ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipScroll}
+          style={styles.chipContainer}
+        >
+          {CATEGORIES.map((cat) => {
+            const isActive = selectedCategory === cat.key;
+            return (
+              <TouchableOpacity
+                key={cat.key}
+                style={[styles.chip, isActive && styles.chipActive]}
+                onPress={() => handleCategorySelect(cat.key)}
+                activeOpacity={0.7}
+              >
+                {React.cloneElement(cat.icon as React.ReactElement, {
+                  color: isActive ? C.white : C.textSecondary,
+                })}
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* ── MAP PREVIEW CARD ── */}
+        <TouchableOpacity
+          style={styles.mapCard}
+          activeOpacity={0.9}
+          onPress={() => router.push("/(user-tabs)/map" as any)}
+        >
+          <View style={styles.mapCardInner}>
+            <View style={styles.mapPlaceholder}>
+              <Map size={36} color={C.primary} strokeWidth={1.5} />
+              <Text style={styles.mapPlaceholderText}>Tap to open interactive map</Text>
+            </View>
+            <View style={styles.mapCardOverlay}>
+              <View style={styles.mapCardLabel}>
+                <Compass size={14} color={C.primary} strokeWidth={2} />
+                <Text style={styles.mapCardLabelText}>Live Map View</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.mapExpandBtn}
+                onPress={() => router.push("/(user-tabs)/map" as any)}
+              >
+                <Text style={styles.mapExpandText}>Expand</Text>
+                <Maximize2 size={13} color={C.primary} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* ── ERROR STATE ── */}
+        {error && (
+          <View style={styles.errorCard}>
+            <AlertCircle size={22} color="#DC2626" strokeWidth={2} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
+              <RefreshCw size={14} color={C.white} strokeWidth={2.5} />
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* ── CATEGORY GRID ── */}
-        {!debouncedQuery && (
+        {/* ── LOADING STATE ── */}
+        {isLoading && !error && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={C.primary} />
+            <Text style={styles.loadingText}>Finding places near you...</Text>
+          </View>
+        )}
+
+        {/* ── TRENDING NEARBY ── */}
+        {!isLoading && !error && filteredTrending.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.gridContainer}>
-              {CATEGORY_GRID.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.gridCard,
-                    activeCategory === cat.filterKey && styles.gridCardActive,
-                  ]}
-                  onPress={() => handleCategoryPress(cat.filterKey)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.gridEmoji}>{cat.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.gridLabel,
-                      activeCategory === cat.filterKey && styles.gridLabelActive,
-                    ]}
-                    numberOfLines={1}
+            <Text style={styles.sectionLabel}>TRENDING NEARBY</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.trendingScroll}
+              decelerationRate="fast"
+              snapToInterval={TRENDING_CARD_WIDTH + 12}
+            >
+              {filteredTrending.map((place, idx) => {
+                const badge = getSafetyBadge(place.type, place.category);
+                const bgColor = CARD_BG_COLORS[idx % CARD_BG_COLORS.length];
+                return (
+                  <TouchableOpacity
+                    key={place.id}
+                    style={styles.trendingCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type } } as any)}
                   >
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* ── TOP ATTRACTIONS ── */}
-        {filteredAttractions.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle} accessibilityRole="header">
-                🏛️ Top Attractions
-              </Text>
-              <TouchableOpacity
-                onPress={() => router.push("/attraction-list" as any)}
-              >
-                <Text style={styles.seeAll}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={CARD_WIDTH + 16}
-              decelerationRate="fast"
-              contentContainerStyle={{ paddingHorizontal: 20 }}
-            >
-              {filteredAttractions.map((item) => (
-                <AttractionCard
-                  key={item.id}
-                  attraction={item}
-                  distance={getDistance(item.coordinates)}
-                  isSaved={savedIds.has(item.id)}
-                  onToggleSave={() => toggleSave(item.id)}
-                />
-              ))}
+                    {/* Top colored area */}
+                    <View style={[styles.trendingCardTop, { backgroundColor: bgColor }]}>
+                      {getPlaceIcon(place.type, place.category, 28, C.primary)}
+                      {/* Safety badge */}
+                      <View style={[styles.trendingBadge, { backgroundColor: badge.bg }]}>
+                        {badge.icon}
+                        <Text style={[styles.trendingBadgeText, { color: badge.color }]}>{badge.label}</Text>
+                      </View>
+                    </View>
+                    {/* Bottom info */}
+                    <View style={styles.trendingCardBottom}>
+                      <Text style={styles.trendingName} numberOfLines={1}>{place.name}</Text>
+                      <View style={styles.trendingMeta}>
+                        <View style={styles.trendingMetaRow}>
+                          <Star size={11} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />
+                          <Text style={styles.trendingRating}>4.5</Text>
+                        </View>
+                        <View style={styles.trendingMetaRow}>
+                          <Navigation size={10} color={C.textTertiary} strokeWidth={2} />
+                          <Text style={styles.trendingDist}>{formatDist(place.distanceValue)}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         )}
 
-        {/* ── FOOD & DINING ── */}
-        {filteredFood.length > 0 && (
+        {/* ── ALL PLACES LIST ── */}
+        {!isLoading && !error && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle} accessibilityRole="header">
-                🍽️ Food & Dining
-              </Text>
-              <TouchableOpacity
-                onPress={() => router.push("/food-list" as any)}
-              >
-                <Text style={styles.seeAll}>See All</Text>
-              </TouchableOpacity>
+            <View style={styles.allPlacesHeader}>
+              <Text style={styles.sectionLabel}>ALL PLACES</Text>
+              <Text style={styles.placesCount}>{filteredPlaces.length} found</Text>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={FOOD_CARD_WIDTH + 14}
-              decelerationRate="fast"
-              contentContainerStyle={{ paddingHorizontal: 20 }}
-            >
-              {filteredFood.map((item) => (
-                <FoodCard
-                  key={item.id}
-                  food={item}
-                  distance={getDistance(item.coordinates)}
-                  isSaved={savedIds.has(item.id)}
-                  onToggleSave={() => toggleSave(item.id)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
-        {/* ── METRO HELPER ── */}
-        {!debouncedQuery && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              🚇 Delhi Metro Helper
-            </Text>
-            <MetroSection nearestMetro={nearestMetro} />
-          </View>
-        )}
+            {filteredPlaces.length === 0 && (
+              <View style={styles.emptyState}>
+                <Search size={36} color={C.textTertiary} strokeWidth={1.5} />
+                <Text style={styles.emptyTitle}>
+                  {searchQuery ? `No results for "${searchQuery}"` : "No places found nearby"}
+                </Text>
+                <Text style={styles.emptySub}>Try a different category or pull to refresh</Text>
+              </View>
+            )}
 
-        {/* ── SAVED PLACES ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">
-            ❤️ Saved Places
-          </Text>
-          {savedAttractions.length === 0 && savedFood.length === 0 ? (
-            <View style={styles.savedEmpty}>
-              <Heart size={32} color={C.secondary} strokeWidth={1.5} />
-              <Text style={styles.savedEmptyText}>
-                Tap ❤️ on any place to save it here
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20 }}
-            >
-              {[...savedAttractions.map((a) => ({ ...a, type: "attraction" as const })), ...savedFood.map((f) => ({ ...f, type: "food" as const }))].map((item) => (
+            {filteredPlaces.map((place) => {
+              const badge = getSafetyBadge(place.type, place.category);
+              const typeConf = getTypeConfig(place.type, place.category);
+              // Determine open/closed (simple heuristic: always "Open" during 8am-10pm)
+              const hour = new Date().getHours();
+              const isOpen = hour >= 8 && hour <= 22;
+
+              return (
                 <TouchableOpacity
-                  key={item.id}
-                  style={styles.savedCard}
-                  onLongPress={() => toggleSave(item.id)}
-                  activeOpacity={0.8}
+                  key={place.id}
+                  style={styles.placeRow}
+                  activeOpacity={0.75}
+                  onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type } } as any)}
                 >
-                  <Image source={{ uri: item.imageUrl }} style={styles.savedCardImage} />
-                  <Text style={styles.savedCardName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.savedCardType}>{item.type === "attraction" ? "Attraction" : "Food"}</Text>
+                  {/* Left: Icon box */}
+                  <View style={[styles.placeIconBox, { backgroundColor: typeConf.bg }]}>
+                    {getPlaceIcon(place.type, place.category, 22, C.textPrimary)}
+                  </View>
+
+                  {/* Middle: Info */}
+                  <View style={styles.placeInfo}>
+                    <Text style={styles.placeName} numberOfLines={1}>{place.name}</Text>
+                    <View style={styles.placeSubRow}>
+                      <Text style={styles.placeType}>{typeConf.label}</Text>
+                      <View style={[styles.openBadge, { backgroundColor: isOpen ? "#D1FAE5" : "#FEE2E2" }]}>
+                        <Clock size={9} color={isOpen ? "#059669" : "#DC2626"} strokeWidth={2.5} />
+                        <Text style={[styles.openText, { color: isOpen ? "#059669" : "#DC2626" }]}>
+                          {isOpen ? "Open" : "Closed"}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Right: Distance + Safety */}
+                  <View style={styles.placeRight}>
+                    <Text style={styles.placeDistance}>{formatDist(place.distanceValue)}</Text>
+                    <View style={[styles.placeSafetyPill, { backgroundColor: badge.bg }]}>
+                      {badge.icon}
+                      <Text style={[styles.placeSafetyText, { color: badge.color }]}>{badge.label}</Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
+              );
+            })}
+          </View>
+        )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -543,508 +558,384 @@ export default function ExploreScreen() {
 }
 
 // ============================================================
-// Attraction Card Component
-// ============================================================
-interface AttractionCardProps {
-  attraction: DelhiAttraction;
-  distance: string;
-  isSaved: boolean;
-  onToggleSave: () => void;
-}
-
-const AttractionCard: React.FC<AttractionCardProps> = ({
-  attraction,
-  distance,
-  isSaved,
-  onToggleSave,
-}) => {
-  const safetyColor =
-    attraction.safetyScore >= 4.5 ? C.success : attraction.safetyScore >= 3.5 ? C.warning : C.danger;
-
-  return (
-    <View style={[styles.attractionCard, { width: CARD_WIDTH }]}>
-      <View style={styles.attractionImageWrap}>
-        <Image
-          source={{ uri: attraction.imageUrl }}
-          style={styles.attractionImage}
-          resizeMode="cover"
-        />
-        {/* Save Button */}
-        <TouchableOpacity
-          style={styles.heartBtn}
-          onPress={onToggleSave}
-          accessibilityLabel={`Save ${attraction.name}`}
-          accessibilityState={{ selected: isSaved }}
-        >
-          <Heart
-            size={18}
-            color={isSaved ? "#FF6B6B" : C.white}
-            fill={isSaved ? "#FF6B6B" : "transparent"}
-            strokeWidth={2.5}
-          />
-        </TouchableOpacity>
-        {/* Safety Badge */}
-        <View style={[styles.safetyBadge, { backgroundColor: safetyColor + "20" }]}>
-          <Shield size={12} color={safetyColor} strokeWidth={2.5} />
-          <Text style={[styles.safetyText, { color: safetyColor }]}>
-            {attraction.safetyScore} {attraction.safetyLabel}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.attractionInfo}>
-        <Text style={styles.attractionName} numberOfLines={1}>
-          {attraction.name}
-        </Text>
-        <View style={styles.attractionMeta}>
-          <View style={styles.metaRow}>
-            <Clock size={12} color={C.secondary} strokeWidth={2.5} />
-            <Text style={styles.metaText} numberOfLines={1}>{attraction.timings}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>{attraction.entryFee}</Text>
-          </View>
-          {distance !== "" && (
-            <View style={styles.metaRow}>
-              <MapPin size={12} color={C.secondary} strokeWidth={2.5} />
-              <Text style={styles.metaText}>{distance} away</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.attractionActions}>
-          {attraction.bookingPartner && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => router.push("/" as any)}
-            >
-              <Text style={styles.actionBtnText}>Book Ticket</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnOutline]}
-            onPress={() =>
-              router.push({
-                pathname: "/(user-tabs)/map",
-                params: { filter: "attraction" },
-              } as any)
-            }
-          >
-            <Text style={[styles.actionBtnText, styles.actionBtnTextOutline]}>
-              View on Map
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-};
-
-// ============================================================
-// Food Card Component
-// ============================================================
-interface FoodCardProps {
-  food: DelhiFoodSpot;
-  distance: string;
-  isSaved: boolean;
-  onToggleSave: () => void;
-}
-
-const FoodCard: React.FC<FoodCardProps> = ({ food, distance, isSaved, onToggleSave }) => (
-  <View style={[styles.foodCard, { width: FOOD_CARD_WIDTH }]}>
-    <View style={styles.foodImageWrap}>
-      <Image source={{ uri: food.imageUrl }} style={styles.foodImage} resizeMode="cover" />
-      <TouchableOpacity
-        style={styles.heartBtn}
-        onPress={onToggleSave}
-        accessibilityLabel={`Save ${food.name}`}
-        accessibilityState={{ selected: isSaved }}
-      >
-        <Heart
-          size={16}
-          color={isSaved ? "#FF6B6B" : C.white}
-          fill={isSaved ? "#FF6B6B" : "transparent"}
-          strokeWidth={2.5}
-        />
-      </TouchableOpacity>
-    </View>
-    <View style={styles.foodInfo}>
-      <Text style={styles.foodName} numberOfLines={1}>{food.name}</Text>
-      <Text style={styles.foodArea} numberOfLines={1}>{food.area}</Text>
-      <View style={styles.foodTags}>
-        <View style={[styles.foodTag, { backgroundColor: food.isVegetarian ? "#D1FAE5" : "#FEE2E2" }]}>
-          <Text style={[styles.foodTagText, { color: food.isVegetarian ? C.success : C.danger }]}>
-            {food.isVegetarian ? "🟢 Veg" : "🔴 Non-Veg"}
-          </Text>
-        </View>
-        <Text style={styles.foodCuisine}>{food.cuisine}</Text>
-      </View>
-      <View style={styles.foodBottom}>
-        <Text style={styles.foodCost}>₹{food.avgCostForTwo} for two</Text>
-        {distance !== "" && <Text style={styles.foodDist}>{distance}</Text>}
-      </View>
-      {food.hygieneRated && (
-        <View style={styles.hygieneBadge}>
-          <Text style={styles.hygieneBadgeText}>✅ Hygiene Rated</Text>
-        </View>
-      )}
-      {food.touristFriendly && (
-        <View style={[styles.hygieneBadge, { backgroundColor: "rgba(33, 16, 11, 0.04)" }]}>
-          <Text style={[styles.hygieneBadgeText, { color: C.primary }]}>🌍 Tourist Friendly</Text>
-        </View>
-      )}
-    </View>
-  </View>
-);
-
-// ============================================================
-// Metro Section Component
-// ============================================================
-interface MetroSectionProps {
-  nearestMetro: { station: (typeof DELHI_METRO_STATIONS)[0]; distance: number } | null;
-}
-
-const MetroSection: React.FC<MetroSectionProps> = ({ nearestMetro }) => (
-  <View style={styles.metroContainer}>
-    {/* Nearest Station */}
-    {nearestMetro && (
-      <View style={styles.metroCard}>
-        <View style={styles.metroCardHeader}>
-          <View style={[styles.metroLineBadge, { backgroundColor: nearestMetro.station.lineColor }]}>
-            <Train size={14} color={C.white} strokeWidth={2.5} />
-          </View>
-          <View style={styles.metroCardInfo}>
-            <Text style={styles.metroStationName}>{nearestMetro.station.name}</Text>
-            <Text style={styles.metroLineText}>{nearestMetro.station.line} Line</Text>
-          </View>
-        </View>
-        <View style={styles.metroCardMeta}>
-          <View style={styles.metaRow}>
-            <Navigation size={12} color={C.secondary} strokeWidth={2.5} />
-            <Text style={styles.metaText}>
-              {formatDistanceKm(nearestMetro.distance)} · ~{Math.ceil(nearestMetro.distance / 80)} min walk
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.metroDirectionsBtn}
-          onPress={() => {
-            const coords = nearestMetro.station.coordinates;
-            Linking.openURL(
-              `https://www.google.com/maps/dir/?api=1&destination=${coords.latitude},${coords.longitude}&travelmode=walking`
-            );
-          }}
-        >
-          <Navigation size={14} color={C.white} strokeWidth={2.5} />
-          <Text style={styles.metroDirText}>Walk to Station</Text>
-        </TouchableOpacity>
-      </View>
-    )}
-
-
-    {/* Route Finder CTA */}
-    <TouchableOpacity
-      style={styles.routeFinderBtn}
-      onPress={() => {
-        Linking.openURL("https://www.google.com/maps/dir/?api=1&travelmode=transit");
-      }}
-      activeOpacity={0.85}
-    >
-      <Train size={18} color={C.primary} strokeWidth={2.5} />
-      <Text style={styles.routeFinderText}>Find Metro Route on Google Maps</Text>
-      <ChevronRight size={18} color={C.secondary} strokeWidth={2.5} />
-    </TouchableOpacity>
-  </View>
-);
-
-// ============================================================
 // Styles
 // ============================================================
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.white },
+  container: { flex: 1, backgroundColor: C.background },
   scrollContent: { paddingBottom: 0 },
 
-  // Search
-  searchSection: {
-    backgroundColor: C.white,
-    paddingTop: Platform.OS === "ios" ? 60 : 44,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(33, 16, 11, 0.04)",
-  },
-  searchBarOuter: { paddingHorizontal: 20 },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(33, 16, 11, 0.03)",
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    height: 50,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.06)",
-  },
-  searchInput: { flex: 1, fontSize: 15, fontWeight: "600", color: C.textPrimary },
-  filterChips: { gap: 8, paddingTop: 10, paddingBottom: 4 },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 50,
-    backgroundColor: "rgba(33, 16, 11, 0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.06)",
-  },
-  chipActive: { backgroundColor: C.primary, borderColor: C.primary },
-  chipText: { fontSize: 13, fontWeight: "700", color: C.secondary },
-  chipTextActive: { color: C.white },
-
   // Header
-  headerSection: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
-  headerTitle: { fontSize: 30, fontWeight: "900", color: C.primary, letterSpacing: -0.8 },
-  headerSub: { fontSize: 14, fontWeight: "500", color: C.secondary, marginTop: 4 },
-
-  // ── Safety Alert ──
-  alertWrapper: { paddingHorizontal: 20, marginBottom: 24 },
-  alertBanner: { padding: 16, borderRadius: 18, flexDirection: "row", alignItems: "center", gap: 14, elevation: 4, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-  alertIconBg: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
-  alertTitle: { fontSize: 16, fontWeight: "800", color: "#FFF", marginBottom: 4 },
-  alertDesc: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.9)", lineHeight: 18 },
-
-  // ── Near Me ──
-  nearMeSection: { paddingHorizontal: 20, marginBottom: 24, gap: 14 },
-  nearMeGrid: { flexDirection: "row", gap: 12 },
-  nearMeCard: { flex: 1, backgroundColor: C.white, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: "rgba(33, 16, 11, 0.05)", elevation: 1, gap: 10 },
-  nearMeIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: "center", alignItems: "center", marginBottom: 4 },
-  nearMeLabel: { fontSize: 10, fontWeight: "800", color: C.secondary, textTransform: "uppercase", letterSpacing: 0.5 },
-  nearMeName: { fontSize: 13, fontWeight: "700", color: C.textPrimary, marginBottom: 2 },
-  nearMeDist: { fontSize: 11, fontWeight: "600", color: C.primary },
-
-  // Section
-  section: { marginTop: 28 },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  header: {
     paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingTop: Platform.OS === "ios" ? 64 : 48,
+    paddingBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: C.primary,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "500",
+    color: C.textPrimary,
     letterSpacing: -0.5,
-    paddingHorizontal: 20,
-    marginBottom: 16,
   },
-  seeAll: { fontSize: 14, fontWeight: "700", color: C.accent },
-
-  // No Results
-  noResults: { alignItems: "center", paddingVertical: 50, gap: 10 },
-  noResultsTitle: { fontSize: 18, fontWeight: "800", color: C.primary },
-  noResultsSub: { fontSize: 14, fontWeight: "500", color: C.secondary, textAlign: "center" },
-
-  // Category Grid
-  gridContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 16,
-    gap: 10,
-    justifyContent: "center",
-  },
-  gridCard: {
-    width: (SCREEN_WIDTH - 52) / 3,
-    aspectRatio: 1,
-    backgroundColor: C.white,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.06)",
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
-    gap: 6,
-  },
-  gridCardActive: {
-    backgroundColor: "rgba(33, 16, 11, 0.06)",
-    borderColor: C.primary,
-    borderWidth: 2,
-  },
-  gridEmoji: { fontSize: 28 },
-  gridLabel: { fontSize: 11, fontWeight: "700", color: C.textPrimary, textAlign: "center" },
-  gridLabelActive: { color: C.primary, fontWeight: "800" },
-
-  // Attraction Card
-  attractionCard: {
-    marginRight: 16,
-    backgroundColor: C.white,
-    borderRadius: 22,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.05)",
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  attractionImageWrap: { height: 160, position: "relative" },
-  attractionImage: { width: "100%", height: "100%" },
-  heartBtn: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  safetyBadge: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
+  headerSubRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    marginTop: 4,
   },
-  safetyText: { fontSize: 11, fontWeight: "800" },
-  attractionInfo: { padding: 14, gap: 8 },
-  attractionName: { fontSize: 17, fontWeight: "800", color: C.textPrimary, letterSpacing: -0.3 },
-  attractionMeta: { gap: 4 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  metaText: { fontSize: 12, fontWeight: "600", color: C.secondary, flex: 1 },
-  metaLabel: { fontSize: 12, fontWeight: "700", color: C.accent },
-  attractionActions: { flexDirection: "row", gap: 8, marginTop: 4 },
-  actionBtn: {
+  headerSub: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: C.textSecondary,
+  },
+
+  // Search
+  searchRow: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 16,
+  },
+  searchBar: {
     flex: 1,
-    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 48,
+    gap: 10,
+    borderWidth: 0.5,
+    borderColor: C.border,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "400",
+    color: C.textPrimary,
+  },
+  filterBtn: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
     backgroundColor: C.primary,
+    justifyContent: "center",
     alignItems: "center",
   },
-  actionBtnOutline: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: "rgba(33, 16, 11, 0.12)",
-  },
-  actionBtnText: { fontSize: 12, fontWeight: "800", color: C.white },
-  actionBtnTextOutline: { color: C.primary },
 
-  // Food Card
-  foodCard: {
-    marginRight: 14,
-    backgroundColor: C.white,
+  // Chips
+  chipContainer: { marginBottom: 20 },
+  chipScroll: { paddingHorizontal: 20, gap: 8 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
-    overflow: "hidden",
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.05)",
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: C.border,
   },
-  foodImageWrap: { height: 120, position: "relative" },
-  foodImage: { width: "100%", height: "100%" },
-  foodInfo: { padding: 12, gap: 4 },
-  foodName: { fontSize: 15, fontWeight: "800", color: C.textPrimary },
-  foodArea: { fontSize: 12, fontWeight: "600", color: C.secondary },
-  foodTags: { flexDirection: "row", gap: 6, alignItems: "center", marginTop: 4 },
-  foodTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  foodTagText: { fontSize: 10, fontWeight: "800" },
-  foodCuisine: { fontSize: 11, fontWeight: "700", color: C.secondary },
-  foodBottom: {
+  chipActive: {
+    backgroundColor: C.primary,
+    borderColor: C.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: C.textSecondary,
+  },
+  chipTextActive: {
+    color: C.white,
+  },
+
+  // Map Card
+  mapCard: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 0.5,
+    borderColor: C.cardBorder,
+    backgroundColor: C.surface,
+  },
+  mapCardInner: {
+    height: 140,
+    position: "relative",
+  },
+  mapPlaceholder: {
+    flex: 1,
+    backgroundColor: C.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  mapPlaceholderText: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: C.primary,
+  },
+  mapCardOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderTopWidth: 0.5,
+    borderTopColor: C.border,
   },
-  foodCost: { fontSize: 13, fontWeight: "800", color: C.primary },
-  foodDist: { fontSize: 11, fontWeight: "600", color: C.secondary },
-  hygieneBadge: {
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  mapCardLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  mapCardLabelText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: C.textPrimary,
+  },
+  mapExpandBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: C.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
-    alignSelf: "flex-start",
+  },
+  mapExpandText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: C.primary,
+  },
+
+  // Error
+  errorCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 14,
+    padding: 20,
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 0.5,
+    borderColor: "#FECACA",
+  },
+  errorText: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: "#991B1B",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#DC2626",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
     marginTop: 4,
   },
-  hygieneBadgeText: { fontSize: 10, fontWeight: "700", color: C.success },
+  retryText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: C.white,
+  },
 
-  // Metro
-  metroContainer: { paddingHorizontal: 20, gap: 14 },
-  metroCard: {
-    backgroundColor: C.white,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.05)",
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    gap: 12,
-  },
-  metroCardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
-  metroLineBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    justifyContent: "center",
+  // Loading
+  loadingContainer: {
     alignItems: "center",
+    paddingVertical: 60,
+    gap: 14,
   },
-  metroCardInfo: { flex: 1 },
-  metroStationName: { fontSize: 16, fontWeight: "800", color: C.textPrimary },
-  metroLineText: { fontSize: 12, fontWeight: "600", color: C.secondary },
-  metroCardMeta: { gap: 4 },
-  metroDirectionsBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: C.primary,
-    paddingVertical: 12,
-    borderRadius: 14,
+  loadingText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: C.textSecondary,
   },
-  metroDirText: { fontSize: 14, fontWeight: "800", color: C.white },
 
-  routeFinderBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "rgba(33, 16, 11, 0.03)",
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.06)",
+  // Section
+  section: {
+    marginBottom: 24,
   },
-  routeFinderText: { flex: 1, fontSize: 14, fontWeight: "700", color: C.primary },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: C.textTertiary,
+    letterSpacing: 1,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
 
-  // Saved
-  savedEmpty: {
-    alignItems: "center",
-    paddingVertical: 32,
-    paddingHorizontal: 40,
-    gap: 10,
-  },
-  savedEmptyText: { fontSize: 14, fontWeight: "600", color: C.secondary, textAlign: "center" },
-  savedCard: {
-    width: 120,
-    marginRight: 12,
+  // Trending Cards
+  trendingScroll: { paddingHorizontal: 20, gap: 12 },
+  trendingCard: {
+    width: TRENDING_CARD_WIDTH,
+    backgroundColor: C.surface,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: C.white,
-    borderWidth: 1,
-    borderColor: "rgba(33, 16, 11, 0.05)",
+    borderWidth: 0.5,
+    borderColor: C.cardBorder,
   },
-  savedCardImage: { width: "100%", height: 80 },
-  savedCardName: { fontSize: 12, fontWeight: "700", color: C.textPrimary, padding: 8, paddingBottom: 2 },
-  savedCardType: { fontSize: 10, fontWeight: "600", color: C.secondary, paddingHorizontal: 8, paddingBottom: 8 },
+  trendingCardTop: {
+    height: 90,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  trendingBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  trendingBadgeText: {
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  trendingCardBottom: {
+    padding: 12,
+    gap: 6,
+  },
+  trendingName: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: C.textPrimary,
+  },
+  trendingMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  trendingMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  trendingRating: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: C.textSecondary,
+  },
+  trendingDist: {
+    fontSize: 11,
+    fontWeight: "400",
+    color: C.textTertiary,
+  },
+
+  // All Places Header
+  allPlacesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  placesCount: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: C.textTertiary,
+  },
+
+  // Empty State
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 40,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: C.textPrimary,
+    textAlign: "center",
+  },
+  emptySub: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: C.textSecondary,
+    textAlign: "center",
+  },
+
+  // Place Row
+  placeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+  },
+  placeIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  placeName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: C.textPrimary,
+  },
+  placeSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  placeType: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: C.textSecondary,
+  },
+  openBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  openText: {
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  placeRight: {
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  placeDistance: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: C.textSecondary,
+  },
+  placeSafetyPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  placeSafetyText: {
+    fontSize: 10,
+    fontWeight: "500",
+  },
 });
