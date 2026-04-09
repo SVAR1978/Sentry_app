@@ -75,6 +75,7 @@ interface FamilyContact {
   id: string;
   name: string;
   phone: string;
+  email: string;
   relationship: string;
 }
 
@@ -133,6 +134,7 @@ export default function EmergencyScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newContactName, setNewContactName] = useState("");
   const [newContactPhone, setNewContactPhone] = useState("");
+  const [newContactEmail, setNewContactEmail] = useState("");
   const [newContactRelation, setNewContactRelation] = useState("");
 
   // ─── SOS DISPATCH STATE ────────────────────────────
@@ -254,6 +256,7 @@ export default function EmergencyScreen() {
       const contacts = familyContacts.map((c) => ({
         name: c.name,
         phone: c.phone,
+        email: c.email,
         relationship: c.relationship,
       }));
 
@@ -305,6 +308,7 @@ export default function EmergencyScreen() {
           contacts: familyContacts.map((c) => ({
             name: c.name,
             phone: c.phone,
+            email: c.email,
             relationship: c.relationship,
           })),
           userName: user?.name || "Sentry User",
@@ -316,6 +320,7 @@ export default function EmergencyScreen() {
           contacts: familyContacts.map((c) => ({
             name: c.name,
             phone: c.phone,
+            email: c.email,
             relationship: c.relationship,
           })),
           userName: user?.name || "Sentry User",
@@ -425,6 +430,7 @@ export default function EmergencyScreen() {
       id: Date.now().toString(),
       name: newContactName.trim(),
       phone: newContactPhone.trim(),
+      email: newContactEmail.trim(),
       relationship: newContactRelation.trim() || "Contact",
     };
 
@@ -441,6 +447,7 @@ export default function EmergencyScreen() {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setNewContactName("");
     setNewContactPhone("");
+    setNewContactEmail("");
     setNewContactRelation("");
     setShowAddModal(false);
 
@@ -457,6 +464,7 @@ export default function EmergencyScreen() {
   const handleCancelAddContact = () => {
     setNewContactName("");
     setNewContactPhone("");
+    setNewContactEmail("");
     setNewContactRelation("");
     setShowAddModal(false);
   };
@@ -720,6 +728,8 @@ export default function EmergencyScreen() {
         setName={setNewContactName}
         phone={newContactPhone}
         setPhone={setNewContactPhone}
+        email={newContactEmail}
+        setEmail={setNewContactEmail}
         relationship={newContactRelation}
         setRelationship={setNewContactRelation}
         colors={COLORS}

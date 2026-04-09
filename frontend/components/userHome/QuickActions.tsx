@@ -5,7 +5,6 @@ import React, { useCallback, useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  Dimensions,
   Linking,
   StyleSheet,
   TouchableOpacity,

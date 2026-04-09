@@ -3,7 +3,6 @@ import {
   Alert,
   Animated,
   AppState,
-  Dimensions,
   Linking,
   StyleSheet,
   TouchableOpacity,

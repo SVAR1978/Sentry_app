@@ -76,6 +76,4 @@ export default {
           process.env.EXPO_PUBLIC_POLICE_STATION_BOUNDARY_URL,
     },
   },
-  
 };
-console.log("ENV TEST:", process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY);
