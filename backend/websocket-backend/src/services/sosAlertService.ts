@@ -278,11 +278,27 @@ async function notifyContactsByEmail(
   longitude?: number,
   address?: string
 ) {
-  // Also check DB for contacts with email
   try {
+    // Collect unique emails from the incoming payload
+    const emailTargets = new Map<string, string>(); // email -> name
+    
+    // 1. From the SOS payload (frontend localStorage)
+    for (const c of contacts) {
+      if (c.email && c.email.trim() !== "") {
+        emailTargets.set(c.email.trim(), c.name);
+      }
+    }
+
+    // 2. Also check DB for contacts just in case
     const dbContacts = await prisma.emergencyContact.findMany({
       where: { userId },
     });
+    for (const contact of dbContacts) {
+      const contactEmail = (contact as any).email as string | undefined;
+      if (contactEmail && contactEmail.trim() !== "") {
+        emailTargets.set(contactEmail.trim(), contact.name);
+      }
+    }
 
     const mapsLink = latitude && longitude
       ? `https://www.google.com/maps?q=${latitude},${longitude}`
@@ -292,10 +308,7 @@ async function notifyContactsByEmail(
       ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
       : "Location unavailable");
 
-    for (const contact of dbContacts) {
-      const contactEmail = (contact as any).email as string | undefined;
-      if (!contactEmail) continue;
-
+    for (const [contactEmail, contactName] of emailTargets.entries()) {
       try {
         const htmlContent = `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #D93636; color: white; padding: 20px; border-radius: 12px 12px 0 0;">
@@ -324,7 +337,7 @@ async function notifyContactsByEmail(
           },
           { removeOnComplete: true }
         );
-        console.log(`[SOSService] SOS email queued for ${contact.name} (${contactEmail})`);
+        console.log(`[SOSService] SOS email queued for ${contactName} (${contactEmail})`);
       } catch (err) {
         console.error(`[SOSService] Failed to queue email to ${contactEmail}:`, err);
       }
