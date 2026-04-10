@@ -1,0 +1,15 @@
+{
+  "sosBtn": "एसओएस",
+  "sosActive": "सक्रिय है",
+  "familyContacts": "पारिवारिक संपर्क",
+  "addContact": "संपर्क जोड़ें",
+  "dispatching": "मदद भेजी जा रही है...",
+  "shareLocation": "लाइव लोकेशन साझा करें",
+  "safetyTips": "सुरक्षा सुझाव",
+  "callNow": "अभी कॉल करें",
+  "alertActive": "अलर्ट सक्रिय है",
+  "serverDisconnected": "सर्वर डिस्कनेक्ट हो गया",
+  "liveTracking": "लाइव ट्रैकिंग सक्रिय है",
+  "noContacts": "कोई आपातकालीन संपर्क नहीं",
+  "addInstructions": "आपातकालीन संपर्क जोड़ने के लिए + जोड़ें पर टैप करें"
+}

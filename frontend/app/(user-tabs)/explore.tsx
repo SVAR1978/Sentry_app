@@ -377,7 +377,7 @@ export default function ExploreScreen() {
                 onPress={() => handleCategorySelect(cat.key)}
                 activeOpacity={0.7}
               >
-                {React.cloneElement(cat.icon as React.ReactElement, {
+                {React.cloneElement(cat.icon as React.ReactElement<any>, {
                   color: isActive ? C.white : C.textSecondary,
                 })}
                 <Text style={[styles.chipText, isActive && styles.chipTextActive]}>

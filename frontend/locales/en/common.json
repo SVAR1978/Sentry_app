@@ -1,0 +1,14 @@
+{
+  "welcome": "Welcome to Sentry",
+  "settings": "Settings",
+  "loading": "Loading...",
+  "save": "Save",
+  "cancel": "Cancel",
+  "language": "App Language",
+  "home": "Home",
+  "helpCenter": "Help Center",
+  "personalInfo": "Personal Information",
+  "myAddress": "My Address",
+  "myTickets": "My Tickets",
+  "account": "Account"
+}

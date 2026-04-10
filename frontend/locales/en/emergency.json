@@ -1,0 +1,15 @@
+{
+  "sosBtn": "SOS",
+  "sosActive": "ACTIVE",
+  "familyContacts": "Family Contacts",
+  "addContact": "Add Contact",
+  "dispatching": "Dispatching Help...",
+  "shareLocation": "Share Live Location",
+  "safetyTips": "Safety Tips",
+  "callNow": "Call Now",
+  "alertActive": "Alert is active",
+  "serverDisconnected": "Server disconnected",
+  "liveTracking": "Live tracking active",
+  "noContacts": "No Emergency Contacts",
+  "addInstructions": "Tap + Add to create your emergency contacts"
+}
