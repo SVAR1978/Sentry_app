@@ -27,6 +27,7 @@ import {
 import { Avatar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
+import { useTabVisibility } from "../../store/TabVisibilityContext";
 
 // Leveraging design tokens derived from userHomeData.ts
 const COLORS = {
@@ -148,33 +149,55 @@ export default function ProfileScreen() {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
-      
-      {/* Hero Header matching UserHeader.tsx style */}
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryContainer]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}
-      >
-        <View style={styles.headerSpacer} />
+    const { setTabBarVisible } = useTabVisibility();
+    const lastScrollY = React.useRef(0);
 
-        <View style={styles.heroSection}>
-          <Text style={styles.headerTitle}>My Profile</Text>
-        </View>
+    const handleScroll = (event: any) => {
+      const currentScrollY = event.nativeEvent.contentOffset.y;
+      if (currentScrollY <= 0) {
+        setTabBarVisible(true);
+        return;
+      }
+      if (currentScrollY > lastScrollY.current + 10) {
+        setTabBarVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 10) {
+        setTabBarVisible(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
 
-        <View style={styles.profileSection}>
-          <ProfilePhotoPicker user={user} updateUser={updateUser} />
-          <View style={styles.userNameContainer}>
-            <Text style={styles.userName}>{user?.name || "Vilash Kumar"}</Text>
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" translucent backgroundColor="transparent" />
+        
+        {/* Hero Header matching UserHeader.tsx style */}
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primaryContainer]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}
+        >
+          <View style={styles.headerSpacer} />
+
+          <View style={styles.heroSection}>
+            <Text style={styles.headerTitle}>My Profile</Text>
           </View>
-        </View>
-      </LinearGradient>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Account Section */}
+          <View style={styles.profileSection}>
+            <ProfilePhotoPicker user={user} updateUser={updateUser} />
+            <View style={styles.userNameContainer}>
+              <Text style={styles.userName}>{user?.name || "Vilash Kumar"}</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.scrollContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
+          {/* Account Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           {ACCOUNT_ITEMS.map((item) => (

@@ -15,12 +15,35 @@ import {
     QUICK_ACTIONS,
 } from "../../constants/userHomeData";
 import { useAuth } from "../../store/AuthContext";
+import { useTabVisibility } from "../../store/TabVisibilityContext";
 
 export default function UserHomeScreen() {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = React.useState("");
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  
+  const { setTabBarVisible } = useTabVisibility();
+  const lastScrollY = useRef(0);
+
+  const handleScroll = (event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    
+    // Always show at the very top
+    if (currentScrollY <= 0) {
+      setTabBarVisible(true);
+      return;
+    }
+    
+    // Hide on scroll down, show on scroll up
+    if (currentScrollY > lastScrollY.current + 10) {
+      setTabBarVisible(false);
+    } else if (currentScrollY < lastScrollY.current - 10) {
+      setTabBarVisible(true);
+    }
+    
+    lastScrollY.current = currentScrollY;
+  };
 
   React.useEffect(() => {
     if (!user) {
@@ -50,15 +73,15 @@ export default function UserHomeScreen() {
     router.replace("/(auth)/user-login");
   };
 
-
-
   return (
     <View style={styles.container}>
       <StatusBar style="dark" translucent backgroundColor="transparent" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <UserHeader user={user} />
         <Animated.View

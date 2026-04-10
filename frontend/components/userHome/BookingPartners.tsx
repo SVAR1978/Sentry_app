@@ -3,7 +3,6 @@ import {
   Alert,
   Animated,
   AppState,
-  Dimensions,
   Linking,
   StyleSheet,
   TouchableOpacity,
@@ -27,8 +26,6 @@ import {
   fetchRecentlyVisited,
   recordPartnerVisit,
 } from "../../services/api/bookingService";
-
-const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // ============================================================
 // Category Icon Mapping & Brand Colors

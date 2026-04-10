@@ -279,24 +279,8 @@ async function notifyContactsByEmail(
   longitude?: number,
   address?: string
 ) {
-  // Build a unique recipient list from payload + DB contacts.
   try {
-    const dbContacts = await prisma.emergencyContact.findMany({
-      where: { userId },
-    });
-
-    const hasCoordinates = typeof latitude === "number" && typeof longitude === "number";
-    const lat = hasCoordinates ? latitude : null;
-    const lng = hasCoordinates ? longitude : null;
-
-    const mapsLink = lat !== null && lng !== null
-      ? `https://www.google.com/maps?q=${lat},${lng}`
-      : "";
-
-    const locationStr = address || (lat !== null && lng !== null
-      ? `${lat.toFixed(6)}, ${lng.toFixed(6)}`
-      : "Location unavailable");
-
+    // Build a unique recipient list from payload + DB contacts.
     const recipients = new Map<string, { name: string; email: string }>();
 
     for (const contact of contacts) {
@@ -307,6 +291,10 @@ async function notifyContactsByEmail(
         email,
       });
     }
+
+    const dbContacts = await prisma.emergencyContact.findMany({
+      where: { userId },
+    });
 
     for (const contact of dbContacts) {
       const email = ((contact as any).email as string | undefined)?.trim().toLowerCase();
@@ -321,6 +309,18 @@ async function notifyContactsByEmail(
       console.warn(`[SOSService] No emergency contact email found for user ${userId}`);
       return;
     }
+
+    const hasCoordinates = typeof latitude === "number" && typeof longitude === "number";
+    const lat = hasCoordinates ? latitude : null;
+    const lng = hasCoordinates ? longitude : null;
+
+    const mapsLink = lat !== null && lng !== null
+      ? `https://www.google.com/maps?q=${lat},${lng}`
+      : "";
+
+    const locationStr = address || (lat !== null && lng !== null
+      ? `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      : "Location unavailable");
 
     for (const recipient of recipients.values()) {
       const contactEmail = recipient.email;

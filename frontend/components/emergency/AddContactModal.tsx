@@ -18,6 +18,8 @@ interface AddContactModalProps {
   setName: (text: string) => void;
   phone: string;
   setPhone: (text: string) => void;
+  email: string;
+  setEmail: (text: string) => void;
   relationship: string;
   setRelationship: (text: string) => void;
   colors: {
@@ -37,6 +39,8 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
   setName,
   phone,
   setPhone,
+  email,
+  setEmail,
   relationship,
   setRelationship,
   colors,
@@ -77,6 +81,22 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Email Address *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { color: colors.text, backgroundColor: colors.surfaceContainerHigh },
+              ]}
+              placeholder="friend@example.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
               placeholderTextColor={colors.textMuted}
             />
           </View>
