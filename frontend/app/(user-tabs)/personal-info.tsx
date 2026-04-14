@@ -14,11 +14,11 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useAuth } from "../../store/AuthContext";
-import { 
-  User as UserIcon, 
-  Mail, 
-  Phone, 
-  Shield, 
+import {
+  User as UserIcon,
+  Mail,
+  Phone,
+  Shield,
   ChevronLeft,
   Save,
   Camera
@@ -75,7 +75,7 @@ export default function PersonalInfoScreen() {
         phone: formData.phone,
         avatar: formData.avatar,
       });
-      
+
       Alert.alert("Success", "Profile updated successfully");
       router.back();
     } catch (error) {
@@ -106,12 +106,12 @@ export default function PersonalInfoScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <StatusBar style="light" />
-      
+
       {/* Premium Header */}
       <LinearGradient
         colors={[COLORS.primary, COLORS.primaryContainer]}
@@ -120,8 +120,8 @@ export default function PersonalInfoScreen() {
         style={styles.header}
       >
         <View style={styles.headerTop}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
+          <TouchableOpacity
+            onPress={() => router.back()}
             style={styles.backButton}
           >
             <ChevronLeft color={COLORS.white} size={28} />
@@ -134,15 +134,15 @@ export default function PersonalInfoScreen() {
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarBorder}>
               {formData.avatar ? (
-                <Avatar.Image 
-                  size={100} 
-                  source={{ uri: formData.avatar }} 
+                <Avatar.Image
+                  size={100}
+                  source={{ uri: formData.avatar }}
                   style={styles.avatar}
                 />
               ) : (
-                <Avatar.Text 
-                  size={100} 
-                  label={formData.name.charAt(0).toUpperCase() || "U"} 
+                <Avatar.Text
+                  size={100}
+                  label={formData.name.charAt(0).toUpperCase() || "U"}
                   style={[styles.avatar, { backgroundColor: "rgba(255,255,255,0.1)" }]}
                   color={COLORS.white}
                 />
@@ -155,13 +155,13 @@ export default function PersonalInfoScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.formSection}>
           <Text style={styles.sectionLabel}>ACCOUNT DETAILS</Text>
-          
+
           {/* Name Input */}
           <View style={styles.inputContainer}>
             <View style={styles.inputIcon}>
@@ -230,8 +230,8 @@ export default function PersonalInfoScreen() {
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.saveButton} 
+        <TouchableOpacity
+          style={styles.saveButton}
           onPress={handleUpdate}
           disabled={loading}
         >

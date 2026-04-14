@@ -11,8 +11,11 @@ import {
   Animated,
   RefreshControl,
   ActivityIndicator,
+  Image,
+  Modal,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useTabVisibility } from "../../store/TabVisibilityContext";
@@ -97,6 +100,48 @@ const CATEGORIES: CategoryChip[] = [
   { key: "religious", label: "Religious", icon: <Church size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["tourism", "attraction"] },
 ];
 
+// ── Realistic Place Images Dictionary ───────────────────────
+const PLACE_IMAGES: Record<string, string[]> = {
+  restaurant: [
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=400&q=80"
+  ],
+  monument: [
+    "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=400&q=80"
+  ],
+  park: [
+    "https://images.unsplash.com/photo-1585938389612-a552a28d6914?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80"
+  ],
+  religious: [
+    "https://images.unsplash.com/photo-1561359313-0639aad49ca6?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1600080649740-42be63afbc00?auto=format&fit=crop&w=400&q=80"
+  ],
+  shopping: [
+    "https://images.unsplash.com/photo-1519567281023-eb1c60b73c24?auto=format&fit=crop&w=400&q=80"
+  ],
+  default: [
+    "https://images.unsplash.com/photo-1480796927426-f609979314bd?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=400&q=80",
+  ]
+};
+
+const getPlaceImage = (type: string, id: string) => {
+  const t = type.toLowerCase();
+  let categoryImages = PLACE_IMAGES.default;
+  if (t.includes("restaurant") || t.includes("cafe") || t.includes("food")) categoryImages = PLACE_IMAGES.restaurant;
+  else if (t.includes("park") || t.includes("garden")) categoryImages = PLACE_IMAGES.park;
+  else if (t.includes("monument") || t.includes("attraction") || t.includes("tourism") || t.includes("museum")) categoryImages = PLACE_IMAGES.monument;
+  else if (t.includes("temple") || t.includes("church") || t.includes("mosque")) categoryImages = PLACE_IMAGES.religious;
+  else if (t.includes("shop") || t.includes("mall") || t.includes("market")) categoryImages = PLACE_IMAGES.shopping;
+  
+  const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return categoryImages[hash % categoryImages.length];
+};
+
 // ── Place Type Configs ──────────────────────────────────────
 const getPlaceTypeConfig = (t: any) => ({
   tourism: { bg: "#EDE9FE", label: t('monument') },
@@ -167,6 +212,44 @@ interface PlaceWithDist extends SearchResult {
   distanceValue: number;
 }
 
+const DynamicPlaceImage = ({ place, style, resizeMode }: { place: PlaceWithDist, style: any, resizeMode: any }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRealImage = async () => {
+      const tStr = (place.type + place.category).toLowerCase();
+      const isFamousType = tStr.includes("monument") || tStr.includes("tourism") || tStr.includes("attraction") || tStr.includes("museum") || tStr.includes("temple") || tStr.includes("mosque") || tStr.includes("park") || tStr.includes("mall");
+      
+      if (isFamousType && place.name && place.name.length > 2) {
+        try {
+          const cleanName = place.name.split(',')[0].trim();
+          const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cleanName)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.thumbnail?.source && isMounted) {
+               setImageUrl(data.thumbnail.source);
+               return;
+            }
+          }
+        } catch(e) {} // ignore fails silently
+      }
+      
+      // Fallback instantly if no real image is found online
+      if (isMounted) setImageUrl(getPlaceImage(place.type, place.id));
+    };
+
+    fetchRealImage();
+    return () => { isMounted = false; };
+  }, [place.name, place.id, place.type]);
+
+  if (!imageUrl) {
+    return <View style={[style, { backgroundColor: '#E0F2FE' }]} />;
+  }
+
+  return <Image source={{ uri: imageUrl }} style={style} resizeMode={resizeMode} />;
+};
+
 // ============================================================
 // Main Explore Screen
 // ============================================================
@@ -180,6 +263,8 @@ export default function ExploreScreen() {
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [sortOption, setSortOption] = useState<'distance' | 'safety' | 'atoz'>('distance');
 
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -264,16 +349,34 @@ export default function ExploreScreen() {
   }, []);
 
   const filteredPlaces = useMemo(() => {
-    if (!searchQuery.trim()) return places;
-    const q = searchQuery.toLowerCase();
-    return places.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.displayName.toLowerCase().includes(q) ||
-        p.type.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-    );
-  }, [searchQuery, places]);
+    let result = places;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.displayName.toLowerCase().includes(q) ||
+          p.type.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+      );
+    }
+    
+    return result.sort((a, b) => {
+      if (sortOption === 'distance') return a.distanceValue - b.distanceValue;
+      if (sortOption === 'atoz') return a.name.localeCompare(b.name);
+      if (sortOption === 'safety') {
+        const getSafetyScore = (p: PlaceWithDist) => {
+          const badge = getSafetyBadge(p.type, p.category, t);
+          return badge.label === t('safe') ? 1 : 0;
+        };
+        const sA = getSafetyScore(a);
+        const sB = getSafetyScore(b);
+        if (sA === sB) return a.distanceValue - b.distanceValue; // fallback to distance if equal
+        return sB - sA; // Safe (1) comes before Busy (0)
+      }
+      return 0;
+    });
+  }, [searchQuery, places, sortOption, t]);
 
   const filteredTrending = useMemo(() => {
     if (!searchQuery.trim()) return trendingPlaces;
@@ -359,7 +462,7 @@ export default function ExploreScreen() {
               </TouchableOpacity>
             )}
           </View>
-          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8} onPress={() => setIsFilterVisible(true)}>
             <SlidersHorizontal size={18} color={C.white} strokeWidth={2} />
           </TouchableOpacity>
         </View>
@@ -459,9 +562,14 @@ export default function ExploreScreen() {
                     activeOpacity={0.85}
                     onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type } } as any)}
                   >
-                    {/* Top colored area */}
-                    <View style={[styles.trendingCardTop, { backgroundColor: bgColor }]}>
-                      {getPlaceIcon(place.type, place.category, 28, C.primary)}
+                    {/* Top image area */}
+                    <View style={styles.trendingCardTop}>
+                      <DynamicPlaceImage 
+                        place={place}
+                        style={styles.trendingImage} 
+                        resizeMode="cover" 
+                      />
+                      <View style={[styles.trendingImageGradient, { backgroundColor: 'rgba(0,0,0,0.4)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }]} />
                       {/* Safety badge */}
                       <View style={[styles.trendingBadge, { backgroundColor: badge.bg }]}>
                         {badge.icon}
@@ -556,6 +664,56 @@ export default function ExploreScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* ── FILTER MODAL ── */}
+      <Modal
+        visible={isFilterVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsFilterVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('filterAndSort', 'Sort & Filter')}</Text>
+              <TouchableOpacity onPress={() => setIsFilterVisible(false)} hitSlop={10}>
+                <X size={20} color={C.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalSectionTitle}>{t('sortBy', 'Sort By')}</Text>
+            
+            <TouchableOpacity 
+              style={[styles.sortOption, sortOption === 'distance' && styles.sortOptionActive]}
+              onPress={() => setSortOption('distance')}
+            >
+              <Navigation size={18} color={sortOption === 'distance' ? C.primary : C.textSecondary} />
+              <Text style={[styles.sortText, sortOption === 'distance' && styles.sortTextActive]}>{t('nearestFirst', 'Nearest First')}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.sortOption, sortOption === 'safety' && styles.sortOptionActive]}
+              onPress={() => setSortOption('safety')}
+            >
+              <ShieldCheck size={18} color={sortOption === 'safety' ? C.primary : C.textSecondary} />
+              <Text style={[styles.sortText, sortOption === 'safety' && styles.sortTextActive]}>{t('safestFirst', 'Safest First')}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.sortOption, sortOption === 'atoz' && styles.sortOptionActive]}
+              onPress={() => setSortOption('atoz')}
+            >
+              <LayoutGrid size={18} color={sortOption === 'atoz' ? C.primary : C.textSecondary} />
+              <Text style={[styles.sortText, sortOption === 'atoz' && styles.sortTextActive]}>{t('alphabetical', 'Alphabetical (A-Z)')}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.applyBtn} onPress={() => setIsFilterVisible(false)}>
+              <Text style={styles.applyBtnText}>{t('apply', 'Apply')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -788,10 +946,21 @@ const styles = StyleSheet.create({
     borderColor: C.cardBorder,
   },
   trendingCardTop: {
-    height: 90,
-    justifyContent: "center",
-    alignItems: "center",
+    height: 100,
+    width: "100%",
     position: "relative",
+  },
+  trendingImage: {
+    width: "100%",
+    height: "100%",
+  },
+  trendingImageGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "100%",
+    opacity: 0.5,
   },
   trendingBadge: {
     position: "absolute",
@@ -799,10 +968,10 @@ const styles = StyleSheet.create({
     right: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 8,
+    gap: 3,
   },
   trendingBadgeText: {
     fontSize: 10,
@@ -940,5 +1109,81 @@ const styles = StyleSheet.create({
   placeSafetyText: {
     fontSize: 10,
     fontWeight: "500",
+  },
+  
+  // Modal 
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: C.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: C.textPrimary,
+  },
+  modalSectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: C.textTertiary,
+    marginBottom: 12,
+    marginTop: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sortOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 10,
+    gap: 12,
+  },
+  sortOptionActive: {
+    borderColor: C.primary,
+    backgroundColor: C.primaryLight,
+  },
+  sortText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: C.textSecondary,
+  },
+  sortTextActive: {
+    color: C.primary,
+    fontWeight: "600",
+  },
+  applyBtn: {
+    backgroundColor: C.primary,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  applyBtnText: {
+    color: C.white,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
