@@ -41,6 +41,7 @@ import { ActivityIndicator, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 import { useSocket } from "../../store/SocketContext";
+import { useTranslation } from "react-i18next";
 import sosService, {
   SOSAlertPayload,
   DeliveryLogEntry,
@@ -81,14 +82,14 @@ interface FamilyContact {
 
 // ─── STATUS BADGE COMPONENT ────────────────────────────
 
-const StatusBadge = ({ status }: { status: AlertStatus }) => {
+const StatusBadge = ({ status, t }: { status: AlertStatus; t: any }) => {
   const map: Record<AlertStatus, { color: string; label: string }> = {
-    PENDING: { color: COLORS.warning, label: "PENDING" },
-    SENDING: { color: COLORS.warning, label: "SENDING" },
-    SENT: { color: COLORS.success, label: "DISPATCHED" },
-    FAILED: { color: COLORS.error, label: "FAILED" },
-    ACKNOWLEDGED: { color: COLORS.success, label: "ACKNOWLEDGED" },
-    RESOLVED: { color: COLORS.secondary, label: "RESOLVED" },
+    PENDING: { color: COLORS.warning, label: t('pending') },
+    SENDING: { color: COLORS.warning, label: t('sending') },
+    SENT: { color: COLORS.success, label: t('dispatched') },
+    FAILED: { color: COLORS.error, label: t('failed') },
+    ACKNOWLEDGED: { color: COLORS.success, label: t('acknowledged') },
+    RESOLVED: { color: COLORS.secondary, label: t('resolved') },
   };
   const { color, label } = map[status] || map.PENDING;
 
@@ -136,6 +137,7 @@ export default function EmergencyScreen() {
   const [newContactPhone, setNewContactPhone] = useState("");
   const [newContactEmail, setNewContactEmail] = useState("");
   const [newContactRelation, setNewContactRelation] = useState("");
+  const { t } = useTranslation('emergency');
 
   // ─── SOS DISPATCH STATE ────────────────────────────
   const [showDispatchModal, setShowDispatchModal] = useState(false);
@@ -623,7 +625,7 @@ export default function EmergencyScreen() {
                   style={styles.sosGradient}
                 >
                   <AlertTriangle size={56} color={COLORS.white} />
-                  <Text style={styles.sosText}>{sosActive ? "ACTIVE" : "SOS"}</Text>
+                  <Text style={styles.sosText}>{sosActive ? t('sosActive') : t('sosBtn')}</Text>
                 </LinearGradient>
               </View>
             </TouchableOpacity>
@@ -631,7 +633,7 @@ export default function EmergencyScreen() {
           {sosActive && (
             <View style={styles.activeIndicator}>
               <Radio size={14} color={COLORS.error} />
-              <Text style={styles.activeIndicatorText}>Alert is active</Text>
+              <Text style={styles.activeIndicatorText}>{t('alertActive')}</Text>
             </View>
           )}
           {/* WebSocket Connection Status */}
@@ -642,7 +644,7 @@ export default function EmergencyScreen() {
               <WifiOff size={14} color={COLORS.error} />
             )}
             <Text style={[styles.activeIndicatorText, { color: wsConnected ? COLORS.success : COLORS.error }]}>
-              {wsConnected ? "Live tracking active" : "Server disconnected"}
+              {wsConnected ? t('liveTracking') : t('serverDisconnected')}
             </Text>
           </View>
         </View>
@@ -650,10 +652,10 @@ export default function EmergencyScreen() {
         {/* Family Contacts */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Family Contacts</Text>
+            <Text style={styles.sectionTitle}>{t('familyContacts')}</Text>
             <TouchableOpacity style={styles.addBtn} onPress={handleAddFamilyContact}>
               <Plus size={16} color={COLORS.primary} strokeWidth={3} />
-              <Text style={styles.addText}>Add</Text>
+              <Text style={styles.addText}>{t('addContact')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -662,9 +664,9 @@ export default function EmergencyScreen() {
               <View style={styles.emptyIconBg}>
                 <User size={28} color={COLORS.textMuted} />
               </View>
-              <Text style={styles.emptyTitle}>No Emergency Contacts</Text>
+              <Text style={styles.emptyTitle}>{t('noContacts')}</Text>
               <Text style={styles.emptySubtitle}>
-                Tap + Add to create your emergency contacts
+                {t('addInstructions')}
               </Text>
             </View>
           ) : (
@@ -713,7 +715,7 @@ export default function EmergencyScreen() {
               <Share2 size={20} color={COLORS.white} />
             )}
             <Text style={styles.shareButtonText}>
-              {isSharingLocation ? "Fetching Location..." : "Share Live Location"}
+              {isSharingLocation ? t('loading') : t('shareLocation')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -766,7 +768,7 @@ export default function EmergencyScreen() {
                 <Text style={dispatchStyles.headerSubtitle}>Real-time Emergency Routing</Text>
               </View>
               <View style={dispatchStyles.headerRight}>
-                {alertPayload && <StatusBadge status={alertPayload.status} />}
+                {alertPayload && <StatusBadge status={alertPayload.status} t={t} />}
               </View>
             </View>
 

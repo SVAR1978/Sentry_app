@@ -17,6 +17,7 @@ import {
 import { ActivityIndicator } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ROLES, UserRole } from "../../types/rbac";
+import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -43,6 +44,7 @@ export default function RoleSelectionScreen({
   const insets = useSafeAreaInsets();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation('auth');
 
   // Entrance Animations
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -142,7 +144,7 @@ export default function RoleSelectionScreen({
             </View>
 
             <Text style={styles.headline}>Sentry</Text>
-            <Text style={styles.subheadline}>Choose your access level to enter your secure workspace.</Text>
+            <Text style={styles.subheadline}>{t('chooseAccessLevel')}</Text>
           </Animated.View>
 
           {/* Roles List (Stacked Massive Cards) */}
@@ -181,7 +183,7 @@ export default function RoleSelectionScreen({
                         <View style={styles.roleTextContainer}>
                           <Text style={[styles.roleTitle, isSelected && styles.roleTitleActive]}>{role.displayName}</Text>
                           <Text style={styles.roleDesc}>
-                            {role.id === "admin" ? "Administrative controls & oversight" : "Standard secure access"}
+                            {role.id === "admin" ? t('adminControls') : t('standardAccess')}
                           </Text>
                         </View>
 
@@ -211,7 +213,7 @@ export default function RoleSelectionScreen({
             ) : (
               <View style={styles.buttonContent}>
                 <Text style={styles.buttonText}>
-                  {selectedRole ? `Continue as ${selectedRole.displayName}` : "Select Role"}
+                  {selectedRole ? t('continueAs', { role: selectedRole.displayName }) : t('selectRole')}
                 </Text>
               </View>
             )}

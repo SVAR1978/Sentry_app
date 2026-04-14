@@ -12,9 +12,9 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
-import { Text } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useTabVisibility } from "../../store/TabVisibilityContext";
 import * as Location from "expo-location";
 import {
@@ -46,6 +46,7 @@ import {
   searchNearbyPlaces,
   type SearchResult,
 } from "../../services/maps/placesService";
+import { Text } from "react-native-paper";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -97,19 +98,19 @@ const CATEGORIES: CategoryChip[] = [
 ];
 
 // ── Place Type Configs ──────────────────────────────────────
-const PLACE_TYPE_CONFIG: Record<string, { bg: string; label: string }> = {
-  tourism: { bg: "#EDE9FE", label: "Monument" },
-  attraction: { bg: "#EDE9FE", label: "Attraction" },
-  monument: { bg: "#FEF3C7", label: "Monument" },
-  museum: { bg: "#DBEAFE", label: "Museum" },
-  restaurant: { bg: "#FEE2E2", label: "Food" },
-  cafe: { bg: "#FEE2E2", label: "Cafe" },
-  fast_food: { bg: "#FEE2E2", label: "Fast Food" },
-  hotel: { bg: "#E0F2FE", label: "Hotel" },
-  guest_house: { bg: "#E0F2FE", label: "Stay" },
-  park: { bg: "#D1FAE5", label: "Park" },
-  place: { bg: "#F3F4F6", label: "Place" },
-};
+const getPlaceTypeConfig = (t: any) => ({
+  tourism: { bg: "#EDE9FE", label: t('monument') },
+  attraction: { bg: "#EDE9FE", label: t('attraction') },
+  monument: { bg: "#FEF3C7", label: t('monument') },
+  museum: { bg: "#DBEAFE", label: t('museum') },
+  restaurant: { bg: "#FEE2E2", label: t('food') },
+  cafe: { bg: "#FEE2E2", label: t('cafe') },
+  fast_food: { bg: "#FEE2E2", label: t('fastFood') },
+  hotel: { bg: "#E0F2FE", label: t('hotel') },
+  guest_house: { bg: "#E0F2FE", label: t('stay') },
+  park: { bg: "#D1FAE5", label: t('park') },
+  place: { bg: "#F3F4F6", label: t('place') },
+});
 
 // ── Helper: Icon for place type ──────────────────────────────
 const getPlaceIcon = (type: string, category: string, size: number = 20, color: string = C.primary) => {
@@ -130,22 +131,22 @@ const getPlaceIcon = (type: string, category: string, size: number = 20, color: 
 };
 
 // ── Helper: Safety Badge logic ──────────────────────────────
-const getSafetyBadge = (type: string, category: string): { label: string; bg: string; color: string; icon: React.ReactNode } => {
-  const t = (type + category).toLowerCase();
+const getSafetyBadge = (type: string, category: string, t: any): { label: string; bg: string; color: string; icon: React.ReactNode } => {
+  const tStr = (type + category).toLowerCase();
   // "Busy" categories: food, market, popular tourist spots
   const busyTypes = ["restaurant", "cafe", "fast_food", "market", "mall", "shop", "attraction"];
-  const isBusyType = busyTypes.some(bt => t.includes(bt));
+  const isBusyType = busyTypes.some(bt => tStr.includes(bt));
 
   if (isBusyType) {
     return {
-      label: "Busy",
+      label: t('busy'),
       bg: C.busyBg,
       color: C.busyText,
       icon: <Zap size={12} color={C.busyText} strokeWidth={2.5} />,
     };
   }
   return {
-    label: "Safe",
+    label: t('safe'),
     bg: C.safeBg,
     color: C.safeText,
     icon: <ShieldCheck size={12} color={C.safeText} strokeWidth={2.5} />,
@@ -185,6 +186,7 @@ export default function ExploreScreen() {
   const { setTabBarVisible } = useTabVisibility();
   const lastScrollY = useRef(0);
   const headerOpacity = useRef(new Animated.Value(0)).current;
+  const { t } = useTranslation('common');
 
   // ── Mount: get location & fetch places ──
   useEffect(() => {
@@ -204,7 +206,7 @@ export default function ExploreScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setError("Location permission denied. Please enable it to see nearby places.");
+        setError(t('locationDenied'));
         setIsLoading(false);
         return;
       }
@@ -243,7 +245,7 @@ export default function ExploreScreen() {
       setPlaces(withDist);
     } catch (err) {
       console.warn("[Explore] Failed to fetch places:", err);
-      setError("Unable to load places. Check your connection.");
+      setError(t('unableLoadPlaces'));
     } finally {
       setIsLoading(false);
     }
@@ -291,11 +293,12 @@ export default function ExploreScreen() {
 
   // ── Get place type config ──
   const getTypeConfig = (type: string, category: string) => {
-    const t = (type + category).toLowerCase();
-    for (const [key, val] of Object.entries(PLACE_TYPE_CONFIG)) {
-      if (t.includes(key)) return val;
+    const tStr = (type + category).toLowerCase();
+    const config = getPlaceTypeConfig(t);
+    for (const [key, val] of Object.entries(config)) {
+      if (tStr.includes(key)) return val;
     }
-    return PLACE_TYPE_CONFIG.place;
+    return config.place;
   };
 
   // ── Retry handler ──
@@ -330,7 +333,7 @@ export default function ExploreScreen() {
         {/* ── HEADER ── */}
         <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
           <View>
-            <Text style={styles.headerTitle}>Explore Delhi</Text>
+            <Text style={styles.headerTitle}>{t('exploreTitle')} Delhi</Text>
             <View style={styles.headerSubRow}>
               <MapPin size={13} color={C.textSecondary} strokeWidth={2} />
               <Text style={styles.headerSub}>New Delhi, India</Text>
@@ -344,7 +347,7 @@ export default function ExploreScreen() {
             <Search size={18} color={C.textTertiary} strokeWidth={2} />
             <RNTextInput
               style={styles.searchInput}
-              placeholder="Search places, monuments..."
+              placeholder={t('searchPlaces')}
               placeholderTextColor={C.textTertiary}
               value={searchQuery}
               onChangeText={handleSearch}
@@ -381,7 +384,7 @@ export default function ExploreScreen() {
                   color: isActive ? C.white : C.textSecondary,
                 })}
                 <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-                  {cat.label}
+                  {t(cat.key === 'monument' ? 'monuments' : cat.key === 'park' ? 'parks' : cat.key)}
                 </Text>
               </TouchableOpacity>
             );
@@ -397,18 +400,18 @@ export default function ExploreScreen() {
           <View style={styles.mapCardInner}>
             <View style={styles.mapPlaceholder}>
               <Map size={36} color={C.primary} strokeWidth={1.5} />
-              <Text style={styles.mapPlaceholderText}>Tap to open interactive map</Text>
+              <Text style={styles.mapPlaceholderText}>{t('tapOpenMap')}</Text>
             </View>
             <View style={styles.mapCardOverlay}>
               <View style={styles.mapCardLabel}>
                 <Compass size={14} color={C.primary} strokeWidth={2} />
-                <Text style={styles.mapCardLabelText}>Live Map View</Text>
+                <Text style={styles.mapCardLabelText}>{t('liveMapView')}</Text>
               </View>
               <TouchableOpacity
                 style={styles.mapExpandBtn}
                 onPress={() => router.push("/(user-tabs)/map" as any)}
               >
-                <Text style={styles.mapExpandText}>Expand</Text>
+                <Text style={styles.mapExpandText}>{t('expand')}</Text>
                 <Maximize2 size={13} color={C.primary} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
@@ -422,7 +425,7 @@ export default function ExploreScreen() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
               <RefreshCw size={14} color={C.white} strokeWidth={2.5} />
-              <Text style={styles.retryText}>Retry</Text>
+              <Text style={styles.retryText}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -431,14 +434,14 @@ export default function ExploreScreen() {
         {isLoading && !error && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={C.primary} />
-            <Text style={styles.loadingText}>Finding places near you...</Text>
+            <Text style={styles.loadingText}>{t('findingPlaces')}</Text>
           </View>
         )}
 
         {/* ── TRENDING NEARBY ── */}
         {!isLoading && !error && filteredTrending.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>TRENDING NEARBY</Text>
+            <Text style={styles.sectionLabel}>{t('trendingNearby')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -447,7 +450,7 @@ export default function ExploreScreen() {
               snapToInterval={TRENDING_CARD_WIDTH + 12}
             >
               {filteredTrending.map((place, idx) => {
-                const badge = getSafetyBadge(place.type, place.category);
+                const badge = getSafetyBadge(place.type, place.category, t);
                 const bgColor = CARD_BG_COLORS[idx % CARD_BG_COLORS.length];
                 return (
                   <TouchableOpacity
@@ -490,22 +493,22 @@ export default function ExploreScreen() {
         {!isLoading && !error && (
           <View style={styles.section}>
             <View style={styles.allPlacesHeader}>
-              <Text style={styles.sectionLabel}>ALL PLACES</Text>
-              <Text style={styles.placesCount}>{filteredPlaces.length} found</Text>
+              <Text style={styles.sectionLabel}>{t('allPlaces')}</Text>
+              <Text style={styles.placesCount}>{filteredPlaces.length} {t('found')}</Text>
             </View>
 
             {filteredPlaces.length === 0 && (
               <View style={styles.emptyState}>
                 <Search size={36} color={C.textTertiary} strokeWidth={1.5} />
                 <Text style={styles.emptyTitle}>
-                  {searchQuery ? `No results for "${searchQuery}"` : "No places found nearby"}
+                  {searchQuery ? t('noResultsFor', { query: searchQuery }) : t('noPlacesFound')}
                 </Text>
-                <Text style={styles.emptySub}>Try a different category or pull to refresh</Text>
+                <Text style={styles.emptySub}>{t('tryDifferentCategory')}</Text>
               </View>
             )}
 
             {filteredPlaces.map((place) => {
-              const badge = getSafetyBadge(place.type, place.category);
+              const badge = getSafetyBadge(place.type, place.category, t);
               const typeConf = getTypeConfig(place.type, place.category);
               // Determine open/closed (simple heuristic: always "Open" during 8am-10pm)
               const hour = new Date().getHours();
@@ -531,7 +534,7 @@ export default function ExploreScreen() {
                       <View style={[styles.openBadge, { backgroundColor: isOpen ? "#D1FAE5" : "#FEE2E2" }]}>
                         <Clock size={9} color={isOpen ? "#059669" : "#DC2626"} strokeWidth={2.5} />
                         <Text style={[styles.openText, { color: isOpen ? "#059669" : "#DC2626" }]}>
-                          {isOpen ? "Open" : "Closed"}
+                          {isOpen ? t('open') : t('closed')}
                         </Text>
                       </View>
                     </View>

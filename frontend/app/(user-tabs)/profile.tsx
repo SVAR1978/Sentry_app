@@ -275,14 +275,15 @@ export default function ProfileScreen() {
 // Dedicated Photo Picker Component
 // ------------------------------------------------------------------
 const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }) => {
+  const { t } = useTranslation('common');
   const pickImage = async () => {
     // 1. Request Media Library Permissions
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          "Permission Required", 
-          "We need camera roll permissions to let you choose a profile picture!"
+          t('permissionRequired'), 
+          t('cameraRollPermission')
         );
         return;
       }
@@ -304,7 +305,7 @@ const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }
       }
     } catch (error) {
       console.error("ImagePicker Error: ", error);
-      Alert.alert("Error", "Something went wrong opening the photo library.");
+      Alert.alert(t('error'), t('photoError'));
     }
   };
 
