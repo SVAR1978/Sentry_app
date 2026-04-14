@@ -14,16 +14,24 @@ export const resources = {
   en: {
     common: enCommon,
     auth: enAuth,
-    emergency: enEmergency
+    emergency: enEmergency,
   },
   hi: {
     common: hiCommon,
     auth: hiAuth,
-    emergency: hiEmergency
+    emergency: hiEmergency,
   },
   as: {
     common: asCommon,
     auth: asAuth,
-    emergency: asEmergency
-  }
+    emergency: asEmergency,
+  },
 };
+
+// Type augmentation for react-i18next
+declare module 'react-i18next' {
+  interface CustomTypeOptions {
+    defaultNS: 'common';
+    resources: (typeof resources)['en'];
+  }
+}
