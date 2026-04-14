@@ -13,6 +13,8 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,6 +22,7 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useTabVisibility } from "../../store/TabVisibilityContext";
 import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Search,
   X,
@@ -44,12 +47,20 @@ import {
   Clock,
   Compass,
   Building2,
+  History,
+  TrendingUp,
+  ArrowUpRight,
+  Loader2,
 } from "lucide-react-native";
 import {
   searchNearbyPlaces,
+  searchPlaces,
   type SearchResult,
 } from "../../services/maps/placesService";
 import { Text } from "react-native-paper";
+
+const RECENT_SEARCHES_KEY = '@sentry_recent_searches';
+const MAX_RECENT_SEARCHES = 8;
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -266,7 +277,14 @@ export default function ExploreScreen() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [sortOption, setSortOption] = useState<'distance' | 'safety' | 'atoz'>('distance');
 
+  // ── Search Engine State ──
+  const [searchResults, setSearchResults] = useState<PlaceWithDist[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<RNTextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
   const { setTabBarVisible } = useTabVisibility();
   const lastScrollY = useRef(0);
@@ -277,7 +295,37 @@ export default function ExploreScreen() {
   useEffect(() => {
     Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }).start();
     getUserLocation();
+    loadRecentSearches();
   }, []);
+
+  // ── Load recent searches from storage ──
+  const loadRecentSearches = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) setRecentSearches(JSON.parse(stored));
+    } catch (e) {
+      console.warn('[Search] Failed to load recent searches');
+    }
+  };
+
+  // ── Save a search term to recents ──
+  const saveRecentSearch = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      if (!trimmed || trimmed.length < 2) return;
+      const updated = [trimmed, ...recentSearches.filter(s => s.toLowerCase() !== trimmed.toLowerCase())].slice(0, MAX_RECENT_SEARCHES);
+      setRecentSearches(updated);
+      await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('[Search] Failed to save recent search');
+    }
+  };
+
+  // ── Clear all recent searches ──
+  const clearRecentSearches = async () => {
+    setRecentSearches([]);
+    await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
+  };
 
   // ── Re-fetch when location or category changes ──
   useEffect(() => {
@@ -343,9 +391,79 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }, []);
 
-  // ── Search filter (local, debounced) ──
+  // ── Search Engine: Debounced API Search ──
   const handleSearch = useCallback((text: string) => {
     setSearchQuery(text);
+    setShowSearchOverlay(true);
+
+    // Cancel previous debounce
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!text.trim() || text.trim().length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    // Debounce: wait 400ms after user stops typing
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const lat = userLocation?.latitude;
+        const lon = userLocation?.longitude;
+        const results = await searchPlaces(text.trim(), lat, lon);
+
+        // Compute distance for each result
+        const withDist: PlaceWithDist[] = results.map((p) => {
+          if (!userLocation) return { ...p, distanceValue: 9999 };
+          const dx = (p.coordinate.latitude - userLocation.latitude) * 111000;
+          const dy = (p.coordinate.longitude - userLocation.longitude) * 111000 * Math.cos((userLocation.latitude * Math.PI) / 180);
+          return { ...p, distanceValue: Math.sqrt(dx * dx + dy * dy) };
+        });
+
+        withDist.sort((a, b) => a.distanceValue - b.distanceValue);
+        setSearchResults(withDist.slice(0, 10));
+      } catch (err) {
+        console.warn('[Search] API search failed:', err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+  }, [userLocation]);
+
+  // ── Handle selecting a search result ──
+  const handleSelectSearchResult = useCallback((place: PlaceWithDist) => {
+    saveRecentSearch(place.name);
+    setSearchQuery('');
+    setShowSearchOverlay(false);
+    setSearchResults([]);
+    searchInputRef.current?.blur();
+    router.push({
+      pathname: '/(user-tabs)/map',
+      params: {
+        lat: place.coordinate.latitude.toString(),
+        lon: place.coordinate.longitude.toString(),
+        name: place.name,
+        filter: place.type,
+      },
+    } as any);
+  }, []);
+
+  // ── Handle selecting a recent search ──
+  const handleSelectRecent = useCallback((query: string) => {
+    setSearchQuery(query);
+    handleSearch(query);
+  }, [handleSearch]);
+
+  // ── Close search overlay ──
+  const closeSearchOverlay = useCallback(() => {
+    setShowSearchOverlay(false);
+    setSearchResults([]);
+    searchInputRef.current?.blur();
   }, []);
 
   const filteredPlaces = useMemo(() => {
@@ -416,11 +534,144 @@ export default function ExploreScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
+
+      {/* ── FIXED TOP: HEADER + SEARCH (outside ScrollView) ── */}
+      <Animated.View style={[styles.fixedTop, { opacity: headerOpacity }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('exploreTitle')} Delhi</Text>
+          <View style={styles.headerSubRow}>
+            <MapPin size={13} color={C.textSecondary} strokeWidth={2} />
+            <Text style={styles.headerSub}>New Delhi, India</Text>
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Search size={18} color={C.textTertiary} strokeWidth={2} />
+            <RNTextInput
+              ref={searchInputRef}
+              style={styles.searchInput}
+              placeholder={t('searchPlaces')}
+              placeholderTextColor={C.textTertiary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              returnKeyType="search"
+              onFocus={() => setShowSearchOverlay(true)}
+              autoCorrect={false}
+              autoCapitalize="none"
+              spellCheck={false}
+              onSubmitEditing={() => {
+                if (searchQuery.trim().length >= 2) saveRecentSearch(searchQuery.trim());
+              }}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => { setSearchQuery(''); setSearchResults([]); setShowSearchOverlay(false); }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={16} color={C.textTertiary} strokeWidth={2} />
+              </TouchableOpacity>
+            )}
+            {isSearching && (
+              <ActivityIndicator size="small" color={C.primary} style={{ marginLeft: 4 }} />
+            )}
+          </View>
+          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8} onPress={() => setIsFilterVisible(true)}>
+            <SlidersHorizontal size={18} color={C.white} strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── SEARCH OVERLAY (absolutely positioned over content) ── */}
+        {showSearchOverlay && (searchQuery.length > 0 || searchResults.length > 0 || recentSearches.length > 0) && (
+          <View style={styles.searchOverlay}>
+            {/* Background dismiss tap area - doesn't dismiss keyboard */}
+            {/* Recent Searches */}
+            {searchQuery.length === 0 && recentSearches.length > 0 && (
+              <View>
+                <View style={styles.searchSectionHeader}>
+                  <View style={styles.searchSectionLeft}>
+                    <History size={14} color={C.textTertiary} strokeWidth={2} />
+                  <Text style={styles.searchSectionTitle}>Recent Searches</Text>
+                </View>
+                <TouchableOpacity onPress={clearRecentSearches}>
+                  <Text style={styles.clearBtn}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+              {recentSearches.map((term, idx) => (
+                <TouchableOpacity
+                  key={`recent-${idx}`}
+                  style={styles.searchSuggestionRow}
+                  onPress={() => handleSelectRecent(term)}
+                >
+                  <History size={16} color={C.textTertiary} strokeWidth={1.5} />
+                  <Text style={styles.suggestionText} numberOfLines={1}>{term}</Text>
+                  <ArrowUpRight size={14} color={C.textTertiary} strokeWidth={2} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Loading */}
+          {isSearching && searchQuery.length >= 2 && (
+            <View style={styles.searchLoadingRow}>
+              <ActivityIndicator size="small" color={C.primary} />
+              <Text style={styles.searchLoadingText}>Searching "{searchQuery}"...</Text>
+            </View>
+          )}
+
+          {/* API Results */}
+          {!isSearching && searchResults.length > 0 && (
+            <View>
+              <View style={styles.searchSectionHeader}>
+                <View style={styles.searchSectionLeft}>
+                  <TrendingUp size={14} color={C.primary} strokeWidth={2} />
+                  <Text style={[styles.searchSectionTitle, { color: C.primary }]}>Results</Text>
+                </View>
+                <Text style={styles.resultCount}>{searchResults.length} found</Text>
+              </View>
+              {searchResults.map((place) => (
+                <TouchableOpacity
+                  key={place.id}
+                  style={styles.searchResultRow}
+                  onPress={() => handleSelectSearchResult(place)}
+                >
+                  <View style={[styles.searchResultIcon, { backgroundColor: getTypeConfig(place.type, place.category).bg }]}>
+                    {getPlaceIcon(place.type, place.category, 16, C.textPrimary)}
+                  </View>
+                  <View style={styles.searchResultInfo}>
+                    <Text style={styles.searchResultName} numberOfLines={1}>{place.name}</Text>
+                    <Text style={styles.searchResultSub} numberOfLines={1}>{place.displayName}</Text>
+                  </View>
+                  <View style={styles.searchResultRight}>
+                    <Text style={styles.searchResultDist}>{formatDist(place.distanceValue)}</Text>
+                    <MapPin size={12} color={C.primary} strokeWidth={2} />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* No Results */}
+          {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+            <View style={styles.noResultsRow}>
+              <Search size={20} color={C.textTertiary} strokeWidth={1.5} />
+              <Text style={styles.noResultsText}>No places found for "{searchQuery}"</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      </Animated.View>
+
+      {/* ── SCROLLABLE CONTENT (starts BELOW the fixed top) ── */}
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="on-drag"
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} colors={[C.primary]} />
@@ -433,41 +684,6 @@ export default function ExploreScreen() {
           lastScrollY.current = y;
         }}
       >
-        {/* ── HEADER ── */}
-        <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
-          <View>
-            <Text style={styles.headerTitle}>{t('exploreTitle')} Delhi</Text>
-            <View style={styles.headerSubRow}>
-              <MapPin size={13} color={C.textSecondary} strokeWidth={2} />
-              <Text style={styles.headerSub}>New Delhi, India</Text>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* ── SEARCH BAR ── */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchBar}>
-            <Search size={18} color={C.textTertiary} strokeWidth={2} />
-            <RNTextInput
-              style={styles.searchInput}
-              placeholder={t('searchPlaces')}
-              placeholderTextColor={C.textTertiary}
-              value={searchQuery}
-              onChangeText={handleSearch}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <X size={16} color={C.textTertiary} strokeWidth={2} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8} onPress={() => setIsFilterVisible(true)}>
-            <SlidersHorizontal size={18} color={C.white} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── CATEGORY CHIPS ── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -724,6 +940,12 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.background },
   scrollContent: { paddingBottom: 0 },
+
+  // Fixed Top Container (header + search bar - outside ScrollView)
+  fixedTop: {
+    backgroundColor: C.background,
+    zIndex: 10,
+  },
 
   // Header
   header: {
@@ -1185,5 +1407,155 @@ const styles = StyleSheet.create({
     color: C.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // Search Focus State
+  searchBarFocused: {
+    borderColor: C.primary,
+    borderWidth: 1.5,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  // Search Overlay (absolute, floats over ScrollView)
+  searchOverlay: {
+    position: "absolute",
+    top: "100%",
+    marginTop: 8,
+    left: 20,
+    right: 20,
+    backgroundColor: C.white,
+    borderRadius: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    shadowColor: C.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 20,
+    maxHeight: 420,
+    overflow: "hidden",
+    zIndex: 100,
+  },
+  searchSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+  },
+  searchSectionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  searchSectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: C.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  clearBtn: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#DC2626",
+  },
+  resultCount: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: C.textTertiary,
+  },
+
+  // Recent Search Row
+  searchSuggestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "400",
+    color: C.textPrimary,
+  },
+
+  // Search Loading
+  searchLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    gap: 10,
+  },
+  searchLoadingText: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: C.textSecondary,
+  },
+
+  // Search Result Row
+  searchResultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+  },
+  searchResultIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  searchResultInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  searchResultName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: C.textPrimary,
+  },
+  searchResultSub: {
+    fontSize: 11,
+    fontWeight: "400",
+    color: C.textTertiary,
+  },
+  searchResultRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  searchResultDist: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: C.primary,
+  },
+
+  // No Results
+  noResultsRow: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+  noResultsText: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: C.textTertiary,
+    textAlign: "center",
   },
 });
