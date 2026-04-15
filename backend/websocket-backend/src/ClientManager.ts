@@ -1,7 +1,6 @@
 import WebSocket from "ws";
 import { prisma } from "./prisma.js";
 import { emailQueue } from "./queues/emailQueue.js";
-import { emailService } from "./services/emailService.js";
 import { geminiService } from "./services/geminiService.js";
 import { RiskZoneService } from "./services/riskZoneService.js";
 import {
@@ -157,16 +156,7 @@ export class ClientManager {
               contactId: contact.id,
             });
           } catch (err) {
-            console.warn("emailQueue.add failed, falling back to direct send:", (err as any)?.message ?? err);
-            try {
-              await emailService.sendEmail(
-                contactEmail,
-                `High risk alert for ${this.userId}`,
-                `<h3>High risk detected: ${risk}</h3><p>Zone: ${riskResult.zoneName || "Unknown"}</p><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`
-              );
-            } catch (err2) {
-              console.error("Direct email send failed:", err2);
-            }
+            console.error("Failed to enqueue high-risk email job:", (err as any)?.message ?? err);
           }
           enqueued++;
         }
