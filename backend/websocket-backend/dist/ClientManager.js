@@ -3,6 +3,9 @@ import { prisma } from "./prisma.js";
 import { emailQueue } from "./queues/emailQueue.js";
 import { emailService } from "./services/emailService.js";
 import { geminiService } from "./services/geminiService.js";
+import { RiskZoneService } from "./services/riskZoneService.js";
+import { broadcastLiveUserCountToAdmins, broadcastUserLocationToAdmins, } from "./services/adminRealtimeService.js";
+import { handleSOSDispatch, handleSOSResolve, handleSOSAcknowledge, } from "./services/sosAlertService.js";
 import dotenv from "dotenv";
 dotenv.config();
 export class ClientManager {
@@ -10,11 +13,14 @@ export class ClientManager {
     userId;
     role;
     static clients = [];
+    static liveCountInterval = null;
     constructor(ws, userId, role) {
         this.ws = ws;
         this.userId = userId;
         this.role = role;
         ClientManager.clients.push({ ws, userId, role });
+        ClientManager.ensureLiveCountInterval();
+        broadcastLiveUserCountToAdmins(ClientManager.clients);
         ws.on("message", (data) => {
             try {
                 const message = JSON.parse(data.toString());
@@ -33,7 +39,31 @@ export class ClientManager {
         });
         ws.on("close", () => this.cleanup());
     }
+    /**
+     * Public getter to access the clients array.
+     * Used by services to broadcast events to all connected clients.
+     * @returns Array of connected clients
+     */
+    static getClients() {
+        return ClientManager.clients;
+    }
     async handleMessage(message) {
+        // ── SOS messages: available to BOTH users and admins ──
+        if (message.type === "EMERGENCY_SOS" && this.role === "USER") {
+            await handleSOSDispatch(ClientManager.clients, this.userId, message.payload, this.ws);
+            return;
+        }
+        if (message.type === "SOS_RESOLVE" && this.role === "USER") {
+            const alertId = message.payload.alertId;
+            await handleSOSResolve(ClientManager.clients, this.userId, alertId, this.ws);
+            return;
+        }
+        if (message.type === "SOS_ACKNOWLEDGE" && this.role === "ADMIN") {
+            const { alertId, adminId } = message.payload;
+            await handleSOSAcknowledge(ClientManager.clients, alertId, adminId);
+            return;
+        }
+        // ── User-only messages below ──
         if (this.role !== "USER")
             return;
         if (message.type === "CHAT_ASK") {
@@ -43,7 +73,9 @@ export class ClientManager {
         if (message.type !== "LOCATION")
             return;
         const location = message.payload;
-        const risk = this.calculateRisk(location.latitude, location.longitude);
+        // Calculate real risk using HTTPS backend API 
+        const riskResult = await RiskZoneService.getRealtimeRisk(location.latitude, location.longitude, location.areaId);
+        const risk = riskResult.score;
         await prisma.locationLog.create({
             data: {
                 userId: this.userId,
@@ -56,9 +88,13 @@ export class ClientManager {
                 riskScore: risk,
             },
         });
-        ClientManager.sendToAdmins(this.userId, location);
-        // If risk is high, enqueue an email notification job
+        broadcastUserLocationToAdmins(ClientManager.clients, this.userId, location);
+        // Send WebSocket alert if risk is high (threshold: 8)
         const HIGH_RISK_THRESHOLD = Number(process.env.HIGH_RISK_THRESHOLD ?? 8);
+        if (risk >= HIGH_RISK_THRESHOLD) {
+            this.sendRiskAlert(riskResult);
+        }
+        // If risk is high, enqueue an email notification job
         if (risk >= HIGH_RISK_THRESHOLD) {
             try {
                 // fetch emergency contacts for the user
@@ -73,7 +109,7 @@ export class ClientManager {
                         await emailQueue.add("sendEmail", {
                             email: contactEmail,
                             subject: `High risk alert for ${this.userId}`,
-                            htmlContent: `<h3>High risk detected: ${risk}</h3><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`,
+                            htmlContent: `<h3>High risk detected: ${risk}</h3><p>Zone: ${riskResult.zoneName || "Unknown"}</p><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`,
                             userId: this.userId,
                             latitude: location.latitude,
                             longitude: location.longitude,
@@ -84,7 +120,7 @@ export class ClientManager {
                     catch (err) {
                         console.warn("emailQueue.add failed, falling back to direct send:", err?.message ?? err);
                         try {
-                            await emailService.sendEmail(contactEmail, `High risk alert for ${this.userId}`, `<h3>High risk detected: ${risk}</h3><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`);
+                            await emailService.sendEmail(contactEmail, `High risk alert for ${this.userId}`, `<h3>High risk detected: ${risk}</h3><p>Zone: ${riskResult.zoneName || "Unknown"}</p><p>User: ${this.userId}</p><p>Location: ${location.latitude}, ${location.longitude}</p>`);
                         }
                         catch (err2) {
                             console.error("Direct email send failed:", err2);
@@ -130,6 +166,27 @@ export class ClientManager {
             this.sendChatError("Failed to get chat response", conversationId);
         }
     }
+    sendRiskAlert(riskResult) {
+        if (this.ws.readyState !== WebSocket.OPEN)
+            return;
+        const levelDescriptions = {
+            high: "You have entered a HIGH-RISK zone. Stay alert and consider changing your route.",
+            medium: "You have entered a MEDIUM-RISK zone. Please be cautious.",
+            low: "You are in a low-risk area.",
+        };
+        const message = levelDescriptions[riskResult.level] || "Risk detected in your area.";
+        console.log(`[ClientManager] Sending risk alert to user ${this.userId}: ${riskResult.level} (score: ${riskResult.score})`);
+        this.ws.send(JSON.stringify({
+            type: "RISK_ALERT",
+            payload: {
+                level: riskResult.level,
+                score: riskResult.score,
+                message,
+                zoneName: riskResult.zoneName || undefined,
+                timestamp: new Date().toISOString(),
+            },
+        }));
+    }
     sendChatError(message, conversationId) {
         if (this.ws.readyState !== WebSocket.OPEN)
             return;
@@ -141,22 +198,25 @@ export class ClientManager {
             },
         }));
     }
-    static sendToAdmins(userId, location) {
-        for (const client of ClientManager.clients) {
-            if (client.role === "ADMIN" && client.ws.readyState === WebSocket.OPEN) {
-                client.ws.send(JSON.stringify({
-                    type: "USER_LOCATION",
-                    userId,
-                    ...location,
-                }));
-            }
-        }
+    static ensureLiveCountInterval() {
+        if (ClientManager.liveCountInterval)
+            return;
+        ClientManager.liveCountInterval = setInterval(() => {
+            broadcastLiveUserCountToAdmins(ClientManager.clients);
+        }, 2000);
     }
-    calculateRisk(_, __) {
-        return Math.floor(Math.random() * 10) + 1;
+    static clearLiveCountIntervalIfNoClients() {
+        if (ClientManager.clients.length > 0)
+            return;
+        if (!ClientManager.liveCountInterval)
+            return;
+        clearInterval(ClientManager.liveCountInterval);
+        ClientManager.liveCountInterval = null;
     }
     cleanup() {
         ClientManager.clients = ClientManager.clients.filter((c) => c.ws !== this.ws);
+        broadcastLiveUserCountToAdmins(ClientManager.clients);
+        ClientManager.clearLiveCountIntervalIfNoClients();
     }
 }
 //# sourceMappingURL=ClientManager.js.map
