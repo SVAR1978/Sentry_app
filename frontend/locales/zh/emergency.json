@@ -1,0 +1,10 @@
+{
+  "sosBtn": "SOS",
+  "emergencyTitle": "紧急",
+  "holdForSos": "长按触发 SOS",
+  "sosActivated": "SOS 已激活",
+  "alertSent": "警报已发送给紧急联系人",
+  "cancelAlert": "取消警报",
+  "connected": "已连接",
+  "disconnected": "已断开"
+}

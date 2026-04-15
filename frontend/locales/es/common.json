@@ -1,0 +1,23 @@
+{
+  "appName": "Sentry",
+  "tagline": "Proteccion Inteligente",
+  "language": "Idioma de la app",
+  "selectLanguage": "Seleccionar idioma",
+  "home": "Inicio",
+  "explore": "Explorar",
+  "map": "Mapa",
+  "profile": "Perfil",
+  "settings": "Configuracion",
+  "users": "Usuarios",
+  "adminDashboard": "Panel de administracion",
+  "continue": "Continuar",
+  "cancel": "Cancelar",
+  "back": "Atras",
+  "save": "Guardar",
+  "search": "Buscar",
+  "loading": "Cargando...",
+  "english": "Ingles",
+  "spanish": "Espanol",
+  "french": "Frances",
+  "chinese": "Chino"
+}

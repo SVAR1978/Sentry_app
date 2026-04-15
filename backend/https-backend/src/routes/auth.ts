@@ -71,8 +71,7 @@ router.post("/signup", async (req: Request, res: Response) => {
         userId: newUser.id,
         role: newUser.role, // ✅ role in JWT
       },
-      JWT_SECRET,
-      { expiresIn: "7d" }
+      JWT_SECRET
     );
 
     // ============================================================
@@ -147,8 +146,7 @@ router.post("/signin", async (req: Request, res: Response) => {
         userId: user.id,
         role: user.role, //  role in JWT
       },
-      JWT_SECRET,
-      { expiresIn: "6h" }
+      JWT_SECRET
     );
 
     // ============================================================
