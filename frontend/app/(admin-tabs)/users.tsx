@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  TextInput,
 } from "react-native";
 import { Avatar, Card, Chip, Searchbar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,6 +23,7 @@ import {
   Clock,
   UserPlus,
   X,
+  SlidersHorizontal,
 } from "lucide-react-native";
 import { useSocket } from "../../store/SocketContext";
 
@@ -55,8 +57,6 @@ interface UserData {
   createdAt: string;
 }
 
-type FilterType = "All" | "Online" | "Offline";
-
 // ─── HELPERS ──────────────────────────────────────────────────────
 function getRelativeTime(isoString: string): string {
   const now = Date.now();
@@ -81,7 +81,114 @@ function getAvatarUrl(index: number): string {
   return `https://avatar.iran.liara.run/public/${(index % 100) + 1}`;
 }
 
-const FILTERS: FilterType[] = ["All", "Online", "Offline"];
+// ─── ANIMATED CARD COMPONENT ──────────────────────────────────────
+const AnimatedUserCard = ({ user, index, isOnline }: { user: UserData; index: number; isOnline: boolean }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const scaleAnim = useRef(new Animated.Value(0.92)).current;
+
+  useEffect(() => {
+    const delay = Math.min(index * 70, 700);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 350,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        delay,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 6.5,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        delay,
+        useNativeDriver: true,
+        tension: 70,
+        friction: 7,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim, scaleAnim, index]);
+
+  return (
+    <Animated.View style={{ 
+      opacity: fadeAnim, 
+      transform: [
+        { translateY: slideAnim },
+        { scale: scaleAnim }
+      ] 
+    }}>
+      <Card style={styles.userCard}>
+        <Card.Content style={styles.userContent}>
+          {/* Avatar with online indicator */}
+          <View style={styles.avatarContainer}>
+            <View style={[
+              styles.avatarRing,
+              isOnline && styles.avatarRingOnline,
+            ]}>
+              <Avatar.Image
+                size={48}
+                source={{ uri: getAvatarUrl(index) }}
+              />
+            </View>
+            <View
+              style={[
+                styles.onlineDot,
+                {
+                  backgroundColor: isOnline ? COLORS.success : COLORS.secondary,
+                },
+              ]}
+            />
+          </View>
+
+          {/* User Info */}
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{user.name || "Unnamed User"}</Text>
+            <Text style={styles.userPhone}>{user.phone || "No phone"}</Text>
+            <View style={styles.userMeta}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor: isOnline
+                      ? `${COLORS.success}12`
+                      : `${COLORS.secondary}12`,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.statusDotSmall,
+                    {
+                      backgroundColor: isOnline ? COLORS.success : COLORS.secondary,
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.statusText,
+                    { color: isOnline ? COLORS.success : COLORS.secondary },
+                  ]}
+                >
+                  {isOnline ? "Online" : "Offline"}
+                </Text>
+              </View>
+              <View style={styles.joinedTag}>
+                <Clock size={10} color={COLORS.textMuted} strokeWidth={2} />
+                <Text style={styles.joinedText}>
+                  {getRelativeTime(user.createdAt)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Card.Content>
+      </Card>
+    </Animated.View>
+  );
+};
 
 // ─── COMPONENT ────────────────────────────────────────────────────
 export default function UsersScreen() {
@@ -92,7 +199,8 @@ export default function UsersScreen() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>("All");
+  const [showAllUsers, setShowAllUsers] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -183,17 +291,13 @@ export default function UsersScreen() {
     const matchesSearch = (u.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (u.phone || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-    const isOnline = onlineUserIds.has(u.id);
-    const matchesFilter =
-      selectedFilter === "All" ||
-      (selectedFilter === "Online" && isOnline) ||
-      (selectedFilter === "Offline" && !isOnline);
-
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
 
   const onlineCount = users.filter((u) => onlineUserIds.has(u.id)).length;
   const offlineCount = users.length - onlineCount;
+
+  const visibleUsers = showAllUsers ? filteredUsers : filteredUsers.slice(0, 5);
 
   // ─── RENDER ───────────────────────────────────────────
   return (
@@ -246,51 +350,28 @@ export default function UsersScreen() {
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search by name or phone..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-          inputStyle={styles.searchInput}
-          iconColor={COLORS.textMuted}
-          placeholderTextColor={COLORS.textMuted}
-          icon={() => <Search size={20} color={COLORS.textMuted} />}
-          clearIcon={() => <X size={20} color={COLORS.textMuted} />}
-        />
+        <View style={[styles.customSearchWrapper, isFocused && styles.customSearchWrapperFocused]}>
+          <Search size={20} color={isFocused ? COLORS.primary : COLORS.textMuted} strokeWidth={2.5} />
+          <TextInput
+            style={styles.customSearchInput}
+            placeholder="Search by name or phone..."
+            placeholderTextColor={COLORS.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+          />
+          {searchQuery.length > 0 ? (
+            <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearIconBtn}>
+              <X size={18} color={COLORS.textMuted} strokeWidth={2.5} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.filterIconBtn}>
+              <SlidersHorizontal size={18} color={COLORS.textMuted} strokeWidth={2.5}/>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-
-      {/* Filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContainer}
-      >
-        {FILTERS.map((filter) => {
-          const count =
-            filter === "All"
-              ? filteredUsers.length
-              : filter === "Online"
-              ? onlineCount
-              : offlineCount;
-          return (
-            <Chip
-              key={filter}
-              selected={selectedFilter === filter}
-              onPress={() => setSelectedFilter(filter)}
-              style={[
-                styles.filterChip,
-                selectedFilter === filter && styles.filterChipSelected,
-              ]}
-              textStyle={[
-                styles.filterText,
-                selectedFilter === filter && styles.filterTextSelected,
-              ]}
-            >
-              {filter} ({count})
-            </Chip>
-          );
-        })}
-      </ScrollView>
 
       {/* User List */}
       {loading ? (
@@ -338,76 +419,29 @@ export default function UsersScreen() {
                 </Text>
               </View>
             ) : (
-              filteredUsers.map((user, index) => {
-                const isOnline = onlineUserIds.has(user.id);
-                return (
-                  <Card key={user.id} style={styles.userCard}>
-                    <Card.Content style={styles.userContent}>
-                      {/* Avatar with online indicator */}
-                      <View style={styles.avatarContainer}>
-                        <View style={[
-                          styles.avatarRing,
-                          isOnline && styles.avatarRingOnline,
-                        ]}>
-                          <Avatar.Image
-                            size={48}
-                            source={{ uri: getAvatarUrl(index) }}
-                          />
-                        </View>
-                        <View
-                          style={[
-                            styles.onlineDot,
-                            {
-                              backgroundColor: isOnline ? COLORS.success : COLORS.secondary,
-                            },
-                          ]}
-                        />
-                      </View>
-
-                      {/* User Info — NO EMAIL */}
-                      <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{user.name || "Unnamed User"}</Text>
-                        <Text style={styles.userPhone}>{user.phone || "No phone"}</Text>
-                        <View style={styles.userMeta}>
-                          <View
-                            style={[
-                              styles.statusBadge,
-                              {
-                                backgroundColor: isOnline
-                                  ? `${COLORS.success}12`
-                                  : `${COLORS.secondary}12`,
-                              },
-                            ]}
-                          >
-                            <View
-                              style={[
-                                styles.statusDotSmall,
-                                {
-                                  backgroundColor: isOnline ? COLORS.success : COLORS.secondary,
-                                },
-                              ]}
-                            />
-                            <Text
-                              style={[
-                                styles.statusText,
-                                { color: isOnline ? COLORS.success : COLORS.secondary },
-                              ]}
-                            >
-                              {isOnline ? "Online" : "Offline"}
-                            </Text>
-                          </View>
-                          <View style={styles.joinedTag}>
-                            <Clock size={10} color={COLORS.textMuted} strokeWidth={2} />
-                            <Text style={styles.joinedText}>
-                              {getRelativeTime(user.createdAt)}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </Card.Content>
-                  </Card>
-                );
-              })
+              <>
+                {visibleUsers.map((user, index) => {
+                  const isOnline = onlineUserIds.has(user.id);
+                  return (
+                    <AnimatedUserCard 
+                      key={user.id} 
+                      user={user} 
+                      index={index} 
+                      isOnline={isOnline} 
+                    />
+                  );
+                })}
+                {filteredUsers.length > 5 && (
+                  <TouchableOpacity
+                    style={styles.seeAllBtn}
+                    onPress={() => setShowAllUsers(!showAllUsers)}
+                  >
+                    <Text style={styles.seeAllBtnText}>
+                      {showAllUsers ? "Show Less" : `See All Users (${filteredUsers.length})`}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </ScrollView>
         </Animated.View>
@@ -489,21 +523,44 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
-  searchBar: {
-    borderRadius: 22,
-    elevation: 3,
+  customSearchWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.white,
-    shadowColor: "#21100B",
+    paddingHorizontal: 16,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  searchInput: {
-    fontSize: 14,
+  customSearchWrapperFocused: {
+    borderColor: COLORS.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    backgroundColor: "#FDFDFD",
+  },
+  customSearchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 15,
+    color: COLORS.text,
+    fontWeight: "500",
+    height: "100%",
+  },
+  clearIconBtn: {
+    padding: 6,
+    backgroundColor: `${COLORS.secondary}15`,
+    borderRadius: 14,
+  },
+  filterIconBtn: {
+    padding: 6,
   },
   filtersContainer: {
     paddingHorizontal: 20,
@@ -690,5 +747,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 8,
+  },
+  seeAllBtn: {
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+    marginBottom: 20,
+    backgroundColor: `${COLORS.primary}0D`,
+    borderRadius: 16,
+  },
+  seeAllBtnText: {
+    color: COLORS.primary,
+    fontWeight: "700",
+    fontSize: 14,
   },
 });
