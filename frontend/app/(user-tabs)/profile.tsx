@@ -14,7 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import React from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Platform,
@@ -28,6 +28,9 @@ import { Avatar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 import { useTabVisibility } from "../../store/TabVisibilityContext";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "../../components/common/LanguageSelector";
+import { SUPPORTED_LANGUAGES, type LanguageCode } from "../../config/i18n";
 
 // Leveraging design tokens derived from userHomeData.ts
 const COLORS = {
@@ -42,37 +45,6 @@ const COLORS = {
   cardBorder: "rgba(33, 16, 11, 0.05)",
   cardShadow: "#21100B",
 };
-
-const ACCOUNT_ITEMS = [
-  {
-    id: "personal_info",
-    title: "Personal Information",
-    icon: User,
-  },
-  {
-    id: "address",
-    title: "My Address",
-    icon: MapPin,
-  },
-  {
-    id: "tickets",
-    title: "My Tickets",
-    icon: Ticket,
-  },
-];
-
-const SETTINGS_ITEMS = [
-  {
-    id: "language",
-    title: "App Language",
-    icon: Languages,
-  },
-  {
-    id: "help",
-    title: "Help Center",
-    icon: HelpCircle,
-  },
-];
 
 const AnimatedProfileCard = ({
   children,
@@ -120,12 +92,51 @@ const AnimatedProfileCard = ({
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();
   const insets = useSafeAreaInsets();
+  const { t, i18n } = useTranslation('common');
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+
+  // Derive current language label for display
+  const currentLangInfo = SUPPORTED_LANGUAGES.find(
+    (l) => l.code === (i18n.language as LanguageCode)
+  );
+
+  const ACCOUNT_ITEMS = [
+    {
+      id: "personal_info",
+      title: t('personalInfo'),
+      icon: User,
+    },
+    {
+      id: "address",
+      title: t('myAddress'),
+      icon: MapPin,
+    },
+    {
+      id: "tickets",
+      title: t('myTickets'),
+      icon: Ticket,
+    },
+  ];
+
+  const SETTINGS_ITEMS = [
+    {
+      id: "language",
+      title: t('language'),
+      icon: Languages,
+      value: currentLangInfo?.nativeLabel || 'English',
+    },
+    {
+      id: "help",
+      title: t('helpCenter'),
+      icon: HelpCircle,
+    },
+  ];
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t('signOut'), t('logoutConfirm'), [
+      { text: t('cancel'), style: "cancel" },
       {
-        text: "Logout",
+        text: t('signOut'),
         style: "destructive",
         onPress: async () => {
           await logout();
@@ -144,6 +155,8 @@ export default function ProfileScreen() {
       router.push("/(user-tabs)/my-tickets");
     } else if (id === "help") {
       router.push("/(user-tabs)/help-center" as any);
+    } else if (id === "language") {
+      setShowLanguageSelector(true);
     } else {
       console.log("Menu pressed:", id);
     }
@@ -180,7 +193,7 @@ export default function ProfileScreen() {
           <View style={styles.headerSpacer} />
 
           <View style={styles.heroSection}>
-            <Text style={styles.headerTitle}>My Profile</Text>
+            <Text style={styles.headerTitle}>{t('myProfile')}</Text>
           </View>
 
           <View style={styles.profileSection}>
@@ -199,7 +212,7 @@ export default function ProfileScreen() {
         >
           {/* Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle}>{t('account')}</Text>
           {ACCOUNT_ITEMS.map((item) => (
             <AnimatedProfileCard
               key={item.id}
@@ -218,7 +231,7 @@ export default function ProfileScreen() {
 
         {/* Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+          <Text style={styles.sectionTitle}>{t('settings')}</Text>
           {SETTINGS_ITEMS.map((item) => (
             <AnimatedProfileCard
               key={item.id}
@@ -228,7 +241,12 @@ export default function ProfileScreen() {
                   <View style={styles.cardIconBox}>
                     <item.icon size={22} color={COLORS.primaryContainer} strokeWidth={2} />
                   </View>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <View>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    {item.value && (
+                      <Text style={styles.cardSubtitle}>{item.value}</Text>
+                    )}
+                  </View>
                 </View>
                 <ChevronRight size={20} color={COLORS.textSecondary} />
             </AnimatedProfileCard>
@@ -239,10 +257,16 @@ export default function ProfileScreen() {
         <View style={styles.logoutSection}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
             <LogOut size={18} color={COLORS.danger} strokeWidth={2.5} />
-            <Text style={styles.logoutText}>Sign Out</Text>
+            <Text style={styles.logoutText}>{t('signOut')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Language Selector Modal */}
+      <LanguageSelector
+        visible={showLanguageSelector}
+        onClose={() => setShowLanguageSelector(false)}
+      />
     </View>
   );
 }
@@ -251,14 +275,15 @@ export default function ProfileScreen() {
 // Dedicated Photo Picker Component
 // ------------------------------------------------------------------
 const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }) => {
+  const { t } = useTranslation('common');
   const pickImage = async () => {
     // 1. Request Media Library Permissions
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          "Permission Required", 
-          "We need camera roll permissions to let you choose a profile picture!"
+          t('permissionRequired'), 
+          t('cameraRollPermission')
         );
         return;
       }
@@ -280,7 +305,7 @@ const ProfilePhotoPicker = ({ user, updateUser }: { user: any, updateUser: any }
       }
     } catch (error) {
       console.error("ImagePicker Error: ", error);
-      Alert.alert("Error", "Something went wrong opening the photo library.");
+      Alert.alert(t('error'), t('photoError'));
     }
   };
 
@@ -439,6 +464,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.primary,
     letterSpacing: -0.2,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+    marginTop: 2,
   },
   logoutSection: {
     marginTop: 32,

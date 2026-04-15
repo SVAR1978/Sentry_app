@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 
 const COLORS = {
   primary: "#21100B",
@@ -34,6 +35,7 @@ export default function RegistrationSuccess() {
   const params = useLocalSearchParams();
   const userName = (params.userName as string) || "User";
   const userRole = (params.userRole as string) || "user";
+  const { t } = useTranslation('auth');
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -75,11 +77,11 @@ export default function RegistrationSuccess() {
   const getRoleDisplayName = () => {
     switch (userRole) {
       case "admin":
-        return "Administrator";
+        return t('roleAdmin');
       case "manager":
-        return "Manager";
+        return t('roleManager');
       default:
-        return "User";
+        return t('roleUser');
     }
   };
 
@@ -125,9 +127,9 @@ export default function RegistrationSuccess() {
               },
             ]}
           >
-            <Text style={styles.headline}>Registration Successful!</Text>
+            <Text style={styles.headline}>{t('registrationSuccessful')}</Text>
             <Text style={styles.subheadline}>
-              Welcome to Sentry, {userName}
+              {t('welcomeMessage', { name: userName })}
             </Text>
           </Animated.View>
         </LinearGradient>
@@ -151,7 +153,7 @@ export default function RegistrationSuccess() {
                 color={COLORS.primary}
               />
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Account Type</Text>
+                <Text style={styles.infoLabel}>{t('accountType')}</Text>
                 <Text style={styles.infoValue}>{getRoleDisplayName()}</Text>
               </View>
             </View>
@@ -165,8 +167,8 @@ export default function RegistrationSuccess() {
                 color={COLORS.accent}
               />
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Verification Email</Text>
-                <Text style={styles.infoValue}>Sent to your inbox</Text>
+                <Text style={styles.infoLabel}>{t('verificationEmailLabel')}</Text>
+                <Text style={styles.infoValue}>{t('sentToInbox')}</Text>
               </View>
             </View>
 
@@ -179,22 +181,22 @@ export default function RegistrationSuccess() {
                 color={COLORS.success}
               />
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Security Status</Text>
-                <Text style={styles.infoValue}>Account Secured</Text>
+                <Text style={styles.infoLabel}>{t('securityStatus')}</Text>
+                <Text style={styles.infoValue}>{t('accountSecured')}</Text>
               </View>
             </View>
           </View>
 
           {/* Next Steps */}
           <View style={styles.stepsContainer}>
-            <Text style={styles.stepsTitle}>What's Next?</Text>
+            <Text style={styles.stepsTitle}>{t('whatsNext')}</Text>
 
             <View style={styles.stepItem}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>1</Text>
               </View>
               <Text style={styles.stepText}>
-                Check your email for verification link
+                {t('stepCheckEmail')}
               </Text>
             </View>
 
@@ -202,7 +204,7 @@ export default function RegistrationSuccess() {
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>2</Text>
               </View>
-              <Text style={styles.stepText}>Complete your profile setup</Text>
+              <Text style={styles.stepText}>{t('stepCompleteProfile')}</Text>
             </View>
 
             <View style={styles.stepItem}>
@@ -210,7 +212,7 @@ export default function RegistrationSuccess() {
                 <Text style={styles.stepNumberText}>3</Text>
               </View>
               <Text style={styles.stepText}>
-                Start using Sentry to stay safe
+                {t('stepStartUsing')}
               </Text>
             </View>
           </View>
@@ -225,7 +227,7 @@ export default function RegistrationSuccess() {
               labelStyle={styles.buttonLabel}
               icon="login"
             >
-              Continue to Login
+              {t('continueToLogin')}
             </Button>
 
             <View style={styles.helpContainer}>
@@ -235,7 +237,7 @@ export default function RegistrationSuccess() {
                 color={COLORS.textLight}
               />
               <Text style={styles.helpText}>
-                Need help? Contact support@sentryapp.com
+                {t('needHelpSupport')}
               </Text>
             </View>
           </View>

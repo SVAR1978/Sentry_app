@@ -2,6 +2,7 @@ import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Home, Compass, ShieldAlert, Map as MapIcon, User } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import React, { useEffect, useState } from "react";
 import {
   Dimensions,
@@ -240,6 +241,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
 export default function UserTabsLayout() {
   const [chatVisible, setChatVisible] = useState(false);
+  const { t } = useTranslation('common');
 
   return (
     <TabVisibilityProvider>
@@ -255,11 +257,11 @@ export default function UserTabsLayout() {
           },
         }}
       >
-        <Tabs.Screen name="index" options={{ title: "Home" }} />
-        <Tabs.Screen name="explore" options={{ title: "Explore" }} />
-        <Tabs.Screen name="emergency" options={{ title: "SOS Bar" }} />
-        <Tabs.Screen name="map" options={{ title: "Map" }} />
-        <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+        <Tabs.Screen name="index" options={{ title: t('home') }} />
+        <Tabs.Screen name="explore" options={{ title: t('explore') }} />
+        <Tabs.Screen name="emergency" options={{ title: t('sosBar') }} />
+        <Tabs.Screen name="map" options={{ title: t('map') }} />
+        <Tabs.Screen name="profile" options={{ title: t('profile') }} />
 
         {/* Sub-screens (Hidden from Tab Bar) */}
         <Tabs.Screen name="personal-info" options={{ href: null }} />

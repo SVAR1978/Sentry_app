@@ -2,7 +2,6 @@ import { Router } from "express";
 import { Queue } from "bullmq";
 import { redis } from "../config/redis.js";
 import { prisma } from "../prisma.js";
-import { emailService } from "../services/emailService.js";
 import type { Request, Response } from "express";
 
 const router = Router();
@@ -81,25 +80,20 @@ router.post("/", async (req: Request, res: Response) => {
       const subject = `EMERGENCY SOS ALERT — ${displayName} needs help`;
 
       try {
-        await emailService.sendEmail(to, subject, htmlContent);
-        console.log("[SOS][CREATE] Email sent directly", { userId, contactId: c.id, to });
+        await emailQueue.add("sendEmail", {
+          email: to,
+          subject,
+          htmlContent,
+          userId,
+          contactId: c.id,
+        });
       } catch (err) {
-        try {
-          await emailQueue.add("sendEmail", {
-            email: to,
-            subject,
-            htmlContent,
-            userId,
-            contactId: c.id,
-          });
-          console.warn("[SOS][CREATE] Direct send failed; queued fallback email", {
-            userId,
-            contactId: c.id,
-            to,
-          });
-        } catch (err2) {
-          console.error("[SOS][CREATE] Direct send and queue fallback failed:", err2);
-        }
+        console.error("[SOS][CREATE] Failed to enqueue SOS email", {
+          userId,
+          contactId: c.id,
+          to,
+          error: (err as any)?.message ?? err,
+        });
       }
       enqueued++;
     }

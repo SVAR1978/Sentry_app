@@ -3,6 +3,7 @@ import { Animated, StyleSheet, View, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "react-native-paper";
 import { Check, CheckCheck } from "lucide-react-native";
+import Markdown from 'react-native-markdown-display';
 import {
   CHAT_COLORS,
   ChatMessage,
@@ -90,9 +91,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {isBot ? (
           /* ── Bot Bubble: Solid light background ── */
           <View style={[styles.bubble, styles.botBubble, botRadii]}>
-            <Text style={[styles.messageText, styles.botMessageText]}>
+            <Markdown style={markdownStyles}>
               {message.text}
-            </Text>
+            </Markdown>
             <View style={[styles.metaInline, styles.metaLeft]}>
               <Text style={styles.timestamp}>{time}</Text>
             </View>
@@ -135,6 +136,26 @@ function formatTime(date: Date): string {
   const displayMinutes = minutes.toString().padStart(2, "0");
   return `${displayHours}:${displayMinutes} ${ampm}`;
 }
+
+const markdownStyles = StyleSheet.create({
+  body: {
+    fontSize: 14.5,
+    lineHeight: 22,
+    fontWeight: "500",
+    color: "#1A1818",
+  },
+  heading1: { fontSize: 22, fontWeight: '700', marginTop: 10, marginBottom: 5 },
+  heading2: { fontSize: 20, fontWeight: '700', marginTop: 10, marginBottom: 5 },
+  heading3: { fontSize: 18, fontWeight: '700', marginTop: 10, marginBottom: 5 },
+  paragraph: { marginTop: 4, marginBottom: 4 },
+  list_item: { marginTop: 2, marginBottom: 2 },
+  bullet_list: { marginTop: 4, marginBottom: 8 },
+  ordered_list: { marginTop: 4, marginBottom: 8 },
+  strong: { fontWeight: '700' },
+  em: { fontStyle: 'italic' },
+  code_inline: { backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 4, padding: 2, fontFamily: 'monospace' },
+  code_block: { backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 8, padding: 8, marginTop: 4, marginBottom: 8, fontFamily: 'monospace' },
+});
 
 const styles = StyleSheet.create({
   messageRow: {

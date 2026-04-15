@@ -1,13 +1,14 @@
 import { Router } from "express";
+import { Queue } from "bullmq";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { prisma } from "../prisma.js";
-import { emailService } from "../services/emailService.js";
 import { redis } from "../config/redis.js";
 import type { Request, Response } from "express";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "123123";
+const emailQueue = new Queue("emailQueue", { connection: redis });
 
 
 router.post("/signup", async (req: Request, res: Response) => {
@@ -225,8 +226,14 @@ router.post("/forgot-password", async (req: Request, res: Response) => {
       </div>
     `;
 
-    await emailService.sendEmail(email, "Password Reset Code", emailHtml);
-    console.log("[AUTH][FORGOT_PASSWORD] Reset code sent", { email, userId: user.id });
+    await emailQueue.add("sendEmail", {
+      email,
+      subject: "Password Reset Code",
+      htmlContent: emailHtml,
+      userId: user.id,
+      event: "FORGOT_PASSWORD",
+    });
+    console.log("[AUTH][FORGOT_PASSWORD] Reset code enqueued", { email, userId: user.id });
     return res.status(200).json({ success: true, message: "Verification code sent." });
   } catch (error) {
     console.error("[AUTH][FORGOT_PASSWORD] Unexpected error", error);

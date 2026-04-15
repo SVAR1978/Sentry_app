@@ -11,12 +11,18 @@ import {
   Animated,
   RefreshControl,
   ActivityIndicator,
+  Image,
+  Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
-import { Text } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useTabVisibility } from "../../store/TabVisibilityContext";
 import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Search,
   X,
@@ -41,11 +47,20 @@ import {
   Clock,
   Compass,
   Building2,
+  History,
+  TrendingUp,
+  ArrowUpRight,
+  Loader2,
 } from "lucide-react-native";
 import {
   searchNearbyPlaces,
+  searchPlaces,
   type SearchResult,
 } from "../../services/maps/placesService";
+import { Text } from "react-native-paper";
+
+const RECENT_SEARCHES_KEY = '@sentry_recent_searches';
+const MAX_RECENT_SEARCHES = 8;
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -96,20 +111,62 @@ const CATEGORIES: CategoryChip[] = [
   { key: "religious", label: "Religious", icon: <Church size={14} color={C.textSecondary} strokeWidth={2} />, osmTypes: ["tourism", "attraction"] },
 ];
 
-// ── Place Type Configs ──────────────────────────────────────
-const PLACE_TYPE_CONFIG: Record<string, { bg: string; label: string }> = {
-  tourism: { bg: "#EDE9FE", label: "Monument" },
-  attraction: { bg: "#EDE9FE", label: "Attraction" },
-  monument: { bg: "#FEF3C7", label: "Monument" },
-  museum: { bg: "#DBEAFE", label: "Museum" },
-  restaurant: { bg: "#FEE2E2", label: "Food" },
-  cafe: { bg: "#FEE2E2", label: "Cafe" },
-  fast_food: { bg: "#FEE2E2", label: "Fast Food" },
-  hotel: { bg: "#E0F2FE", label: "Hotel" },
-  guest_house: { bg: "#E0F2FE", label: "Stay" },
-  park: { bg: "#D1FAE5", label: "Park" },
-  place: { bg: "#F3F4F6", label: "Place" },
+// ── Realistic Place Images Dictionary ───────────────────────
+const PLACE_IMAGES: Record<string, string[]> = {
+  restaurant: [
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=400&q=80"
+  ],
+  monument: [
+    "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=400&q=80"
+  ],
+  park: [
+    "https://images.unsplash.com/photo-1585938389612-a552a28d6914?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80"
+  ],
+  religious: [
+    "https://images.unsplash.com/photo-1561359313-0639aad49ca6?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1600080649740-42be63afbc00?auto=format&fit=crop&w=400&q=80"
+  ],
+  shopping: [
+    "https://images.unsplash.com/photo-1519567281023-eb1c60b73c24?auto=format&fit=crop&w=400&q=80"
+  ],
+  default: [
+    "https://images.unsplash.com/photo-1480796927426-f609979314bd?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=400&q=80",
+  ]
 };
+
+const getPlaceImage = (type: string, id: string) => {
+  const t = type.toLowerCase();
+  let categoryImages = PLACE_IMAGES.default;
+  if (t.includes("restaurant") || t.includes("cafe") || t.includes("food")) categoryImages = PLACE_IMAGES.restaurant;
+  else if (t.includes("park") || t.includes("garden")) categoryImages = PLACE_IMAGES.park;
+  else if (t.includes("monument") || t.includes("attraction") || t.includes("tourism") || t.includes("museum")) categoryImages = PLACE_IMAGES.monument;
+  else if (t.includes("temple") || t.includes("church") || t.includes("mosque")) categoryImages = PLACE_IMAGES.religious;
+  else if (t.includes("shop") || t.includes("mall") || t.includes("market")) categoryImages = PLACE_IMAGES.shopping;
+
+  const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return categoryImages[hash % categoryImages.length];
+};
+
+// ── Place Type Configs ──────────────────────────────────────
+const getPlaceTypeConfig = (t: any) => ({
+  tourism: { bg: "#EDE9FE", label: t('monument') },
+  attraction: { bg: "#EDE9FE", label: t('attraction') },
+  monument: { bg: "#FEF3C7", label: t('monument') },
+  museum: { bg: "#DBEAFE", label: t('museum') },
+  restaurant: { bg: "#FEE2E2", label: t('food') },
+  cafe: { bg: "#FEE2E2", label: t('cafe') },
+  fast_food: { bg: "#FEE2E2", label: t('fastFood') },
+  hotel: { bg: "#E0F2FE", label: t('hotel') },
+  guest_house: { bg: "#E0F2FE", label: t('stay') },
+  park: { bg: "#D1FAE5", label: t('park') },
+  place: { bg: "#F3F4F6", label: t('place') },
+});
 
 // ── Helper: Icon for place type ──────────────────────────────
 const getPlaceIcon = (type: string, category: string, size: number = 20, color: string = C.primary) => {
@@ -130,22 +187,22 @@ const getPlaceIcon = (type: string, category: string, size: number = 20, color: 
 };
 
 // ── Helper: Safety Badge logic ──────────────────────────────
-const getSafetyBadge = (type: string, category: string): { label: string; bg: string; color: string; icon: React.ReactNode } => {
-  const t = (type + category).toLowerCase();
+const getSafetyBadge = (type: string, category: string, t: any): { label: string; bg: string; color: string; icon: React.ReactNode } => {
+  const tStr = (type + category).toLowerCase();
   // "Busy" categories: food, market, popular tourist spots
   const busyTypes = ["restaurant", "cafe", "fast_food", "market", "mall", "shop", "attraction"];
-  const isBusyType = busyTypes.some(bt => t.includes(bt));
+  const isBusyType = busyTypes.some(bt => tStr.includes(bt));
 
   if (isBusyType) {
     return {
-      label: "Busy",
+      label: t('busy'),
       bg: C.busyBg,
       color: C.busyText,
       icon: <Zap size={12} color={C.busyText} strokeWidth={2.5} />,
     };
   }
   return {
-    label: "Safe",
+    label: t('safe'),
     bg: C.safeBg,
     color: C.safeText,
     icon: <ShieldCheck size={12} color={C.safeText} strokeWidth={2.5} />,
@@ -166,6 +223,44 @@ interface PlaceWithDist extends SearchResult {
   distanceValue: number;
 }
 
+const DynamicPlaceImage = ({ place, style, resizeMode }: { place: PlaceWithDist, style: any, resizeMode: any }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRealImage = async () => {
+      const tStr = (place.type + place.category).toLowerCase();
+      const isFamousType = tStr.includes("monument") || tStr.includes("tourism") || tStr.includes("attraction") || tStr.includes("museum") || tStr.includes("temple") || tStr.includes("mosque") || tStr.includes("park") || tStr.includes("mall");
+
+      if (isFamousType && place.name && place.name.length > 2) {
+        try {
+          const cleanName = place.name.split(',')[0].trim();
+          const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cleanName)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.thumbnail?.source && isMounted) {
+              setImageUrl(data.thumbnail.source);
+              return;
+            }
+          }
+        } catch (e) { } // ignore fails silently
+      }
+
+      // Fallback instantly if no real image is found online
+      if (isMounted) setImageUrl(getPlaceImage(place.type, place.id));
+    };
+
+    fetchRealImage();
+    return () => { isMounted = false; };
+  }, [place.name, place.id, place.type]);
+
+  if (!imageUrl) {
+    return <View style={[style, { backgroundColor: '#E0F2FE' }]} />;
+  }
+
+  return <Image source={{ uri: imageUrl }} style={style} resizeMode={resizeMode} />;
+};
+
 // ============================================================
 // Main Explore Screen
 // ============================================================
@@ -179,18 +274,58 @@ export default function ExploreScreen() {
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [sortOption, setSortOption] = useState<'distance' | 'safety' | 'atoz'>('distance');
+
+  // ── Search Engine State ──
+  const [searchResults, setSearchResults] = useState<PlaceWithDist[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
 
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<RNTextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
   const { setTabBarVisible } = useTabVisibility();
   const lastScrollY = useRef(0);
   const headerOpacity = useRef(new Animated.Value(0)).current;
+  const { t } = useTranslation('common');
 
   // ── Mount: get location & fetch places ──
   useEffect(() => {
     Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }).start();
     getUserLocation();
+    loadRecentSearches();
   }, []);
+
+  // ── Load recent searches from storage ──
+  const loadRecentSearches = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) setRecentSearches(JSON.parse(stored));
+    } catch (e) {
+      console.warn('[Search] Failed to load recent searches');
+    }
+  };
+
+  // ── Save a search term to recents ──
+  const saveRecentSearch = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      if (!trimmed || trimmed.length < 2) return;
+      const updated = [trimmed, ...recentSearches.filter(s => s.toLowerCase() !== trimmed.toLowerCase())].slice(0, MAX_RECENT_SEARCHES);
+      setRecentSearches(updated);
+      await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('[Search] Failed to save recent search');
+    }
+  };
+
+  // ── Clear all recent searches ──
+  const clearRecentSearches = async () => {
+    setRecentSearches([]);
+    await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
+  };
 
   // ── Re-fetch when location or category changes ──
   useEffect(() => {
@@ -204,7 +339,7 @@ export default function ExploreScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setError("Location permission denied. Please enable it to see nearby places.");
+        setError(t('locationDenied'));
         setIsLoading(false);
         return;
       }
@@ -243,7 +378,7 @@ export default function ExploreScreen() {
       setPlaces(withDist);
     } catch (err) {
       console.warn("[Explore] Failed to fetch places:", err);
-      setError("Unable to load places. Check your connection.");
+      setError(t('unableLoadPlaces'));
     } finally {
       setIsLoading(false);
     }
@@ -256,22 +391,110 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }, []);
 
-  // ── Search filter (local, debounced) ──
+  // ── Search Engine: Debounced API Search ──
   const handleSearch = useCallback((text: string) => {
     setSearchQuery(text);
+    setShowSearchOverlay(true);
+
+    // Cancel previous debounce
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!text.trim() || text.trim().length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    // Debounce: wait 400ms after user stops typing
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const lat = userLocation?.latitude;
+        const lon = userLocation?.longitude;
+        const results = await searchPlaces(text.trim(), lat, lon);
+
+        // Compute distance for each result
+        const withDist: PlaceWithDist[] = results.map((p) => {
+          if (!userLocation) return { ...p, distanceValue: 9999 };
+          const dx = (p.coordinate.latitude - userLocation.latitude) * 111000;
+          const dy = (p.coordinate.longitude - userLocation.longitude) * 111000 * Math.cos((userLocation.latitude * Math.PI) / 180);
+          return { ...p, distanceValue: Math.sqrt(dx * dx + dy * dy) };
+        });
+
+        withDist.sort((a, b) => a.distanceValue - b.distanceValue);
+        setSearchResults(withDist.slice(0, 10));
+      } catch (err) {
+        console.warn('[Search] API search failed:', err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+  }, [userLocation]);
+
+  // ── Handle selecting a search result ──
+  const handleSelectSearchResult = useCallback((place: PlaceWithDist) => {
+    saveRecentSearch(place.name);
+    setSearchQuery('');
+    setShowSearchOverlay(false);
+    setSearchResults([]);
+    searchInputRef.current?.blur();
+    router.push({
+      pathname: '/(user-tabs)/map',
+      params: {
+        lat: place.coordinate.latitude.toString(),
+        lon: place.coordinate.longitude.toString(),
+        name: place.name,
+        filter: place.type,
+      },
+    } as any);
+  }, []);
+
+  // ── Handle selecting a recent search ──
+  const handleSelectRecent = useCallback((query: string) => {
+    setSearchQuery(query);
+    handleSearch(query);
+  }, [handleSearch]);
+
+  // ── Close search overlay ──
+  const closeSearchOverlay = useCallback(() => {
+    setShowSearchOverlay(false);
+    setSearchResults([]);
+    searchInputRef.current?.blur();
   }, []);
 
   const filteredPlaces = useMemo(() => {
-    if (!searchQuery.trim()) return places;
-    const q = searchQuery.toLowerCase();
-    return places.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.displayName.toLowerCase().includes(q) ||
-        p.type.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-    );
-  }, [searchQuery, places]);
+    let result = places;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.displayName.toLowerCase().includes(q) ||
+          p.type.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+      );
+    }
+
+    return result.sort((a, b) => {
+      if (sortOption === 'distance') return a.distanceValue - b.distanceValue;
+      if (sortOption === 'atoz') return a.name.localeCompare(b.name);
+      if (sortOption === 'safety') {
+        const getSafetyScore = (p: PlaceWithDist) => {
+          const badge = getSafetyBadge(p.type, p.category, t);
+          return badge.label === t('safe') ? 1 : 0;
+        };
+        const sA = getSafetyScore(a);
+        const sB = getSafetyScore(b);
+        if (sA === sB) return a.distanceValue - b.distanceValue; // fallback to distance if equal
+        return sB - sA; // Safe (1) comes before Busy (0)
+      }
+      return 0;
+    });
+  }, [searchQuery, places, sortOption, t]);
 
   const filteredTrending = useMemo(() => {
     if (!searchQuery.trim()) return trendingPlaces;
@@ -291,11 +514,12 @@ export default function ExploreScreen() {
 
   // ── Get place type config ──
   const getTypeConfig = (type: string, category: string) => {
-    const t = (type + category).toLowerCase();
-    for (const [key, val] of Object.entries(PLACE_TYPE_CONFIG)) {
-      if (t.includes(key)) return val;
+    const tStr = (type + category).toLowerCase();
+    const config = getPlaceTypeConfig(t);
+    for (const [key, val] of Object.entries(config)) {
+      if (tStr.includes(key)) return val;
     }
-    return PLACE_TYPE_CONFIG.place;
+    return config.place;
   };
 
   // ── Retry handler ──
@@ -310,11 +534,144 @@ export default function ExploreScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
+
+      {/* ── FIXED TOP: HEADER + SEARCH (outside ScrollView) ── */}
+      <Animated.View style={[styles.fixedTop, { opacity: headerOpacity }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('exploreTitle')} Delhi</Text>
+          <View style={styles.headerSubRow}>
+            <MapPin size={13} color={C.textSecondary} strokeWidth={2} />
+            <Text style={styles.headerSub}>New Delhi, India</Text>
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Search size={18} color={C.textTertiary} strokeWidth={2} />
+            <RNTextInput
+              ref={searchInputRef}
+              style={styles.searchInput}
+              placeholder={t('searchPlaces')}
+              placeholderTextColor={C.textTertiary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              returnKeyType="search"
+              onFocus={() => setShowSearchOverlay(true)}
+              autoCorrect={false}
+              autoCapitalize="none"
+              spellCheck={false}
+              onSubmitEditing={() => {
+                if (searchQuery.trim().length >= 2) saveRecentSearch(searchQuery.trim());
+              }}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => { setSearchQuery(''); setSearchResults([]); setShowSearchOverlay(false); }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={16} color={C.textTertiary} strokeWidth={2} />
+              </TouchableOpacity>
+            )}
+            {isSearching && (
+              <ActivityIndicator size="small" color={C.primary} style={{ marginLeft: 4 }} />
+            )}
+          </View>
+          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8} onPress={() => setIsFilterVisible(true)}>
+            <SlidersHorizontal size={18} color={C.white} strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── SEARCH OVERLAY (absolutely positioned over content) ── */}
+        {showSearchOverlay && (searchQuery.length > 0 || searchResults.length > 0 || recentSearches.length > 0) && (
+          <View style={styles.searchOverlay}>
+            {/* Background dismiss tap area - doesn't dismiss keyboard */}
+            {/* Recent Searches */}
+            {searchQuery.length === 0 && recentSearches.length > 0 && (
+              <View>
+                <View style={styles.searchSectionHeader}>
+                  <View style={styles.searchSectionLeft}>
+                    <History size={14} color={C.textTertiary} strokeWidth={2} />
+                    <Text style={styles.searchSectionTitle}>Recent Searches</Text>
+                  </View>
+                  <TouchableOpacity onPress={clearRecentSearches}>
+                    <Text style={styles.clearBtn}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+                {recentSearches.map((term, idx) => (
+                  <TouchableOpacity
+                    key={`recent-${idx}`}
+                    style={styles.searchSuggestionRow}
+                    onPress={() => handleSelectRecent(term)}
+                  >
+                    <History size={16} color={C.textTertiary} strokeWidth={1.5} />
+                    <Text style={styles.suggestionText} numberOfLines={1}>{term}</Text>
+                    <ArrowUpRight size={14} color={C.textTertiary} strokeWidth={2} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Loading */}
+            {isSearching && searchQuery.length >= 2 && (
+              <View style={styles.searchLoadingRow}>
+                <ActivityIndicator size="small" color={C.primary} />
+                <Text style={styles.searchLoadingText}>Searching "{searchQuery}"...</Text>
+              </View>
+            )}
+
+            {/* API Results */}
+            {!isSearching && searchResults.length > 0 && (
+              <View>
+                <View style={styles.searchSectionHeader}>
+                  <View style={styles.searchSectionLeft}>
+                    <TrendingUp size={14} color={C.primary} strokeWidth={2} />
+                    <Text style={[styles.searchSectionTitle, { color: C.primary }]}>Results</Text>
+                  </View>
+                  <Text style={styles.resultCount}>{searchResults.length} found</Text>
+                </View>
+                {searchResults.map((place) => (
+                  <TouchableOpacity
+                    key={place.id}
+                    style={styles.searchResultRow}
+                    onPress={() => handleSelectSearchResult(place)}
+                  >
+                    <View style={[styles.searchResultIcon, { backgroundColor: getTypeConfig(place.type, place.category).bg }]}>
+                      {getPlaceIcon(place.type, place.category, 16, C.textPrimary)}
+                    </View>
+                    <View style={styles.searchResultInfo}>
+                      <Text style={styles.searchResultName} numberOfLines={1}>{place.name}</Text>
+                      <Text style={styles.searchResultSub} numberOfLines={1}>{place.displayName}</Text>
+                    </View>
+                    <View style={styles.searchResultRight}>
+                      <Text style={styles.searchResultDist}>{formatDist(place.distanceValue)}</Text>
+                      <MapPin size={12} color={C.primary} strokeWidth={2} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* No Results */}
+            {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+              <View style={styles.noResultsRow}>
+                <Search size={20} color={C.textTertiary} strokeWidth={1.5} />
+                <Text style={styles.noResultsText}>No places found for "{searchQuery}"</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+      </Animated.View>
+
+      {/* ── SCROLLABLE CONTENT (starts BELOW the fixed top) ── */}
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="on-drag"
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} colors={[C.primary]} />
@@ -327,41 +684,6 @@ export default function ExploreScreen() {
           lastScrollY.current = y;
         }}
       >
-        {/* ── HEADER ── */}
-        <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
-          <View>
-            <Text style={styles.headerTitle}>Explore Delhi</Text>
-            <View style={styles.headerSubRow}>
-              <MapPin size={13} color={C.textSecondary} strokeWidth={2} />
-              <Text style={styles.headerSub}>New Delhi, India</Text>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* ── SEARCH BAR ── */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchBar}>
-            <Search size={18} color={C.textTertiary} strokeWidth={2} />
-            <RNTextInput
-              style={styles.searchInput}
-              placeholder="Search places, monuments..."
-              placeholderTextColor={C.textTertiary}
-              value={searchQuery}
-              onChangeText={handleSearch}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <X size={16} color={C.textTertiary} strokeWidth={2} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8}>
-            <SlidersHorizontal size={18} color={C.white} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── CATEGORY CHIPS ── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -377,11 +699,11 @@ export default function ExploreScreen() {
                 onPress={() => handleCategorySelect(cat.key)}
                 activeOpacity={0.7}
               >
-                {React.cloneElement(cat.icon as React.ReactElement, {
+                {React.cloneElement(cat.icon as React.ReactElement<any>, {
                   color: isActive ? C.white : C.textSecondary,
                 })}
                 <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-                  {cat.label}
+                  {t(cat.key === 'monument' ? 'monuments' : cat.key === 'park' ? 'parks' : cat.key)}
                 </Text>
               </TouchableOpacity>
             );
@@ -397,18 +719,18 @@ export default function ExploreScreen() {
           <View style={styles.mapCardInner}>
             <View style={styles.mapPlaceholder}>
               <Map size={36} color={C.primary} strokeWidth={1.5} />
-              <Text style={styles.mapPlaceholderText}>Tap to open interactive map</Text>
+              <Text style={styles.mapPlaceholderText}>{t('tapOpenMap')}</Text>
             </View>
             <View style={styles.mapCardOverlay}>
               <View style={styles.mapCardLabel}>
                 <Compass size={14} color={C.primary} strokeWidth={2} />
-                <Text style={styles.mapCardLabelText}>Live Map View</Text>
+                <Text style={styles.mapCardLabelText}>{t('liveMapView')}</Text>
               </View>
               <TouchableOpacity
                 style={styles.mapExpandBtn}
                 onPress={() => router.push("/(user-tabs)/map" as any)}
               >
-                <Text style={styles.mapExpandText}>Expand</Text>
+                <Text style={styles.mapExpandText}>{t('expand')}</Text>
                 <Maximize2 size={13} color={C.primary} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
@@ -422,7 +744,7 @@ export default function ExploreScreen() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
               <RefreshCw size={14} color={C.white} strokeWidth={2.5} />
-              <Text style={styles.retryText}>Retry</Text>
+              <Text style={styles.retryText}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -431,14 +753,14 @@ export default function ExploreScreen() {
         {isLoading && !error && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={C.primary} />
-            <Text style={styles.loadingText}>Finding places near you...</Text>
+            <Text style={styles.loadingText}>{t('findingPlaces')}</Text>
           </View>
         )}
 
         {/* ── TRENDING NEARBY ── */}
         {!isLoading && !error && filteredTrending.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>TRENDING NEARBY</Text>
+            <Text style={styles.sectionLabel}>{t('trendingNearby')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -447,18 +769,23 @@ export default function ExploreScreen() {
               snapToInterval={TRENDING_CARD_WIDTH + 12}
             >
               {filteredTrending.map((place, idx) => {
-                const badge = getSafetyBadge(place.type, place.category);
+                const badge = getSafetyBadge(place.type, place.category, t);
                 const bgColor = CARD_BG_COLORS[idx % CARD_BG_COLORS.length];
                 return (
                   <TouchableOpacity
                     key={place.id}
                     style={styles.trendingCard}
                     activeOpacity={0.85}
-                    onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type } } as any)}
+                    onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type, lat: place.coordinate.latitude.toString(), lon: place.coordinate.longitude.toString(), name: place.name } } as any)}
                   >
-                    {/* Top colored area */}
-                    <View style={[styles.trendingCardTop, { backgroundColor: bgColor }]}>
-                      {getPlaceIcon(place.type, place.category, 28, C.primary)}
+                    {/* Top image area */}
+                    <View style={styles.trendingCardTop}>
+                      <DynamicPlaceImage
+                        place={place}
+                        style={styles.trendingImage}
+                        resizeMode="cover"
+                      />
+                      <View style={[styles.trendingImageGradient, { backgroundColor: 'rgba(0,0,0,0.4)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }]} />
                       {/* Safety badge */}
                       <View style={[styles.trendingBadge, { backgroundColor: badge.bg }]}>
                         {badge.icon}
@@ -469,10 +796,6 @@ export default function ExploreScreen() {
                     <View style={styles.trendingCardBottom}>
                       <Text style={styles.trendingName} numberOfLines={1}>{place.name}</Text>
                       <View style={styles.trendingMeta}>
-                        <View style={styles.trendingMetaRow}>
-                          <Star size={11} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />
-                          <Text style={styles.trendingRating}>4.5</Text>
-                        </View>
                         <View style={styles.trendingMetaRow}>
                           <Navigation size={10} color={C.textTertiary} strokeWidth={2} />
                           <Text style={styles.trendingDist}>{formatDist(place.distanceValue)}</Text>
@@ -490,22 +813,22 @@ export default function ExploreScreen() {
         {!isLoading && !error && (
           <View style={styles.section}>
             <View style={styles.allPlacesHeader}>
-              <Text style={styles.sectionLabel}>ALL PLACES</Text>
-              <Text style={styles.placesCount}>{filteredPlaces.length} found</Text>
+              <Text style={styles.sectionLabel}>{t('allPlaces')}</Text>
+              <Text style={styles.placesCount}>{filteredPlaces.length} {t('found')}</Text>
             </View>
 
             {filteredPlaces.length === 0 && (
               <View style={styles.emptyState}>
                 <Search size={36} color={C.textTertiary} strokeWidth={1.5} />
                 <Text style={styles.emptyTitle}>
-                  {searchQuery ? `No results for "${searchQuery}"` : "No places found nearby"}
+                  {searchQuery ? t('noResultsFor', { query: searchQuery }) : t('noPlacesFound')}
                 </Text>
-                <Text style={styles.emptySub}>Try a different category or pull to refresh</Text>
+                <Text style={styles.emptySub}>{t('tryDifferentCategory')}</Text>
               </View>
             )}
 
             {filteredPlaces.map((place) => {
-              const badge = getSafetyBadge(place.type, place.category);
+              const badge = getSafetyBadge(place.type, place.category, t);
               const typeConf = getTypeConfig(place.type, place.category);
               // Determine open/closed (simple heuristic: always "Open" during 8am-10pm)
               const hour = new Date().getHours();
@@ -516,7 +839,7 @@ export default function ExploreScreen() {
                   key={place.id}
                   style={styles.placeRow}
                   activeOpacity={0.75}
-                  onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type } } as any)}
+                  onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type, lat: place.coordinate.latitude.toString(), lon: place.coordinate.longitude.toString(), name: place.name } } as any)}
                 >
                   {/* Left: Icon box */}
                   <View style={[styles.placeIconBox, { backgroundColor: typeConf.bg }]}>
@@ -531,7 +854,7 @@ export default function ExploreScreen() {
                       <View style={[styles.openBadge, { backgroundColor: isOpen ? "#D1FAE5" : "#FEE2E2" }]}>
                         <Clock size={9} color={isOpen ? "#059669" : "#DC2626"} strokeWidth={2.5} />
                         <Text style={[styles.openText, { color: isOpen ? "#059669" : "#DC2626" }]}>
-                          {isOpen ? "Open" : "Closed"}
+                          {isOpen ? t('open') : t('closed')}
                         </Text>
                       </View>
                     </View>
@@ -553,6 +876,56 @@ export default function ExploreScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* ── FILTER MODAL ── */}
+      <Modal
+        visible={isFilterVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsFilterVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('filterAndSort', 'Sort & Filter')}</Text>
+              <TouchableOpacity onPress={() => setIsFilterVisible(false)} hitSlop={10}>
+                <X size={20} color={C.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalSectionTitle}>{t('sortBy', 'Sort By')}</Text>
+
+            <TouchableOpacity
+              style={[styles.sortOption, sortOption === 'distance' && styles.sortOptionActive]}
+              onPress={() => setSortOption('distance')}
+            >
+              <Navigation size={18} color={sortOption === 'distance' ? C.primary : C.textSecondary} />
+              <Text style={[styles.sortText, sortOption === 'distance' && styles.sortTextActive]}>{t('nearestFirst', 'Nearest First')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sortOption, sortOption === 'safety' && styles.sortOptionActive]}
+              onPress={() => setSortOption('safety')}
+            >
+              <ShieldCheck size={18} color={sortOption === 'safety' ? C.primary : C.textSecondary} />
+              <Text style={[styles.sortText, sortOption === 'safety' && styles.sortTextActive]}>{t('safestFirst', 'Safest First')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sortOption, sortOption === 'atoz' && styles.sortOptionActive]}
+              onPress={() => setSortOption('atoz')}
+            >
+              <LayoutGrid size={18} color={sortOption === 'atoz' ? C.primary : C.textSecondary} />
+              <Text style={[styles.sortText, sortOption === 'atoz' && styles.sortTextActive]}>{t('alphabetical', 'Alphabetical (A-Z)')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.applyBtn} onPress={() => setIsFilterVisible(false)}>
+              <Text style={styles.applyBtnText}>{t('apply', 'Apply')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -563,6 +936,12 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.background },
   scrollContent: { paddingBottom: 0 },
+
+  // Fixed Top Container (header + search bar - outside ScrollView)
+  fixedTop: {
+    backgroundColor: C.background,
+    zIndex: 10,
+  },
 
   // Header
   header: {
@@ -785,10 +1164,21 @@ const styles = StyleSheet.create({
     borderColor: C.cardBorder,
   },
   trendingCardTop: {
-    height: 90,
-    justifyContent: "center",
-    alignItems: "center",
+    height: 100,
+    width: "100%",
     position: "relative",
+  },
+  trendingImage: {
+    width: "100%",
+    height: "100%",
+  },
+  trendingImageGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "100%",
+    opacity: 0.5,
   },
   trendingBadge: {
     position: "absolute",
@@ -796,10 +1186,10 @@ const styles = StyleSheet.create({
     right: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 8,
+    gap: 3,
   },
   trendingBadgeText: {
     fontSize: 10,
@@ -937,5 +1327,231 @@ const styles = StyleSheet.create({
   placeSafetyText: {
     fontSize: 10,
     fontWeight: "500",
+  },
+
+  // Modal 
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: C.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: C.textPrimary,
+  },
+  modalSectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: C.textTertiary,
+    marginBottom: 12,
+    marginTop: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sortOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 10,
+    gap: 12,
+  },
+  sortOptionActive: {
+    borderColor: C.primary,
+    backgroundColor: C.primaryLight,
+  },
+  sortText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: C.textSecondary,
+  },
+  sortTextActive: {
+    color: C.primary,
+    fontWeight: "600",
+  },
+  applyBtn: {
+    backgroundColor: C.primary,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  applyBtnText: {
+    color: C.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  // Search Focus State
+  searchBarFocused: {
+    borderColor: C.primary,
+    borderWidth: 1.5,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  // Search Overlay (absolute, floats over ScrollView)
+  searchOverlay: {
+    position: "absolute",
+    top: "100%",
+    marginTop: 8,
+    left: 20,
+    right: 20,
+    backgroundColor: C.white,
+    borderRadius: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    shadowColor: C.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 20,
+    maxHeight: 420,
+    overflow: "hidden",
+    zIndex: 100,
+  },
+  searchSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+  },
+  searchSectionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  searchSectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: C.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  clearBtn: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#DC2626",
+  },
+  resultCount: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: C.textTertiary,
+  },
+
+  // Recent Search Row
+  searchSuggestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "400",
+    color: C.textPrimary,
+  },
+
+  // Search Loading
+  searchLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    gap: 10,
+  },
+  searchLoadingText: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: C.textSecondary,
+  },
+
+  // Search Result Row
+  searchResultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+  },
+  searchResultIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  searchResultInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  searchResultName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: C.textPrimary,
+  },
+  searchResultSub: {
+    fontSize: 11,
+    fontWeight: "400",
+    color: C.textTertiary,
+  },
+  searchResultRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  searchResultDist: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: C.primary,
+  },
+
+  // No Results
+  noResultsRow: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+  noResultsText: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: C.textTertiary,
+    textAlign: "center",
   },
 });

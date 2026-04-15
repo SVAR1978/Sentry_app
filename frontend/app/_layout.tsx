@@ -11,7 +11,8 @@ import {
   PlusJakartaSans_800ExtraBold 
 } from "@expo-google-fonts/plus-jakarta-sans";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { initI18n } from "../config/i18n";
 
 // Prevent auto conceal while fetching heavy font files
 SplashScreen.preventAutoHideAsync();
@@ -23,15 +24,29 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
 
+  // ── i18n must resolve saved language from AsyncStorage before first render ──
+  const [i18nReady, setI18nReady] = useState(false);
+
   useEffect(() => {
-    if (fontsLoaded) {
+    initI18n()
+      .then(() => setI18nReady(true))
+      .catch((err) => {
+        console.error("[i18n] Initialization failed:", err);
+        setI18nReady(true); // render anyway with fallback English
+      });
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded && i18nReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, i18nReady]);
 
-  if (!fontsLoaded) {
-    return null; // Hold back rendering until fonts are perfectly loaded
+  // Hold back rendering until fonts AND i18n are perfectly loaded
+  if (!fontsLoaded || !i18nReady) {
+    return null;
   }
+
   return (
     <AuthProvider>
       <SocketProvider>
