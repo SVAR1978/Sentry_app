@@ -1,0 +1,10 @@
+{
+  "sosBtn": "SOS",
+  "emergencyTitle": "Emergencia",
+  "holdForSos": "MANTENER PARA SOS",
+  "sosActivated": "SOS activado",
+  "alertSent": "Alerta enviada a tus contactos de emergencia",
+  "cancelAlert": "Cancelar alerta",
+  "connected": "Conectado",
+  "disconnected": "Desconectado"
+}
