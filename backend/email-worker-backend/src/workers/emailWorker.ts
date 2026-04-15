@@ -10,7 +10,7 @@ process.on("unhandledRejection", (reason) => {
 });
 
 try {
-  new Worker(
+  const worker = new Worker(
     "emailQueue",
     async (job) => {
       const { email, subject, htmlContent } = job.data;
@@ -22,6 +22,22 @@ try {
     },
     { connection: redis }
   );
+
+  worker.on("completed", (job) => {
+    console.log("emailWorker: job completed", { jobId: job.id, name: job.name });
+  });
+
+  worker.on("failed", (job, err) => {
+    console.error("emailWorker: job failed", {
+      jobId: job?.id,
+      name: job?.name,
+      error: err?.message ?? err,
+    });
+  });
+
+  worker.on("error", (err) => {
+    console.error("emailWorker: worker error", err);
+  });
 
   console.log("Email worker started");
 } catch (err) {
