@@ -292,6 +292,13 @@ export default function UsersScreen() {
       (u.phone || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesSearch;
+  }).sort((a, b) => {
+    const aOnline = onlineUserIds.has(a.id);
+    const bOnline = onlineUserIds.has(b.id);
+    if (aOnline && !bOnline) return -1;
+    if (!aOnline && bOnline) return 1;
+    // Default to newest first if both have the same status
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const onlineCount = users.filter((u) => onlineUserIds.has(u.id)).length;

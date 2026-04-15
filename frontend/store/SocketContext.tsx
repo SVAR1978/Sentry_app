@@ -149,7 +149,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const chatListeners = useRef<Set<(data: any) => void>>(new Set());
   const riskAlertListeners = useRef<Set<(data: RiskAlertEvent) => void>>(new Set());
   const sosListeners = useRef<Set<(data: SOSAlertEvent | SOSStatusUpdateEvent | SOSConfirmationEvent) => void>>(new Set());
-
+  
+  // Cache for instantly hydrating map components that mount after connection
+  const latestLocationsCache = useRef<Map<string, UserLocationEvent>>(new Map());
   // ─── CONNECT ──────────────────────────────────────────
 
   const connectWebSocket = useCallback(async () => {
@@ -191,12 +193,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
           // Route USER_LOCATION events to admin listeners
           if (data.type === "USER_LOCATION") {
+            const locEvent = data as UserLocationEvent;
+            latestLocationsCache.current.set(locEvent.userId, locEvent);
             for (const listener of userLocationListeners.current) {
-              listener(data as UserLocationEvent);
+              listener(locEvent);
             }
           } else if (data.type === "USER_SESSION") {
+            const actEvent = data as UserActivityEvent;
+            if (actEvent.payload.action === "LOGOUT") {
+              latestLocationsCache.current.delete(actEvent.payload.userId);
+            }
             for (const listener of userActivityListeners.current) {
-              listener(data as UserActivityEvent);
+              listener(actEvent);
             }
           } else if (data.type === "LIVE_USERS_COUNT") {
             for (const listener of liveUsersCountListeners.current) {
@@ -333,6 +341,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const onUserLocation = useCallback((callback: (data: UserLocationEvent) => void) => {
     userLocationListeners.current.add(callback);
+    
+    // Play back cached initial locations so newly mounted map gets them instantly
+    latestLocationsCache.current.forEach((cachedEvent) => {
+      callback(cachedEvent);
+    });
+
     return () => {
       userLocationListeners.current.delete(callback);
     };
