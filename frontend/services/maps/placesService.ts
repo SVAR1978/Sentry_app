@@ -208,12 +208,12 @@ export const searchNearbyPlaces = async (
     const queries = Array.from(allOsmTags)
       .map((tag) => `node[${tag}](around:${radius},${location.latitude},${location.longitude});`)
       .join("\n");
-    
+
     // Single request! (15s timeout on Overpass side, 15000 timeout on our fetch side)
     const overpassQuery = `[out:json][timeout:15];(${queries});out body;>;out skel qt;`;
 
     let allPlaces: any[] = [];
-    
+
     try {
       const response = await fetchWithTimeout(
         OVERPASS_API,
@@ -229,10 +229,10 @@ export const searchNearbyPlaces = async (
         console.warn(`OSM search failed (${response.status})`);
       } else {
         const data = await response.json();
-        
+
         if (data.elements && data.elements.length > 0) {
           console.log(`✅ Found ${data.elements.length} places from OSM`);
-          
+
           allPlaces = data.elements
             .filter((item: any) => item.lat && item.lon && item.tags?.name)
             .map((item: any) => {

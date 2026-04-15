@@ -148,7 +148,7 @@ const getPlaceImage = (type: string, id: string) => {
   else if (t.includes("monument") || t.includes("attraction") || t.includes("tourism") || t.includes("museum")) categoryImages = PLACE_IMAGES.monument;
   else if (t.includes("temple") || t.includes("church") || t.includes("mosque")) categoryImages = PLACE_IMAGES.religious;
   else if (t.includes("shop") || t.includes("mall") || t.includes("market")) categoryImages = PLACE_IMAGES.shopping;
-  
+
   const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return categoryImages[hash % categoryImages.length];
 };
@@ -231,7 +231,7 @@ const DynamicPlaceImage = ({ place, style, resizeMode }: { place: PlaceWithDist,
     const fetchRealImage = async () => {
       const tStr = (place.type + place.category).toLowerCase();
       const isFamousType = tStr.includes("monument") || tStr.includes("tourism") || tStr.includes("attraction") || tStr.includes("museum") || tStr.includes("temple") || tStr.includes("mosque") || tStr.includes("park") || tStr.includes("mall");
-      
+
       if (isFamousType && place.name && place.name.length > 2) {
         try {
           const cleanName = place.name.split(',')[0].trim();
@@ -239,13 +239,13 @@ const DynamicPlaceImage = ({ place, style, resizeMode }: { place: PlaceWithDist,
           if (res.ok) {
             const data = await res.json();
             if (data.thumbnail?.source && isMounted) {
-               setImageUrl(data.thumbnail.source);
-               return;
+              setImageUrl(data.thumbnail.source);
+              return;
             }
           }
-        } catch(e) {} // ignore fails silently
+        } catch (e) { } // ignore fails silently
       }
-      
+
       // Fallback instantly if no real image is found online
       if (isMounted) setImageUrl(getPlaceImage(place.type, place.id));
     };
@@ -478,7 +478,7 @@ export default function ExploreScreen() {
           p.category.toLowerCase().includes(q)
       );
     }
-    
+
     return result.sort((a, b) => {
       if (sortOption === 'distance') return a.distanceValue - b.distanceValue;
       if (sortOption === 'atoz') return a.name.localeCompare(b.name);
@@ -593,75 +593,75 @@ export default function ExploreScreen() {
                 <View style={styles.searchSectionHeader}>
                   <View style={styles.searchSectionLeft}>
                     <History size={14} color={C.textTertiary} strokeWidth={2} />
-                  <Text style={styles.searchSectionTitle}>Recent Searches</Text>
+                    <Text style={styles.searchSectionTitle}>Recent Searches</Text>
+                  </View>
+                  <TouchableOpacity onPress={clearRecentSearches}>
+                    <Text style={styles.clearBtn}>Clear</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={clearRecentSearches}>
-                  <Text style={styles.clearBtn}>Clear</Text>
-                </TouchableOpacity>
+                {recentSearches.map((term, idx) => (
+                  <TouchableOpacity
+                    key={`recent-${idx}`}
+                    style={styles.searchSuggestionRow}
+                    onPress={() => handleSelectRecent(term)}
+                  >
+                    <History size={16} color={C.textTertiary} strokeWidth={1.5} />
+                    <Text style={styles.suggestionText} numberOfLines={1}>{term}</Text>
+                    <ArrowUpRight size={14} color={C.textTertiary} strokeWidth={2} />
+                  </TouchableOpacity>
+                ))}
               </View>
-              {recentSearches.map((term, idx) => (
-                <TouchableOpacity
-                  key={`recent-${idx}`}
-                  style={styles.searchSuggestionRow}
-                  onPress={() => handleSelectRecent(term)}
-                >
-                  <History size={16} color={C.textTertiary} strokeWidth={1.5} />
-                  <Text style={styles.suggestionText} numberOfLines={1}>{term}</Text>
-                  <ArrowUpRight size={14} color={C.textTertiary} strokeWidth={2} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+            )}
 
-          {/* Loading */}
-          {isSearching && searchQuery.length >= 2 && (
-            <View style={styles.searchLoadingRow}>
-              <ActivityIndicator size="small" color={C.primary} />
-              <Text style={styles.searchLoadingText}>Searching "{searchQuery}"...</Text>
-            </View>
-          )}
+            {/* Loading */}
+            {isSearching && searchQuery.length >= 2 && (
+              <View style={styles.searchLoadingRow}>
+                <ActivityIndicator size="small" color={C.primary} />
+                <Text style={styles.searchLoadingText}>Searching "{searchQuery}"...</Text>
+              </View>
+            )}
 
-          {/* API Results */}
-          {!isSearching && searchResults.length > 0 && (
-            <View>
-              <View style={styles.searchSectionHeader}>
-                <View style={styles.searchSectionLeft}>
-                  <TrendingUp size={14} color={C.primary} strokeWidth={2} />
-                  <Text style={[styles.searchSectionTitle, { color: C.primary }]}>Results</Text>
+            {/* API Results */}
+            {!isSearching && searchResults.length > 0 && (
+              <View>
+                <View style={styles.searchSectionHeader}>
+                  <View style={styles.searchSectionLeft}>
+                    <TrendingUp size={14} color={C.primary} strokeWidth={2} />
+                    <Text style={[styles.searchSectionTitle, { color: C.primary }]}>Results</Text>
+                  </View>
+                  <Text style={styles.resultCount}>{searchResults.length} found</Text>
                 </View>
-                <Text style={styles.resultCount}>{searchResults.length} found</Text>
+                {searchResults.map((place) => (
+                  <TouchableOpacity
+                    key={place.id}
+                    style={styles.searchResultRow}
+                    onPress={() => handleSelectSearchResult(place)}
+                  >
+                    <View style={[styles.searchResultIcon, { backgroundColor: getTypeConfig(place.type, place.category).bg }]}>
+                      {getPlaceIcon(place.type, place.category, 16, C.textPrimary)}
+                    </View>
+                    <View style={styles.searchResultInfo}>
+                      <Text style={styles.searchResultName} numberOfLines={1}>{place.name}</Text>
+                      <Text style={styles.searchResultSub} numberOfLines={1}>{place.displayName}</Text>
+                    </View>
+                    <View style={styles.searchResultRight}>
+                      <Text style={styles.searchResultDist}>{formatDist(place.distanceValue)}</Text>
+                      <MapPin size={12} color={C.primary} strokeWidth={2} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
-              {searchResults.map((place) => (
-                <TouchableOpacity
-                  key={place.id}
-                  style={styles.searchResultRow}
-                  onPress={() => handleSelectSearchResult(place)}
-                >
-                  <View style={[styles.searchResultIcon, { backgroundColor: getTypeConfig(place.type, place.category).bg }]}>
-                    {getPlaceIcon(place.type, place.category, 16, C.textPrimary)}
-                  </View>
-                  <View style={styles.searchResultInfo}>
-                    <Text style={styles.searchResultName} numberOfLines={1}>{place.name}</Text>
-                    <Text style={styles.searchResultSub} numberOfLines={1}>{place.displayName}</Text>
-                  </View>
-                  <View style={styles.searchResultRight}>
-                    <Text style={styles.searchResultDist}>{formatDist(place.distanceValue)}</Text>
-                    <MapPin size={12} color={C.primary} strokeWidth={2} />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+            )}
 
-          {/* No Results */}
-          {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
-            <View style={styles.noResultsRow}>
-              <Search size={20} color={C.textTertiary} strokeWidth={1.5} />
-              <Text style={styles.noResultsText}>No places found for "{searchQuery}"</Text>
-            </View>
-          )}
-        </View>
-      )}
+            {/* No Results */}
+            {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+              <View style={styles.noResultsRow}>
+                <Search size={20} color={C.textTertiary} strokeWidth={1.5} />
+                <Text style={styles.noResultsText}>No places found for "{searchQuery}"</Text>
+              </View>
+            )}
+          </View>
+        )}
 
       </Animated.View>
 
@@ -776,14 +776,14 @@ export default function ExploreScreen() {
                     key={place.id}
                     style={styles.trendingCard}
                     activeOpacity={0.85}
-                    onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type } } as any)}
+                    onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type, lat: place.coordinate.latitude.toString(), lon: place.coordinate.longitude.toString(), name: place.name } } as any)}
                   >
                     {/* Top image area */}
                     <View style={styles.trendingCardTop}>
-                      <DynamicPlaceImage 
+                      <DynamicPlaceImage
                         place={place}
-                        style={styles.trendingImage} 
-                        resizeMode="cover" 
+                        style={styles.trendingImage}
+                        resizeMode="cover"
                       />
                       <View style={[styles.trendingImageGradient, { backgroundColor: 'rgba(0,0,0,0.4)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }]} />
                       {/* Safety badge */}
@@ -796,10 +796,6 @@ export default function ExploreScreen() {
                     <View style={styles.trendingCardBottom}>
                       <Text style={styles.trendingName} numberOfLines={1}>{place.name}</Text>
                       <View style={styles.trendingMeta}>
-                        <View style={styles.trendingMetaRow}>
-                          <Star size={11} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />
-                          <Text style={styles.trendingRating}>4.5</Text>
-                        </View>
                         <View style={styles.trendingMetaRow}>
                           <Navigation size={10} color={C.textTertiary} strokeWidth={2} />
                           <Text style={styles.trendingDist}>{formatDist(place.distanceValue)}</Text>
@@ -843,7 +839,7 @@ export default function ExploreScreen() {
                   key={place.id}
                   style={styles.placeRow}
                   activeOpacity={0.75}
-                  onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type } } as any)}
+                  onPress={() => router.push({ pathname: "/(user-tabs)/map", params: { filter: place.type, lat: place.coordinate.latitude.toString(), lon: place.coordinate.longitude.toString(), name: place.name } } as any)}
                 >
                   {/* Left: Icon box */}
                   <View style={[styles.placeIconBox, { backgroundColor: typeConf.bg }]}>
@@ -896,33 +892,33 @@ export default function ExploreScreen() {
                 <X size={20} color={C.textPrimary} />
               </TouchableOpacity>
             </View>
-            
+
             <Text style={styles.modalSectionTitle}>{t('sortBy', 'Sort By')}</Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.sortOption, sortOption === 'distance' && styles.sortOptionActive]}
               onPress={() => setSortOption('distance')}
             >
               <Navigation size={18} color={sortOption === 'distance' ? C.primary : C.textSecondary} />
               <Text style={[styles.sortText, sortOption === 'distance' && styles.sortTextActive]}>{t('nearestFirst', 'Nearest First')}</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.sortOption, sortOption === 'safety' && styles.sortOptionActive]}
               onPress={() => setSortOption('safety')}
             >
               <ShieldCheck size={18} color={sortOption === 'safety' ? C.primary : C.textSecondary} />
               <Text style={[styles.sortText, sortOption === 'safety' && styles.sortTextActive]}>{t('safestFirst', 'Safest First')}</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.sortOption, sortOption === 'atoz' && styles.sortOptionActive]}
               onPress={() => setSortOption('atoz')}
             >
               <LayoutGrid size={18} color={sortOption === 'atoz' ? C.primary : C.textSecondary} />
               <Text style={[styles.sortText, sortOption === 'atoz' && styles.sortTextActive]}>{t('alphabetical', 'Alphabetical (A-Z)')}</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.applyBtn} onPress={() => setIsFilterVisible(false)}>
               <Text style={styles.applyBtnText}>{t('apply', 'Apply')}</Text>
             </TouchableOpacity>
@@ -1332,7 +1328,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "500",
   },
-  
+
   // Modal 
   modalOverlay: {
     flex: 1,

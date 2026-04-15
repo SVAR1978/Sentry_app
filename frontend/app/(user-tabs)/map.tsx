@@ -103,7 +103,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const { sendLocation, onRiskAlert } = useSocket();
   // Get route params (from QuickActions)
-  const params = useLocalSearchParams<{ filter?: string }>();
+  const params = useLocalSearchParams<{ filter?: string; lat?: string; lon?: string; name?: string }>();
 
   // Map ref
   const mapRef = useRef<MapView>(null);
@@ -377,6 +377,36 @@ export default function MapScreen() {
       setSelectedFilter(params.filter as string);
     }
   }, [params.filter]);
+
+  // ===================================================================
+  // 1B-extra. HANDLE INCOMING PLACE FROM EXPLORE SEARCH
+  // ===================================================================
+  const hasHandledExploreParams = useRef(false);
+
+  useEffect(() => {
+    if (hasHandledExploreParams.current) return;
+    if (!params.lat || !params.lon || !params.name) return;
+    if (!userLocation) return; // wait until we have the user's location
+
+    const lat = parseFloat(params.lat as string);
+    const lon = parseFloat(params.lon as string);
+    if (isNaN(lat) || isNaN(lon)) return;
+
+    hasHandledExploreParams.current = true;
+
+    // Build a SearchResult-compatible place object
+    const explorPlace: SearchResult = {
+      id: `explore_${lat}_${lon}`,
+      name: params.name as string,
+      displayName: params.name as string,
+      coordinate: { latitude: lat, longitude: lon },
+      type: params.filter || 'place',
+      category: params.filter || 'place',
+    };
+
+    // Select the place → triggers directions fetch & marker
+    handlePlaceSelected(explorPlace);
+  }, [params.lat, params.lon, params.name, userLocation]);
 
   useEffect(() => {
     if (!userLocation) return;
