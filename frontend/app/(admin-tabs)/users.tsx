@@ -114,12 +114,12 @@ const AnimatedUserCard = ({ user, index, isOnline }: { user: UserData; index: nu
   }, [fadeAnim, slideAnim, scaleAnim, index]);
 
   return (
-    <Animated.View style={{ 
-      opacity: fadeAnim, 
+    <Animated.View style={{
+      opacity: fadeAnim,
       transform: [
         { translateY: slideAnim },
         { scale: scaleAnim }
-      ] 
+      ]
     }}>
       <Card style={styles.userCard}>
         <Card.Content style={styles.userContent}>
@@ -367,7 +367,7 @@ export default function UsersScreen() {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.filterIconBtn}>
-              <SlidersHorizontal size={18} color={COLORS.textMuted} strokeWidth={2.5}/>
+              <SlidersHorizontal size={18} color={COLORS.textMuted} strokeWidth={2.5} />
             </TouchableOpacity>
           )}
         </View>
@@ -423,11 +423,11 @@ export default function UsersScreen() {
                 {visibleUsers.map((user, index) => {
                   const isOnline = onlineUserIds.has(user.id);
                   return (
-                    <AnimatedUserCard 
-                      key={user.id} 
-                      user={user} 
-                      index={index} 
-                      isOnline={isOnline} 
+                    <AnimatedUserCard
+                      key={user.id}
+                      user={user}
+                      index={index}
+                      isOnline={isOnline}
                     />
                   );
                 })}
