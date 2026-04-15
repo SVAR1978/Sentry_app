@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { MapPin, ShieldAlert, ShieldCheck, Shield } from "lucide-react-native";
+import { MapPin } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Avatar, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../constants/userHomeData";
@@ -9,25 +9,17 @@ import {
   getCurrentLocation,
   reverseGeocode,
 } from "../../services/maps/locationService";
-import { getAreaId } from "../../services/risk/areaLookup";
-import { resolveAreaFromLocation } from "../../services/risk/areaResolver";
-import { fetchAreaBaseScore } from "../../services/api/riskService";
 
 interface UserHeaderProps {
   user: any;
 }
 
-export interface LocationRiskResult {
-  risk_level: "Safe" | "Low" | "Medium" | "High";
-  final_score: number;
-  area_id: string;
-}
+
 
 const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
   const insets = useSafeAreaInsets();
   const [locationName, setLocationName] = useState("Locating...");
-  const [currentRisk, setCurrentRisk] = useState<LocationRiskResult | null>(null);
-  const [isLoadingRisk, setIsLoadingRisk] = useState(true);
+
 
   useEffect(() => {
     const fetchLocationAndRisk = async () => {
@@ -47,51 +39,18 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
             setLocationName("Location Found");
           }
 
-          // 2. Resolve Area ID for Risk Model
-          try {
-            let areaId = await getAreaId(coords.latitude, coords.longitude);
-            if (!areaId) {
-              areaId = await resolveAreaFromLocation(coords.latitude, coords.longitude);
-            }
-            // 3. Fetch Base Risk Score
-            if (areaId) {
-              const baseRisk = await fetchAreaBaseScore(areaId);
-              if (baseRisk) {
-                const finalScore = baseRisk.final_score ?? baseRisk.base_score;
-                const riskLevel = finalScore > 55 ? "High" : finalScore > 30 ? "Medium" : "Safe";
-                setCurrentRisk({
-                  risk_level: riskLevel,
-                  final_score: Math.round(finalScore),
-                  area_id: baseRisk.area_id
-                });
-              }
-            }
-          } catch (riskError) {
-            console.warn("[UserHeader] Error fetching risk score:", riskError);
-          }
         } else {
           setLocationName("India");
         }
       } catch (error) {
         setLocationName("Explore India");
-      } finally {
-        setIsLoadingRisk(false);
       }
     };
 
     fetchLocationAndRisk();
   }, []);
 
-  const getRiskTheme = (level: string) => {
-    switch (level) {
-      case "High":
-        return { bg: "#FEF2F2", text: "#991B1B", border: "#F87171", Icon: ShieldAlert };
-      case "Medium":
-        return { bg: "#FFFBEB", text: "#92400E", border: "#FBBF24", Icon: Shield };
-      default:
-        return { bg: "#ECFDF5", text: "#065F46", border: "#34D399", Icon: ShieldCheck };
-    }
-  };
+
 
   return (
     <View style={styles.headerWrapper}>
@@ -135,39 +94,12 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Hero Section & Risk Score */}
+          {/* Hero Section */}
           <View style={styles.heroSection}>
             <Text style={styles.headerTitle}>Find your next safe</Text>
             <Text style={[styles.headerTitle, { color: COLORS.secondary }]}>
               adventure
             </Text>
-            
-            <View style={styles.riskCardWrapper}>
-              {isLoadingRisk ? (
-                 <View style={styles.riskLoading}>
-                   <ActivityIndicator size="small" color={COLORS.white} />
-                   <Text style={styles.loadingText}>Analyzing regional safety...</Text>
-                 </View>
-              ) : currentRisk ? (
-                <View style={[styles.riskCard, { backgroundColor: getRiskTheme(currentRisk.risk_level).bg, borderColor: getRiskTheme(currentRisk.risk_level).border }]}>
-                  <View style={styles.riskRow}>
-                    {React.createElement(getRiskTheme(currentRisk.risk_level).Icon, {
-                      size: 24,
-                      color: getRiskTheme(currentRisk.risk_level).text,
-                      strokeWidth: 2.5
-                    })}
-                    <View style={styles.riskInfo}>
-                      <Text style={[styles.riskLevelText, { color: getRiskTheme(currentRisk.risk_level).text }]}>
-                        {currentRisk.risk_level} Risk Zone
-                      </Text>
-                      <Text style={[styles.riskDetailsText, { color: getRiskTheme(currentRisk.risk_level).text }]}>
-                        Score: {currentRisk.final_score} • {currentRisk.area_id}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              ) : null}
-            </View>
           </View>
 
         </View>
@@ -246,56 +178,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     lineHeight: 38,
     letterSpacing: -1,
-  },
-  riskCardWrapper: {
-    marginTop: 20,
-    minHeight: 64,
-    justifyContent: "center",
-  },
-  riskLoading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: 16,
-    alignSelf: "flex-start",
-  },
-  loadingText: {
-    color: COLORS.white,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  riskCard: {
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  riskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  riskInfo: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  riskLevelText: {
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  riskDetailsText: {
-    fontSize: 13,
-    fontWeight: "600",
-    opacity: 0.8,
-    marginTop: 2,
   },
 });
 
