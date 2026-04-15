@@ -16,6 +16,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const TAB_BAR_WIDTH = width * 0.92;
@@ -202,6 +203,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function AdminTabsLayout() {
+  const { t } = useTranslation("common");
+
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
@@ -215,10 +218,10 @@ export default function AdminTabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Dashboard" }} />
-      <Tabs.Screen name="users" options={{ title: "Users" }} />
-      <Tabs.Screen name="map" options={{ title: "Map" }} />
-      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+      <Tabs.Screen name="index" options={{ title: t("adminDashboard") }} />
+      <Tabs.Screen name="users" options={{ title: t("users") }} />
+      <Tabs.Screen name="map" options={{ title: t("map") }} />
+      <Tabs.Screen name="settings" options={{ title: t("settings") }} />
     </Tabs>
   );
 }

@@ -46,6 +46,18 @@ export function broadcastLiveUserCountToAdmins(clients: Client[]) {
     },
   };
 
+  if (activeAdmins.length === 0) {
+    console.log(
+      "[AdminRealtimeService] No active admin clients to broadcast LIVE_USERS_COUNT event"
+    );
+    return;
+  }
+
+  console.log(
+    `[AdminRealtimeService] Broadcasting LIVE_USERS_COUNT to ${activeAdmins.length} admin(s):`,
+    payload.payload
+  );
+
   for (const client of activeAdmins) {
     client.ws.send(JSON.stringify(payload));
   }

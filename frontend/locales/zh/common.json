@@ -1,0 +1,23 @@
+{
+  "appName": "Sentry",
+  "tagline": "智能防护",
+  "language": "应用语言",
+  "selectLanguage": "选择语言",
+  "home": "首页",
+  "explore": "探索",
+  "map": "地图",
+  "profile": "个人",
+  "settings": "设置",
+  "users": "用户",
+  "adminDashboard": "管理面板",
+  "continue": "继续",
+  "cancel": "取消",
+  "back": "返回",
+  "save": "保存",
+  "search": "搜索",
+  "loading": "加载中...",
+  "english": "英语",
+  "spanish": "西班牙语",
+  "french": "法语",
+  "chinese": "中文"
+}
