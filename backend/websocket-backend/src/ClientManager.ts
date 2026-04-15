@@ -242,8 +242,11 @@ export class ClientManager {
     try {
       // Get the latest location per active user from Prisma
       const latestLogs = await prisma.locationLog.findMany({
-        orderBy: { timestamp: 'desc' },
         distinct: ['userId'],
+        orderBy: [
+          { userId: 'asc' },
+          { timestamp: 'desc' }
+        ],
         select: {
           userId: true,
           latitude: true,

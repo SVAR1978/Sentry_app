@@ -495,7 +495,12 @@ export default function AdminMapScreen() {
       <Animated.View
         style={[
           styles.headerGlass,
-          { top: Math.max(insets.top, 20) + 10, opacity: headerFade },
+          { 
+            top: Math.max(insets.top, 20) + 10, 
+            opacity: headerFade,
+            zIndex: 100,
+            elevation: 100
+          },
         ]}
       >
         <View style={styles.headerContent}>
@@ -533,7 +538,7 @@ export default function AdminMapScreen() {
       </Animated.View>
 
       {/* ── Map Controls ── */}
-      <View style={[styles.controlsColumn, { bottom: selectedUser ? 250 : 110 }]}>
+      <View style={[styles.controlsColumn, { bottom: selectedUser ? 250 : 110, zIndex: 100, elevation: 100 }]}>
         <TouchableOpacity
           style={styles.controlBtn}
           onPress={fitAllUsers}
@@ -557,6 +562,8 @@ export default function AdminMapScreen() {
           {
             top: Math.max(insets.top, 20) + 90,
             transform: [{ translateX: listSlide }],
+            zIndex: 100,
+            elevation: 100,
           },
         ]}
       >
