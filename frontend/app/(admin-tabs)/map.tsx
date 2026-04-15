@@ -331,26 +331,8 @@ export default function AdminMapScreen() {
       });
     });
 
-    // Safety-net cleanup: remove users not heard from in 60s
-    const interval = setInterval(() => {
-      setActiveUsers((prev) => {
-        const now = Date.now();
-        let changed = false;
-        const next = { ...prev };
-        for (const [id, user] of Object.entries(next)) {
-          if (now - user.lastSeen > 60000) {
-            console.log(`[AdminMap] ⏰ Stale cleanup: "${user.name}" (${id}) — last seen ${Math.round((now - user.lastSeen) / 1000)}s ago`);
-            delete next[id];
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    }, 15000);
-
     return () => {
       unsub();
-      clearInterval(interval);
     };
   }, [onUserLocation, userDirectory]);
 
