@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Snackbar, TextInput, ActivityIndicator } from "react-native-paper";
 import { ChevronLeft, Check, Circle } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -61,6 +62,7 @@ export default function ForgotPassword() {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarIsError, setSnackbarIsError] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const { t } = useTranslation('auth');
 
   const passwordRequirements = {
     minLength: newPassword.length >= 8,
@@ -71,10 +73,10 @@ export default function ForgotPassword() {
 
   const getPasswordStrength = (): PasswordStrength => {
     const score = Object.values(passwordRequirements).filter(Boolean).length;
-    if (score === 0) return { score: 0, text: "None", color: COLORS.error };
-    if (score <= 2) return { score: 1, text: "Weak", color: COLORS.error };
-    if (score < 4) return { score: 2, text: "Medium", color: COLORS.warning };
-    return { score: 3, text: "Strong", color: COLORS.success };
+    if (score === 0) return { score: 0, text: t('strengthNone'), color: COLORS.error };
+    if (score <= 2) return { score: 1, text: t('strengthWeak'), color: COLORS.error };
+    if (score < 4) return { score: 2, text: t('strengthMedium'), color: COLORS.warning };
+    return { score: 3, text: t('strengthStrong'), color: COLORS.success };
   };
 
   const shakeAnimation = () => {
@@ -89,8 +91,8 @@ export default function ForgotPassword() {
   // ── Validations ──
   const validateEmail = () => {
     const e: Record<string, string | undefined> = {};
-    if (!email.trim()) e.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Please enter a valid email";
+    if (!email.trim()) e.email = t('emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t('validEmail');
     setErrors(e);
     if (Object.keys(e).length > 0) { shakeAnimation(); return false; }
     return true;
@@ -98,9 +100,9 @@ export default function ForgotPassword() {
 
   const validateVerificationCode = () => {
     const e: Record<string, string | undefined> = {};
-    if (!verificationCode.trim()) e.code = "Verification code is required";
-    else if (verificationCode.length < 4) e.code = "Code must be at least 4 digits";
-    else if (verificationCode.length > 6) e.code = "Code must not exceed 6 digits";
+    if (!verificationCode.trim()) e.code = t('codeRequired');
+    else if (verificationCode.length < 4) e.code = t('codeMin4');
+    else if (verificationCode.length > 6) e.code = t('codeMax6');
     setErrors(e);
     if (Object.keys(e).length > 0) { shakeAnimation(); return false; }
     return true;
@@ -108,9 +110,9 @@ export default function ForgotPassword() {
 
   const validatePasswordReset = () => {
     const e: Record<string, string | undefined> = {};
-    if (!newPassword.trim()) e.password = "Password is required";
-    else if (!Object.values(passwordRequirements).every(Boolean)) e.password = "Password does not meet requirements";
-    if (newPassword !== confirmPassword) e.confirmPassword = "Passwords do not match";
+    if (!newPassword.trim()) e.password = t('passwordRequired');
+    else if (!Object.values(passwordRequirements).every(Boolean)) e.password = t('passwordRequirementsUnmet');
+    if (newPassword !== confirmPassword) e.confirmPassword = t('passwordsNoMatch');
     setErrors(e);
     if (Object.keys(e).length > 0) { shakeAnimation(); return false; }
     return true;
@@ -126,12 +128,12 @@ export default function ForgotPassword() {
         body: JSON.stringify({ email }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to send verification code");
+      if (!response.ok) throw new Error(data.message || t('failedSendCode'));
       setStep("verification");
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch (error: any) {
       setSnackbarIsError(true);
-      setSnackbarMessage(error.message || "Failed to send verification code");
+      setSnackbarMessage(error.message || t('failedSendCode'));
       setSnackbarVisible(true);
       shakeAnimation();
     } finally { setLoading(false); }
@@ -146,12 +148,12 @@ export default function ForgotPassword() {
         body: JSON.stringify({ email, code: verificationCode }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Invalid verification code");
+      if (!response.ok) throw new Error(data.message || t('invalidCode'));
       setStep("reset-password");
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch (error: any) {
       setSnackbarIsError(true);
-      setSnackbarMessage(error.message || "Invalid verification code");
+      setSnackbarMessage(error.message || t('invalidCode'));
       setSnackbarVisible(true);
       shakeAnimation();
     } finally { setLoading(false); }
@@ -166,14 +168,14 @@ export default function ForgotPassword() {
         body: JSON.stringify({ email, code: verificationCode, newPassword }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to reset password");
+      if (!response.ok) throw new Error(data.message || t('failedResetPassword'));
       setSnackbarIsError(false);
-      setSnackbarMessage("Password reset successfully!");
+      setSnackbarMessage(t('passwordResetSuccess'));
       setSnackbarVisible(true);
       setTimeout(() => router.replace("/(auth)/user-login"), 1200);
     } catch (error: any) {
       setSnackbarIsError(true);
-      setSnackbarMessage(error.message || "Failed to reset password");
+      setSnackbarMessage(error.message || t('failedResetPassword'));
       setSnackbarVisible(true);
       shakeAnimation();
     } finally { setLoading(false); }
@@ -183,15 +185,15 @@ export default function ForgotPassword() {
   const stepNumber = step === "email" ? 1 : step === "verification" ? 2 : 3;
 
   const getStepHeadline = () => {
-    if (step === "email") return "Forgot\nPassword?";
-    if (step === "verification") return "Verify\nCode";
-    return "New\nPassword";
+    if (step === "email") return t('forgotPasswordHeader');
+    if (step === "verification") return t('verifyCodeHeader');
+    return t('newPasswordHeader');
   };
 
   const getStepSubtitle = () => {
-    if (step === "email") return "Enter your email to receive a reset code";
-    if (step === "verification") return "Enter the code we sent to your email";
-    return "Create a strong new password";
+    if (step === "email") return t('enterEmailToReceiveCode');
+    if (step === "verification") return t('enterCodeSentToEmail');
+    return t('createStrongNewPassword');
   };
 
   return (
@@ -265,14 +267,14 @@ export default function ForgotPassword() {
               {step === "email" && (
                 <>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Email Address</Text>
+                    <Text style={styles.inputLabel}>{t('emailAddress')}</Text>
                     <TextInput
                       value={email}
                       onChangeText={(v) => {
                         setEmail(v);
                         if (errors.email) setErrors({ ...errors, email: undefined });
                       }}
-                      placeholder="you@example.com"
+                      placeholder={t('youAtExampleCom')}
                       keyboardType="email-address"
                       autoCapitalize="none"
                       editable={!loading}
@@ -286,7 +288,7 @@ export default function ForgotPassword() {
                   </View>
 
                   <Text style={styles.helperText}>
-                    We'll send a verification code to this email address.
+                    {t('sendCodeHelperText')}
                   </Text>
 
                   <TouchableOpacity
@@ -298,7 +300,7 @@ export default function ForgotPassword() {
                     {loading ? (
                       <ActivityIndicator color={COLORS.white} size={22} />
                     ) : (
-                      <Text style={styles.primaryButtonText}>SEND CODE</Text>
+                      <Text style={styles.primaryButtonText}>{t('sendCodeBtn')}</Text>
                     )}
                   </TouchableOpacity>
 
@@ -307,7 +309,7 @@ export default function ForgotPassword() {
                     onPress={() => router.back()}
                     disabled={loading}
                   >
-                    <Text style={styles.backLinkText}>← Back to Sign In</Text>
+                    <Text style={styles.backLinkText}>{t('backToSignIn')}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -316,12 +318,12 @@ export default function ForgotPassword() {
               {step === "verification" && (
                 <>
                   <View style={styles.codeSentBox}>
-                    <Text style={styles.codeSentLabel}>Code sent to</Text>
+                    <Text style={styles.codeSentLabel}>{t('codeSentTo')}</Text>
                     <Text style={styles.codeSentEmail}>{email}</Text>
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Verification Code</Text>
+                    <Text style={styles.inputLabel}>{t('verificationCode')}</Text>
                     <TextInput
                       value={verificationCode}
                       onChangeText={(v) => {
@@ -351,7 +353,7 @@ export default function ForgotPassword() {
                     {loading ? (
                       <ActivityIndicator color={COLORS.white} size={22} />
                     ) : (
-                      <Text style={styles.primaryButtonText}>VERIFY CODE</Text>
+                      <Text style={styles.primaryButtonText}>{t('verifyCodeBtn')}</Text>
                     )}
                   </TouchableOpacity>
 
@@ -360,7 +362,7 @@ export default function ForgotPassword() {
                     onPress={() => { setStep("email"); setVerificationCode(""); setErrors({}); }}
                     disabled={loading}
                   >
-                    <Text style={styles.backLinkText}>← Back to Email</Text>
+                    <Text style={styles.backLinkText}>{t('backToEmail')}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -369,14 +371,14 @@ export default function ForgotPassword() {
               {step === "reset-password" && (
                 <>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>New Password</Text>
+                    <Text style={styles.inputLabel}>{t('newPassword')}</Text>
                     <TextInput
                       value={newPassword}
                       onChangeText={(v) => {
                         setNewPassword(v);
                         if (errors.password) setErrors({ ...errors, password: undefined });
                       }}
-                      placeholder="Create a strong password"
+                      placeholder={t('createStrongPassword')}
                       secureTextEntry={secureText.password}
                       editable={!loading}
                       style={styles.input}
@@ -407,10 +409,10 @@ export default function ForgotPassword() {
                     {/* Requirements */}
                     <View style={styles.requirementsBox}>
                       {[
-                        { text: "Min 8 characters", met: passwordRequirements.minLength },
-                        { text: "Uppercase letter", met: passwordRequirements.hasUppercase },
-                        { text: "Number", met: passwordRequirements.hasNumber },
-                        { text: "Special character", met: passwordRequirements.hasSpecial },
+                        { text: t('min8Chars'), met: passwordRequirements.minLength },
+                        { text: t('uppercaseLetter'), met: passwordRequirements.hasUppercase },
+                        { text: t('number'), met: passwordRequirements.hasNumber },
+                        { text: t('specialChar'), met: passwordRequirements.hasSpecial },
                       ].map((req, idx) => (
                         <View key={idx} style={styles.reqItem}>
                           {req.met ? (
@@ -427,14 +429,14 @@ export default function ForgotPassword() {
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Confirm Password</Text>
+                    <Text style={styles.inputLabel}>{t('confirmPassword')}</Text>
                     <TextInput
                       value={confirmPassword}
                       onChangeText={(v) => {
                         setConfirmPassword(v);
                         if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
                       }}
-                      placeholder="Re-enter your password"
+                      placeholder={t('reEnterPassword')}
                       secureTextEntry={secureText.confirm}
                       editable={!loading}
                       style={styles.input}
@@ -470,7 +472,7 @@ export default function ForgotPassword() {
                     {loading ? (
                       <ActivityIndicator color={COLORS.white} size={22} />
                     ) : (
-                      <Text style={styles.primaryButtonText}>RESET PASSWORD</Text>
+                      <Text style={styles.primaryButtonText}>{t('resetPasswordBtn')}</Text>
                     )}
                   </TouchableOpacity>
 
@@ -479,7 +481,7 @@ export default function ForgotPassword() {
                     onPress={() => { setStep("verification"); setNewPassword(""); setConfirmPassword(""); setErrors({}); }}
                     disabled={loading}
                   >
-                    <Text style={styles.backLinkText}>← Back to Verification</Text>
+                    <Text style={styles.backLinkText}>{t('backToVerification')}</Text>
                   </TouchableOpacity>
                 </>
               )}

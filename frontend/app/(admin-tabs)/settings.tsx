@@ -22,6 +22,9 @@ import {
 import { Switch, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "../../components/common/LanguageSelector";
+import { SUPPORTED_LANGUAGES, type LanguageCode } from "../../config/i18n";
 
 const COLORS = {
   primary: "#21100B",
@@ -37,51 +40,6 @@ const COLORS = {
   cardShadow: "#21100B",
   iconBg: "rgba(33, 16, 11, 0.04)",
 };
-
-const GENERAL_SETTINGS = [
-  {
-    id: "notifications",
-    title: "Push Notifications",
-    icon: Bell,
-    type: "switch",
-  },
-  {
-    id: "email",
-    title: "Email Notifications",
-    icon: Mail,
-    type: "switch",
-  },
-  {
-    id: "alerts",
-    title: "SOS Alerts",
-    icon: AlertTriangle,
-    type: "switch",
-  },
-  {
-    id: "language",
-    title: "Language",
-    icon: Languages,
-    type: "navigate",
-    value: "English",
-  },
-];
-
-const DANGER_ITEMS = [
-  {
-    id: "clear_cache",
-    title: "Clear System Cache",
-    icon: Trash2,
-    confirmTitle: "Clear Cache",
-    confirmMessage: "This will clear all cached data. Continue?",
-  },
-  {
-    id: "reset_db",
-    title: "Reset Database",
-    icon: Database,
-    confirmTitle: "Reset Database",
-    confirmMessage: "⚠️ This action cannot be undone! Are you sure?",
-  },
-];
 
 const AnimatedSettingCard = ({
   children,
@@ -131,18 +89,70 @@ const AnimatedSettingCard = ({
 
 export default function SettingsScreen() {
   const { logout } = useAuth();
+  const { t, i18n } = useTranslation('common');
   const [switches, setSwitches] = useState<Record<string, boolean>>({
     notifications: true,
     email: true,
     alerts: true,
   });
   const insets = useSafeAreaInsets();
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+
+  // Derive current language label
+  const currentLangInfo = SUPPORTED_LANGUAGES.find(
+    (l) => l.code === (i18n.language as LanguageCode)
+  );
+
+  const GENERAL_SETTINGS = [
+    {
+      id: "notifications",
+      title: t('pushNotifications'),
+      icon: Bell,
+      type: "switch" as const,
+    },
+    {
+      id: "email",
+      title: t('emailNotifications'),
+      icon: Mail,
+      type: "switch" as const,
+    },
+    {
+      id: "alerts",
+      title: t('sosAlerts'),
+      icon: AlertTriangle,
+      type: "switch" as const,
+    },
+    {
+      id: "language",
+      title: t('language'),
+      icon: Languages,
+      type: "navigate" as const,
+      value: currentLangInfo?.nativeLabel || "English",
+    },
+  ];
+
+  const DANGER_ITEMS = [
+    {
+      id: "clear_cache",
+      title: t('clearCache'),
+      icon: Trash2,
+      confirmTitle: t('clearCache'),
+      confirmMessage: t('clearCacheMsg'),
+    },
+    {
+      id: "reset_db",
+      title: t('resetDatabase'),
+      icon: Database,
+      confirmTitle: t('resetDatabase'),
+      confirmMessage: t('resetDatabaseMsg'),
+    },
+  ];
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout from admin panel?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t('signOut'), t('logoutAdminConfirm'), [
+      { text: t('cancel'), style: "cancel" },
       {
-        text: "Logout",
+        text: t('signOut'),
         style: "destructive",
         onPress: async () => {
           await logout();
@@ -158,9 +168,17 @@ export default function SettingsScreen() {
 
   const handleDangerPress = (item: (typeof DANGER_ITEMS)[0]) => {
     Alert.alert(item.confirmTitle, item.confirmMessage, [
-      { text: "Cancel", style: "cancel" },
+      { text: t('cancel'), style: "cancel" },
       { text: item.confirmTitle.split(" ")[0], style: "destructive" },
     ]);
+  };
+
+  const handleSettingPress = (item: (typeof GENERAL_SETTINGS)[0]) => {
+    if (item.type === "switch") {
+      toggleSwitch(item.id);
+    } else if (item.id === "language") {
+      setShowLanguageSelector(true);
+    }
   };
 
   return (
@@ -177,9 +195,9 @@ export default function SettingsScreen() {
             { paddingTop: Math.max(insets.top, 20) + 8 },
           ]}
         >
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>{t('settings')}</Text>
           <Text style={styles.headerSubtitle}>
-            Manage your admin preferences
+            {t('managePreferences')}
           </Text>
         </View>
 
@@ -189,11 +207,7 @@ export default function SettingsScreen() {
           {GENERAL_SETTINGS.map((item) => (
             <AnimatedSettingCard
               key={item.id}
-              onPress={() =>
-                item.type === "switch"
-                  ? toggleSwitch(item.id)
-                  : console.log("Navigate to", item.id)
-              }
+              onPress={() => handleSettingPress(item)}
             >
                 <View style={styles.cardLeft}>
                   <View style={styles.cardIconBox}>
@@ -229,7 +243,7 @@ export default function SettingsScreen() {
         {/* Danger Zone */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: COLORS.error }]}>
-            Danger Zone
+            {t('dangerZone')}
           </Text>
           {DANGER_ITEMS.map((item) => (
             <AnimatedSettingCard
@@ -262,18 +276,24 @@ export default function SettingsScreen() {
             activeOpacity={0.8}
           >
             <LogOut size={18} color={COLORS.error} strokeWidth={2.5} />
-            <Text style={styles.logoutText}>Sign Out</Text>
+            <Text style={styles.logoutText}>{t('signOut')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* App Info */}
         <View style={styles.appInfo}>
-          <Text style={styles.appVersion}>SentryApp Admin v1.0.0</Text>
+          <Text style={styles.appVersion}>{t('appVersion')}</Text>
           <Text style={styles.appCopyright}>
-            © 2026 SentryApp. All rights reserved.
+            {t('copyright')}
           </Text>
         </View>
       </ScrollView>
+
+      {/* Language Selector Modal */}
+      <LanguageSelector
+        visible={showLanguageSelector}
+        onClose={() => setShowLanguageSelector(false)}
+      />
     </View>
   );
 }

@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Checkbox, Snackbar, TextInput, ActivityIndicator } from "react-native-paper";
 import { useAuth } from "../../store/AuthContext";
+import { useTranslation } from "react-i18next";
 
 const FORM_WIDTH = Dimensions.get("window").width;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -43,6 +44,7 @@ export default function AdminLogin() {
   const { login, logout, signup } = useAuth();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
+  const { t } = useTranslation('auth');
 
   // ── Shared state ──
   const [activeTab, setActiveTab] = useState<AuthTab>("signin");
@@ -107,10 +109,10 @@ export default function AdminLogin() {
   // ── Sign In validation & handler ──
   const validateLogin = () => {
     const errs: { email?: string; password?: string } = {};
-    if (!loginEmail.trim()) errs.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail)) errs.email = "Please enter a valid email";
-    if (!loginPassword.trim()) errs.password = "Password is required";
-    else if (loginPassword.length < 6) errs.password = "Password must be at least 6 characters";
+    if (!loginEmail.trim()) errs.email = t('emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail)) errs.email = t('validEmail');
+    if (!loginPassword.trim()) errs.password = t('passwordRequired');
+    else if (loginPassword.length < 6) errs.password = t('passwordMin6');
     setLoginErrors(errs);
     if (Object.keys(errs).length > 0) { shakeAnimation(); return false; }
     return true;
@@ -124,14 +126,14 @@ export default function AdminLogin() {
       if (loggedInUser.role.name !== "admin") {
         await logout();
         setSnackbarIsError(true);
-        setSnackbarMessage("Access denied. This portal is for Administrators only.");
+        setSnackbarMessage(t('accessDenied'));
         setSnackbarVisible(true);
         return;
       }
       router.replace("/(admin-tabs)");
     } catch (error: any) {
       setSnackbarIsError(true);
-      setSnackbarMessage(error.message || "Login failed");
+      setSnackbarMessage(error.message || t('loginFailed'));
       setSnackbarVisible(true);
       shakeAnimation();
     } finally {
@@ -145,13 +147,13 @@ export default function AdminLogin() {
       fullName?: string; email?: string;
       password?: string; confirmPassword?: string;
     } = {};
-    if (!fullName.trim()) errs.fullName = "Full name is required";
-    if (!signupEmail.trim()) errs.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) errs.email = "Please enter a valid email";
-    if (!signupPassword.trim()) errs.password = "Password is required";
-    else if (signupPassword.length < 8) errs.password = "Admin password must be at least 8 characters";
-    if (!confirmPassword.trim()) errs.confirmPassword = "Please confirm your password";
-    else if (signupPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match";
+    if (!fullName.trim()) errs.fullName = t('fullNameRequired');
+    if (!signupEmail.trim()) errs.email = t('emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) errs.email = t('validEmail');
+    if (!signupPassword.trim()) errs.password = t('passwordRequired');
+    else if (signupPassword.length < 8) errs.password = t('passwordMin8');
+    if (!confirmPassword.trim()) errs.confirmPassword = t('confirmPasswordRequired');
+    else if (signupPassword !== confirmPassword) errs.confirmPassword = t('passwordsNoMatch');
     setSignupErrors(errs);
     if (Object.keys(errs).length > 0) { shakeAnimation(); return false; }
     return true;
@@ -163,7 +165,7 @@ export default function AdminLogin() {
     try {
       await signup(fullName, signupEmail, "", signupPassword, "ADMIN");
       setSnackbarIsError(false);
-      setSnackbarMessage("Admin account created successfully!");
+      setSnackbarMessage(t('adminAccountCreated'));
       setSnackbarVisible(true);
       router.push({
         pathname: "/(auth)/success",
@@ -171,7 +173,7 @@ export default function AdminLogin() {
       });
     } catch (error: any) {
       setSnackbarIsError(true);
-      setSnackbarMessage(error.message || "Signup failed");
+      setSnackbarMessage(error.message || t('signupFailed'));
       setSnackbarVisible(true);
       shakeAnimation();
     } finally {
@@ -227,7 +229,7 @@ export default function AdminLogin() {
 
             {/* Admin Badge */}
             <View style={styles.adminBadge}>
-              <Text style={styles.adminBadgeText}>ADMIN PORTAL</Text>
+              <Text style={styles.adminBadgeText}>{t('adminPortal')}</Text>
             </View>
 
             {/* Tab Row */}
@@ -238,7 +240,7 @@ export default function AdminLogin() {
                 onPress={() => switchTab("signin")}
               >
                 <Text style={[styles.tabText, activeTab === "signin" && styles.tabTextActive]}>
-                  Sign In
+                  {t('signIn')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -247,7 +249,7 @@ export default function AdminLogin() {
                 onPress={() => switchTab("signup")}
               >
                 <Text style={[styles.tabText, activeTab === "signup" && styles.tabTextActive]}>
-                  Sign Up
+                  {t('signUp')}
                 </Text>
               </TouchableOpacity>
 
@@ -272,19 +274,19 @@ export default function AdminLogin() {
               {/* ─── PAGE 1: SIGN IN ─── */}
               <Animated.View style={[styles.formPage, { transform: [{ translateX: shakeAnim }] }]}>
                 <View style={styles.welcomeRow}>
-                  <Text style={styles.welcomeHeader}>Welcome{"\n"}Admin</Text>
+                  <Text style={styles.welcomeHeader}>{t('welcomeAdmin')}</Text>
                 </View>
 
                 {/* Email */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Admin Email</Text>
+                  <Text style={styles.inputLabel}>{t('adminEmail')}</Text>
                   <TextInput
                     value={loginEmail}
                     onChangeText={(v) => {
                       setLoginEmail(v);
                       if (loginErrors.email) setLoginErrors({ ...loginErrors, email: undefined });
                     }}
-                    placeholder="Enter your admin email"
+                    placeholder={t('enterAdminEmail')}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     editable={!loading}
@@ -299,14 +301,14 @@ export default function AdminLogin() {
 
                 {/* Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
+                  <Text style={styles.inputLabel}>{t('password')}</Text>
                   <TextInput
                     value={loginPassword}
                     onChangeText={(v) => {
                       setLoginPassword(v);
                       if (loginErrors.password) setLoginErrors({ ...loginErrors, password: undefined });
                     }}
-                    placeholder="Enter your password"
+                    placeholder={t('enterPassword')}
                     secureTextEntry={secureText}
                     editable={!loading}
                     style={styles.input}
@@ -337,13 +339,13 @@ export default function AdminLogin() {
                       disabled={loading}
                       color={COLORS.accent}
                     />
-                    <Text style={styles.rememberText}>Remember me</Text>
+                    <Text style={styles.rememberText}>{t('rememberMe')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => router.push("/(auth)/forget-password")}
                     disabled={loading}
                   >
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
+                    <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -357,38 +359,38 @@ export default function AdminLogin() {
                   {loading ? (
                     <ActivityIndicator color={COLORS.white} size={22} />
                   ) : (
-                    <Text style={styles.primaryButtonText}>ADMIN SIGN IN</Text>
+                    <Text style={styles.primaryButtonText}>{t('adminSignIn')}</Text>
                   )}
                 </TouchableOpacity>
 
                 {/* Switch prompt */}
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchText}>Need admin access? </Text>
+                  <Text style={styles.switchText}>{t('needAdminAccess')} </Text>
                   <TouchableOpacity onPress={() => switchTab("signup")}>
-                    <Text style={styles.switchLink}>Request account</Text>
+                    <Text style={styles.switchLink}>{t('requestAccount')}</Text>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
 
               {/* ─── PAGE 2: SIGN UP ─── */}
               <Animated.View style={[styles.formPage, { transform: [{ translateX: shakeAnim }] }]}>
-                <Text style={styles.headline}>Admin{"\n"}Registration</Text>
+                <Text style={styles.headline}>{t('adminRegistration')}</Text>
 
                 {/* Notice */}
                 <View style={styles.noticeBar}>
-                  <Text style={styles.noticeText}>⚡ Admin accounts require verification</Text>
+                  <Text style={styles.noticeText}>{t('adminVerification')}</Text>
                 </View>
 
                 {/* Full Name */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
+                  <Text style={styles.inputLabel}>{t('fullName')}</Text>
                   <TextInput
                     value={fullName}
                     onChangeText={(v) => {
                       setFullName(v);
                       if (signupErrors.fullName) setSignupErrors({ ...signupErrors, fullName: undefined });
                     }}
-                    placeholder="Enter your full name"
+                    placeholder={t('enterFullName')}
                     autoCapitalize="words"
                     editable={!loading}
                     style={styles.input}
@@ -402,14 +404,14 @@ export default function AdminLogin() {
 
                 {/* Email */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Admin Email</Text>
+                  <Text style={styles.inputLabel}>{t('adminEmail')}</Text>
                   <TextInput
                     value={signupEmail}
                     onChangeText={(v) => {
                       setSignupEmail(v);
                       if (signupErrors.email) setSignupErrors({ ...signupErrors, email: undefined });
                     }}
-                    placeholder="Enter your admin email"
+                    placeholder={t('enterAdminEmail')}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     editable={!loading}
@@ -424,14 +426,14 @@ export default function AdminLogin() {
 
                 {/* Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
+                  <Text style={styles.inputLabel}>{t('password')}</Text>
                   <TextInput
                     value={signupPassword}
                     onChangeText={(v) => {
                       setSignupPassword(v);
                       if (signupErrors.password) setSignupErrors({ ...signupErrors, password: undefined });
                     }}
-                    placeholder="Create a strong password (min 8 chars)"
+                    placeholder={t('createStrongPassword')}
                     secureTextEntry={secureSignupText}
                     editable={!loading}
                     style={styles.input}
@@ -451,14 +453,14 @@ export default function AdminLogin() {
 
                 {/* Confirm Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Confirm Password</Text>
+                  <Text style={styles.inputLabel}>{t('confirmPassword')}</Text>
                   <TextInput
                     value={confirmPassword}
                     onChangeText={(v) => {
                       setConfirmPassword(v);
                       if (signupErrors.confirmPassword) setSignupErrors({ ...signupErrors, confirmPassword: undefined });
                     }}
-                    placeholder="Confirm your password"
+                    placeholder={t('confirmYourPassword')}
                     secureTextEntry={secureConfirmText}
                     editable={!loading}
                     style={styles.input}
@@ -486,15 +488,15 @@ export default function AdminLogin() {
                   {loading ? (
                     <ActivityIndicator color={COLORS.white} size={22} />
                   ) : (
-                    <Text style={styles.primaryButtonText}>CREATE ADMIN ACCOUNT</Text>
+                    <Text style={styles.primaryButtonText}>{t('createAdminAccount')}</Text>
                   )}
                 </TouchableOpacity>
 
                 {/* Switch prompt */}
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchText}>Already have an account? </Text>
+                  <Text style={styles.switchText}>{t('haveAccount')} </Text>
                   <TouchableOpacity onPress={() => switchTab("signin")}>
-                    <Text style={styles.switchLink}>Sign in</Text>
+                    <Text style={styles.switchLink}>{t('signInLink')}</Text>
                   </TouchableOpacity>
                 </View>
               </Animated.View>

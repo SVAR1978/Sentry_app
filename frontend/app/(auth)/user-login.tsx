@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Checkbox, Snackbar, TextInput, ActivityIndicator } from "react-native-paper";
 import { useAuth } from "../../store/AuthContext";
+import { useTranslation } from "react-i18next";
 
 const FORM_WIDTH = Dimensions.get("window").width;
 
@@ -44,6 +45,7 @@ export default function UserLogin() {
   const { login, logout, signup } = useAuth();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
+  const { t } = useTranslation('auth');
 
   // ── Shared state ──
   const [activeTab, setActiveTab] = useState<AuthTab>("signin");
@@ -110,10 +112,10 @@ export default function UserLogin() {
   // ── Sign In validation & handler ──
   const validateLogin = () => {
     const errs: { email?: string; password?: string } = {};
-    if (!loginEmail.trim()) errs.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail)) errs.email = "Please enter a valid email";
-    if (!loginPassword.trim()) errs.password = "Password is required";
-    else if (loginPassword.length < 6) errs.password = "Password must be at least 6 characters";
+    if (!loginEmail.trim()) errs.email = t('emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail)) errs.email = t('validEmail');
+    if (!loginPassword.trim()) errs.password = t('passwordRequired');
+    else if (loginPassword.length < 6) errs.password = t('passwordMin6');
     setLoginErrors(errs);
     if (Object.keys(errs).length > 0) { shakeAnimation(); return false; }
     return true;
@@ -127,14 +129,14 @@ export default function UserLogin() {
       if (loggedInUser.role.name !== "user") {
         await logout();
         setSnackbarIsError(true);
-        setSnackbarMessage("Please use the Admin Portal for this account.");
+        setSnackbarMessage(t('useAdminPortal'));
         setSnackbarVisible(true);
         return;
       }
       router.replace("/(user-tabs)");
     } catch (error: any) {
       setSnackbarIsError(true);
-      setSnackbarMessage(error.message || "Login failed");
+      setSnackbarMessage(error.message || t('loginFailed'));
       setSnackbarVisible(true);
       shakeAnimation();
     } finally {
@@ -148,16 +150,16 @@ export default function UserLogin() {
       fullName?: string; email?: string; familyPhone?: string;
       password?: string; confirmPassword?: string;
     } = {};
-    if (!fullName.trim()) errs.fullName = "Full name is required";
-    if (!signupEmail.trim()) errs.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) errs.email = "Please enter a valid email";
-    if (!familyPhone.trim()) errs.familyPhone = "Family phone number is required";
+    if (!fullName.trim()) errs.fullName = t('fullNameRequired');
+    if (!signupEmail.trim()) errs.email = t('emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) errs.email = t('validEmail');
+    if (!familyPhone.trim()) errs.familyPhone = t('familyPhoneRequired');
     else if (!/^[0-9]{10,15}$/.test(familyPhone.replace(/[\s\-()]/g, "")))
-      errs.familyPhone = "Please enter a valid phone number (10-15 digits)";
-    if (!signupPassword.trim()) errs.password = "Password is required";
-    else if (signupPassword.length < 6) errs.password = "Password must be at least 6 characters";
-    if (!confirmPassword.trim()) errs.confirmPassword = "Please confirm your password";
-    else if (signupPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match";
+      errs.familyPhone = t('validPhone');
+    if (!signupPassword.trim()) errs.password = t('passwordRequired');
+    else if (signupPassword.length < 6) errs.password = t('passwordMin6');
+    if (!confirmPassword.trim()) errs.confirmPassword = t('confirmPasswordRequired');
+    else if (signupPassword !== confirmPassword) errs.confirmPassword = t('passwordsNoMatch');
     setSignupErrors(errs);
     if (Object.keys(errs).length > 0) { shakeAnimation(); return false; }
     return true;
@@ -169,7 +171,7 @@ export default function UserLogin() {
     try {
       await signup(fullName, signupEmail, familyPhone, signupPassword, "USER");
       setSnackbarIsError(false);
-      setSnackbarMessage("Account created successfully!");
+      setSnackbarMessage(t('accountCreated'));
       setSnackbarVisible(true);
       router.push({
         pathname: "/(auth)/success",
@@ -177,7 +179,7 @@ export default function UserLogin() {
       });
     } catch (error: any) {
       setSnackbarIsError(true);
-      setSnackbarMessage(error.message || "Signup failed");
+      setSnackbarMessage(error.message || t('signupFailed'));
       setSnackbarVisible(true);
       shakeAnimation();
     } finally {
@@ -239,7 +241,7 @@ export default function UserLogin() {
                 onPress={() => switchTab("signin")}
               >
                 <Text style={[styles.tabText, activeTab === "signin" && styles.tabTextActive]}>
-                  Sign In
+                  {t('signIn')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -248,7 +250,7 @@ export default function UserLogin() {
                 onPress={() => switchTab("signup")}
               >
                 <Text style={[styles.tabText, activeTab === "signup" && styles.tabTextActive]}>
-                  Sign Up
+                  {t('signUp')}
                 </Text>
               </TouchableOpacity>
 
@@ -273,19 +275,19 @@ export default function UserLogin() {
               {/* ─── PAGE 1: SIGN IN ─── */}
               <Animated.View style={[styles.formPage, { transform: [{ translateX: shakeAnim }] }]}>
                 <View style={styles.welcomeRow}>
-                  <Text style={styles.welcomeHeader}>Welcome Back</Text>
+                  <Text style={styles.welcomeHeader}>{t('welcomeBack')}</Text>
                 </View>
 
                 {/* Email */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email</Text>
+                  <Text style={styles.inputLabel}>{t('email')}</Text>
                   <TextInput
                     value={loginEmail}
                     onChangeText={(v) => {
                       setLoginEmail(v);
                       if (loginErrors.email) setLoginErrors({ ...loginErrors, email: undefined });
                     }}
-                    placeholder="Enter your email"
+                    placeholder={t('enterEmail')}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     editable={!loading}
@@ -300,14 +302,14 @@ export default function UserLogin() {
 
                 {/* Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
+                  <Text style={styles.inputLabel}>{t('password')}</Text>
                   <TextInput
                     value={loginPassword}
                     onChangeText={(v) => {
                       setLoginPassword(v);
                       if (loginErrors.password) setLoginErrors({ ...loginErrors, password: undefined });
                     }}
-                    placeholder="Enter your password"
+                    placeholder={t('enterPassword')}
                     secureTextEntry={secureText}
                     editable={!loading}
                     style={styles.input}
@@ -338,13 +340,13 @@ export default function UserLogin() {
                       disabled={loading}
                       color={COLORS.accent}
                     />
-                    <Text style={styles.rememberText}>Remember me</Text>
+                    <Text style={styles.rememberText}>{t('rememberMe')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => router.push("/(auth)/forget-password")}
                     disabled={loading}
                   >
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
+                    <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -358,33 +360,33 @@ export default function UserLogin() {
                   {loading ? (
                     <ActivityIndicator color={COLORS.white} size={22} />
                   ) : (
-                    <Text style={styles.primaryButtonText}>SIGN IN</Text>
+                    <Text style={styles.primaryButtonText}>{t('signInBtn')}</Text>
                   )}
                 </TouchableOpacity>
 
                 {/* Switch prompt */}
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchText}>Don't have an account? </Text>
+                  <Text style={styles.switchText}>{t('noAccount')} </Text>
                   <TouchableOpacity onPress={() => switchTab("signup")}>
-                    <Text style={styles.switchLink}>Sign up here</Text>
+                    <Text style={styles.switchLink}>{t('signUpHere')}</Text>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
 
               {/* ─── PAGE 2: SIGN UP ─── */}
               <Animated.View style={[styles.formPage, { transform: [{ translateX: shakeAnim }] }]}>
-                <Text style={styles.headline}>New{"\n"}Account</Text>
+                <Text style={styles.headline}>{t('newAccount')}</Text>
 
                 {/* Full Name */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
+                  <Text style={styles.inputLabel}>{t('fullName')}</Text>
                   <TextInput
                     value={fullName}
                     onChangeText={(v) => {
                       setFullName(v);
                       if (signupErrors.fullName) setSignupErrors({ ...signupErrors, fullName: undefined });
                     }}
-                    placeholder="Enter your full name"
+                    placeholder={t('enterFullName')}
                     autoCapitalize="words"
                     editable={!loading}
                     style={styles.input}
@@ -398,14 +400,14 @@ export default function UserLogin() {
 
                 {/* Email */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email</Text>
+                  <Text style={styles.inputLabel}>{t('email')}</Text>
                   <TextInput
                     value={signupEmail}
                     onChangeText={(v) => {
                       setSignupEmail(v);
                       if (signupErrors.email) setSignupErrors({ ...signupErrors, email: undefined });
                     }}
-                    placeholder="Enter your email"
+                    placeholder={t('enterEmail')}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     editable={!loading}
@@ -420,14 +422,14 @@ export default function UserLogin() {
 
                 {/* Family Phone */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Family Phone Number</Text>
+                  <Text style={styles.inputLabel}>{t('familyPhone')}</Text>
                   <TextInput
                     value={familyPhone}
                     onChangeText={(v) => {
                       setFamilyPhone(v);
                       if (signupErrors.familyPhone) setSignupErrors({ ...signupErrors, familyPhone: undefined });
                     }}
-                    placeholder="Enter family phone number"
+                    placeholder={t('enterFamilyPhone')}
                     keyboardType="phone-pad"
                     editable={!loading}
                     style={styles.input}
@@ -441,14 +443,14 @@ export default function UserLogin() {
 
                 {/* Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
+                  <Text style={styles.inputLabel}>{t('password')}</Text>
                   <TextInput
                     value={signupPassword}
                     onChangeText={(v) => {
                       setSignupPassword(v);
                       if (signupErrors.password) setSignupErrors({ ...signupErrors, password: undefined });
                     }}
-                    placeholder="Create a password"
+                    placeholder={t('createPassword')}
                     secureTextEntry={secureSignupText}
                     editable={!loading}
                     style={styles.input}
@@ -468,14 +470,14 @@ export default function UserLogin() {
 
                 {/* Confirm Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Confirm Password</Text>
+                  <Text style={styles.inputLabel}>{t('confirmPassword')}</Text>
                   <TextInput
                     value={confirmPassword}
                     onChangeText={(v) => {
                       setConfirmPassword(v);
                       if (signupErrors.confirmPassword) setSignupErrors({ ...signupErrors, confirmPassword: undefined });
                     }}
-                    placeholder="Confirm your password"
+                    placeholder={t('confirmYourPassword')}
                     secureTextEntry={secureConfirmText}
                     editable={!loading}
                     style={styles.input}
@@ -503,15 +505,15 @@ export default function UserLogin() {
                   {loading ? (
                     <ActivityIndicator color={COLORS.white} size={22} />
                   ) : (
-                    <Text style={styles.primaryButtonText}>SIGN UP</Text>
+                    <Text style={styles.primaryButtonText}>{t('signUpBtn')}</Text>
                   )}
                 </TouchableOpacity>
 
                 {/* Switch prompt */}
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchText}>Already have an account? </Text>
+                  <Text style={styles.switchText}>{t('haveAccount')} </Text>
                   <TouchableOpacity onPress={() => switchTab("signin")}>
-                    <Text style={styles.switchLink}>Sign in</Text>
+                    <Text style={styles.switchLink}>{t('signInLink')}</Text>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
