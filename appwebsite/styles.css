@@ -60,6 +60,14 @@ body {
   padding: 18px;
 }
 
+.brand-logo {
+  width: min(360px, 72vw);
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 18px;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.35));
+}
+
 .eyebrow {
   margin: 0 0 12px;
   text-transform: uppercase;
