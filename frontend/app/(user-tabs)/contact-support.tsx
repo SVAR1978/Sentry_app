@@ -11,6 +11,7 @@ import {
   TextInput as RNTextInput,
 } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -54,6 +55,7 @@ const MAX_MESSAGE_LENGTH = 1000;
 
 export default function ContactSupportScreen() {
   const { user } = useAuth();
+  const { t } = useTranslation('common');
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [subject, setSubject] = useState("");
@@ -69,19 +71,19 @@ export default function ContactSupportScreen() {
     const newErrors: Record<string, string> = {};
 
     if (!name.trim() || name.trim().length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
+      newErrors.name = t('enterName');
     }
 
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Enter a valid email address";
+      newErrors.email = t('enterValidEmail');
     }
 
     if (!subject) {
-      newErrors.subject = "Please select a subject";
+      newErrors.subject = t('selectASubject');
     }
 
     if (!message.trim() || message.trim().length < MIN_MESSAGE_LENGTH) {
-      newErrors.message = `Message must be at least ${MIN_MESSAGE_LENGTH} characters`;
+      newErrors.message = t('minCharacters', { count: MIN_MESSAGE_LENGTH });
     }
 
     if (message.length > MAX_MESSAGE_LENGTH) {
@@ -152,7 +154,7 @@ export default function ContactSupportScreen() {
           >
             <ChevronLeft color={COLORS.white} size={28} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Contact Support</Text>
+          <Text style={styles.headerTitle}>{t('contactSupport')}</Text>
           <View style={{ width: 48 }} />
         </View>
       </LinearGradient>
@@ -175,7 +177,7 @@ export default function ContactSupportScreen() {
 
         {/* Form */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionLabel}>YOUR DETAILS</Text>
+          <Text style={styles.sectionLabel}>{t('yourDetails')}</Text>
 
           {/* Name */}
           <View style={styles.fieldContainer}>
@@ -183,7 +185,7 @@ export default function ContactSupportScreen() {
               <User size={18} color={COLORS.secondary} strokeWidth={2.5} />
               <RNTextInput
                 style={styles.fieldInput}
-                placeholder="Full Name"
+                placeholder={t('fullName')}
                 placeholderTextColor={COLORS.secondary}
                 value={name}
                 onChangeText={(t) => {
@@ -206,7 +208,7 @@ export default function ContactSupportScreen() {
               <Mail size={18} color={COLORS.secondary} strokeWidth={2.5} />
               <RNTextInput
                 style={styles.fieldInput}
-                placeholder="Email Address"
+                placeholder={t('emailAddress')}
                 placeholderTextColor={COLORS.secondary}
                 value={email}
                 onChangeText={(t) => {
@@ -227,7 +229,7 @@ export default function ContactSupportScreen() {
         </View>
 
         <View style={styles.formSection}>
-          <Text style={styles.sectionLabel}>YOUR MESSAGE</Text>
+          <Text style={styles.sectionLabel}>{t('yourMessage')}</Text>
 
           {/* Subject Picker */}
           <View style={styles.fieldContainer}>
@@ -244,7 +246,7 @@ export default function ContactSupportScreen() {
                   !subject && { color: COLORS.secondary },
                 ]}
               >
-                {subject || "Select Subject"}
+                {subject || t('selectSubject')}
               </Text>
               <ChevronDown size={18} color={COLORS.secondary} strokeWidth={2.5} />
             </TouchableOpacity>
@@ -295,7 +297,7 @@ export default function ContactSupportScreen() {
               <RNTextInput
                 ref={messageRef}
                 style={[styles.fieldInput, styles.messageInput]}
-                placeholder="Describe your issue in detail (min 20 chars)..."
+                placeholder={t('describeYourIssue')}
                 placeholderTextColor={COLORS.secondary}
                 value={message}
                 onChangeText={(t) => {
@@ -348,14 +350,13 @@ export default function ContactSupportScreen() {
           ) : (
             <>
               <Send size={18} color={COLORS.white} strokeWidth={2.5} />
-              <Text style={styles.submitButtonText}>Send Message</Text>
+              <Text style={styles.submitButtonText}>{t('sendMessage')}</Text>
             </>
           )}
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          By submitting, you agree to our privacy policy. We'll respond to your
-          registered email within 24–48 hours.
+          {t('bySubmitting')}
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

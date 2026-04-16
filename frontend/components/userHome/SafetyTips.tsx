@@ -10,12 +10,14 @@ import {
   View,
 } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../store/AuthContext";
 
 const ShareLocation: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation('common');
   const [sharing, setSharing] = useState(false);
 
   const handleShareLocation = async () => {
@@ -29,11 +31,11 @@ const ShareLocation: React.FC = () => {
       if (status !== "granted") {
         setSharing(false);
         Alert.alert(
-          "Permission Denied",
-          "Location permission is required to share your location. Please enable it in Settings.",
+          t('permissionDenied'),
+          t('allowLocationAccess'),
           [
-            { text: "Cancel", style: "cancel" },
-            { text: "Open Settings", onPress: () => Linking.openSettings() },
+            { text: t('cancel'), style: "cancel" },
+            { text: t('openSettings'), onPress: () => Linking.openSettings() },
           ]
         );
         return;
@@ -77,17 +79,17 @@ const ShareLocation: React.FC = () => {
       });
 
       const shareMessage =
-        `*LIVE LOCATION — Emergency Share*\n\n` +
+        `*${t('liveLocationEmergencyShare')}*\n\n` +
         `From: ${userName}\n` +
         `Location: ${addressStr || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`}\n` +
         `Time: ${timestamp}\n\n` +
         `Google Maps URL:\n${mapsLink}\n\n` +
-        `This location was shared via the Sentry Emergency App.`;
+        t('sharedViaSentryApp');
 
       // 5. Open Share Sheet
       const result = await Share.share({
         message: shareMessage,
-        title: "My Current Location",
+        title: t('myCurrentLocation'),
       });
 
       if (result.action === Share.sharedAction) {
@@ -95,7 +97,7 @@ const ShareLocation: React.FC = () => {
       }
     } catch (error) {
       console.error("Share location error", error);
-      Alert.alert("Error", "Failed to get location. Please try again.");
+      Alert.alert(t('error'), t('failedGetLocationRetry'));
     } finally {
       setSharing(false);
     }
@@ -114,12 +116,12 @@ const ShareLocation: React.FC = () => {
             {sharing ? (
               <>
                 <ActivityIndicator size="small" color="#21100B" />
-                <Text style={styles.shareBtnText}>Getting Location...</Text>
+                <Text style={styles.shareBtnText}>{t('gettingLocation')}</Text>
               </>
             ) : (
               <>
                 <MaterialCommunityIcons name="share-variant" size={18} color="#21100B" />
-                <Text style={styles.shareBtnText}>Share My Location</Text>
+                <Text style={styles.shareBtnText}>{t('shareMyLocation')}</Text>
                 <MaterialCommunityIcons name="arrow-right" size={16} color="#21100B" />
               </>
             )}

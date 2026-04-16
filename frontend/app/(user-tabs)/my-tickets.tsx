@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   View,
   StyleSheet,
@@ -85,6 +86,7 @@ function formatDuration(ms: number): string {
 }
 
 export default function MyTicketsScreen() {
+  const { t } = useTranslation('common');
   const [tickets, setTickets] = useState<BookingTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -118,14 +120,14 @@ export default function MyTicketsScreen() {
 
   const handleOpenPartner = useCallback(async (url: string, name: string) => {
     if (!url.startsWith("https://")) {
-      Alert.alert("Security Warning", "This URL is not secure.");
+      Alert.alert(t('securityWarning'), t('urlNotSecure'));
       return;
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert("Error", `Could not open ${name}.`);
+      Alert.alert(t('error'), t('couldNotOpen'));
     }
   }, []);
 
@@ -149,7 +151,7 @@ export default function MyTicketsScreen() {
           >
             <ChevronLeft color={COLORS.white} size={28} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Tickets</Text>
+          <Text style={styles.headerTitle}>{t('myTickets')}</Text>
           <View style={{ width: 48 }} />
         </View>
 
@@ -161,8 +163,8 @@ export default function MyTicketsScreen() {
           </View>
           <Text style={styles.headerSubtitle}>
             {loading
-              ? "Loading..."
-              : `${tickets.length} booking${tickets.length !== 1 ? "s" : ""} found`}
+              ? t('loading')
+              : `${tickets.length} ${t('bookingsFound')}`}
           </Text>
         </View>
       </LinearGradient>
@@ -178,7 +180,7 @@ export default function MyTicketsScreen() {
             style={styles.loadingText}
             accessibilityLiveRegion="polite"
           >
-            Loading your tickets...
+            {t('loadingYourTickets')}
           </Text>
         </View>
       ) : tickets.length === 0 ? (
@@ -186,17 +188,16 @@ export default function MyTicketsScreen() {
           <View style={styles.emptyIconContainer}>
             <TicketX size={56} color={COLORS.secondary} strokeWidth={1.5} />
           </View>
-          <Text style={styles.emptyTitle}>No Tickets Yet</Text>
+          <Text style={styles.emptyTitle}>{t('noTicketsYet')}</Text>
           <Text style={styles.emptySubtitle}>
-            Book travel through our verified partners on the Home screen and
-            your booking history will appear here.
+            {t('bookTravelThrough')}
           </Text>
           <TouchableOpacity
             style={styles.browseButton}
             onPress={() => router.navigate("/")}
             activeOpacity={0.85}
           >
-            <Text style={styles.browseButtonText}>Browse Partners</Text>
+            <Text style={styles.browseButtonText}>{t('browsePartners')}</Text>
           </TouchableOpacity>
         </Animated.View>
       ) : (
@@ -225,8 +226,7 @@ export default function MyTicketsScreen() {
           </Animated.View>
 
           <Text style={styles.footerNote}>
-            Tickets are based on your verified visits to partner platforms.
-            Pull down to refresh.
+            {t('ticketsBasedOn')}
           </Text>
         </ScrollView>
       )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   View,
   StyleSheet,
@@ -41,6 +42,7 @@ const COLORS = {
 
 export default function PersonalInfoScreen() {
   const { user, updateUser } = useAuth();
+  const { t } = useTranslation('common');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -62,7 +64,7 @@ export default function PersonalInfoScreen() {
 
   const handleUpdate = async () => {
     if (!formData.name.trim()) {
-      Alert.alert("Error", "Name cannot be empty");
+      Alert.alert(t('error'), t('nameCannotBeEmpty'));
       return;
     }
 
@@ -76,10 +78,10 @@ export default function PersonalInfoScreen() {
         avatar: formData.avatar,
       });
 
-      Alert.alert("Success", "Profile updated successfully");
+      Alert.alert(t('success'), t('profileUpdated'));
       router.back();
     } catch (error) {
-      Alert.alert("Error", "Failed to update profile");
+      Alert.alert(t('error'), t('failedUpdateProfile'));
       console.error(error);
     } finally {
       setLoading(false);
@@ -89,7 +91,7 @@ export default function PersonalInfoScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert("Permission Required", "Allow access to photos to change your profile picture.");
+      Alert.alert(t('permissionRequired'), t('cameraRollPermission'));
       return;
     }
 
@@ -126,7 +128,7 @@ export default function PersonalInfoScreen() {
           >
             <ChevronLeft color={COLORS.white} size={28} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Personal Info</Text>
+          <Text style={styles.headerTitle}>{t('personalInfo')}</Text>
           <View style={{ width: 48 }} />
         </View>
 
@@ -160,7 +162,7 @@ export default function PersonalInfoScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.formSection}>
-          <Text style={styles.sectionLabel}>ACCOUNT DETAILS</Text>
+          <Text style={styles.sectionLabel}>{t('accountDetails')}</Text>
 
           {/* Name Input */}
           <View style={styles.inputContainer}>
@@ -168,7 +170,7 @@ export default function PersonalInfoScreen() {
               <UserIcon size={20} color={COLORS.secondary} />
             </View>
             <TextInput
-              label="Full Name"
+              label={t('fullName')}
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
               style={styles.input}
@@ -185,7 +187,7 @@ export default function PersonalInfoScreen() {
               <Mail size={20} color={COLORS.secondary} />
             </View>
             <TextInput
-              label="Email Address"
+              label={t('emailAddress')}
               value={formData.email}
               editable={false}
               style={styles.input}
@@ -201,7 +203,7 @@ export default function PersonalInfoScreen() {
               <Phone size={20} color={COLORS.secondary} />
             </View>
             <TextInput
-              label="Phone Number"
+              label={t('phoneNumber')}
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               style={styles.input}
@@ -219,7 +221,7 @@ export default function PersonalInfoScreen() {
               <Shield size={20} color={COLORS.secondary} />
             </View>
             <TextInput
-              label="Account Role"
+              label={t('accountRole')}
               value={user?.role?.name?.toUpperCase() || "USER"}
               editable={false}
               style={styles.input}
@@ -240,7 +242,7 @@ export default function PersonalInfoScreen() {
           ) : (
             <>
               <Save size={20} color={COLORS.white} strokeWidth={2.5} />
-              <Text style={styles.saveButtonText}>Save Changes</Text>
+              <Text style={styles.saveButtonText}>{t('saveChanges')}</Text>
             </>
           )}
         </TouchableOpacity>

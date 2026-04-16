@@ -12,6 +12,7 @@ import {
   FlatList,
 } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -71,6 +72,7 @@ const CATEGORY_ICON_MAP: Record<string, React.ComponentType<{ size: number; colo
 };
 
 export default function HelpCenterScreen() {
+  const { t } = useTranslation('common');
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<FAQCategory | "all">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -142,7 +144,7 @@ export default function HelpCenterScreen() {
           >
             <ChevronLeft color={COLORS.white} size={28} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help Center</Text>
+          <Text style={styles.headerTitle}>{t('helpCenter')}</Text>
           <View style={{ width: 48 }} />
         </View>
 
@@ -151,7 +153,7 @@ export default function HelpCenterScreen() {
           <Search size={18} color={COLORS.secondary} strokeWidth={2.5} />
           <RNTextInput
             style={styles.searchInput}
-            placeholder="Search help articles..."
+            placeholder={t('searchHelpArticles')}
             placeholderTextColor={COLORS.secondary}
             value={searchQuery}
             onChangeText={handleSearchChange}
@@ -212,11 +214,11 @@ export default function HelpCenterScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <HelpCircle size={48} color={COLORS.secondary} strokeWidth={1.5} />
-            <Text style={styles.emptyTitle}>No results found</Text>
+            <Text style={styles.emptyTitle}>{t('noResults')}</Text>
             <Text style={styles.emptySubtitle}>
               {debouncedQuery
-                ? `No articles match "${searchQuery}". Try a different keyword or contact support.`
-                : "No FAQs in this category yet."}
+                ? t('noArticlesMatch')
+                : t('noFaqsYet')}
             </Text>
           </View>
         }
@@ -231,9 +233,9 @@ export default function HelpCenterScreen() {
           filteredFaqs.length > 0 ? (
             <View style={styles.footerSection}>
               <View style={styles.footerDivider} />
-              <Text style={styles.footerTitle}>Still need help?</Text>
+              <Text style={styles.footerTitle}>{t('stillNeedHelp')}</Text>
               <Text style={styles.footerSubtitle}>
-                Our support team typically responds within 24–48 hours.
+                {t('supportTeamResponds')}
               </Text>
               <TouchableOpacity
                 style={styles.contactButton}
@@ -241,7 +243,7 @@ export default function HelpCenterScreen() {
                 activeOpacity={0.85}
               >
                 <MessageCircle size={18} color={COLORS.white} strokeWidth={2.5} />
-                <Text style={styles.contactButtonText}>Contact Support</Text>
+                <Text style={styles.contactButtonText}>{t('contactSupport')}</Text>
               </TouchableOpacity>
             </View>
           ) : null
@@ -316,7 +318,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ faq, isExpanded, onToggle }) => {
           {faq.isPopular && (
             <View style={styles.popularBadge}>
               <Sparkles size={10} color={COLORS.accent} strokeWidth={2.5} />
-              <Text style={styles.popularText}>Popular</Text>
+              <Text style={styles.popularText}>{t('popular')}</Text>
             </View>
           )}
           <Text style={styles.faqQuestionText}>{faq.question}</Text>
@@ -332,7 +334,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ faq, isExpanded, onToggle }) => {
 
           {/* Helpfulness Feedback */}
           <View style={styles.helpfulRow}>
-            <Text style={styles.helpfulLabel}>Was this helpful?</Text>
+            <Text style={styles.helpfulLabel}>{t('wasThisHelpful')}</Text>
             <View style={styles.helpfulButtons}>
               <TouchableOpacity
                 onPress={() => handleHelpful("up")}

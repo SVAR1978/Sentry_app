@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Platform,
@@ -102,8 +103,8 @@ const ProfilePhotoPicker = ({
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
-          "Permission Required",
-          "We need camera roll permissions to let you choose a profile picture!"
+          t('permissionRequired'),
+          t('cameraRollPermission')
         );
         return;
       }
@@ -122,7 +123,7 @@ const ProfilePhotoPicker = ({
       }
     } catch (error) {
       console.error("ImagePicker Error: ", error);
-      Alert.alert("Error", "Something went wrong opening the photo library.");
+      Alert.alert(t('error'), t('photoError'));
     }
   };
 
@@ -196,13 +197,14 @@ const AnimatedProfileCard = ({
 
 export default function AdminProfileScreen() {
   const { user, logout, updateUser } = useAuth();
+  const { t } = useTranslation('common');
   const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout from admin panel?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t('logout'), t('logoutAdminConfirm'), [
+      { text: t('cancel'), style: "cancel" },
       {
-        text: "Logout",
+        text: t('logout'),
         style: "destructive",
         onPress: async () => {
           await logout();
@@ -236,18 +238,18 @@ export default function AdminProfileScreen() {
           <View style={styles.headerSpacer} />
 
           <View style={styles.heroSection}>
-            <Text style={styles.headerTitle}>Admin Profile</Text>
+            <Text style={styles.headerTitle}>{t('adminProfile')}</Text>
           </View>
 
           <View style={styles.profileSection}>
             <ProfilePhotoPicker user={user} updateUser={updateUser} />
             <View style={styles.userNameContainer}>
               <Text style={styles.userName}>
-                {user?.name || "Administrator"}
+                {user?.name || t('administrator')}
               </Text>
               <View style={styles.roleContainer}>
                 <Award size={14} color={COLORS.white} strokeWidth={2.5} />
-                <Text style={styles.roleText}>Super Administrator</Text>
+                <Text style={styles.roleText}>{t('superAdministrator')}</Text>
               </View>
             </View>
           </View>
@@ -255,7 +257,7 @@ export default function AdminProfileScreen() {
 
         {/* Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle}>{t('account')}</Text>
           {ADMIN_MENU.map((item) => (
             <AnimatedProfileCard
               key={item.id}
@@ -278,7 +280,7 @@ export default function AdminProfileScreen() {
 
         {/* Quick Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Settings</Text>
+          <Text style={styles.sectionTitle}>{t('quickSettings')}</Text>
           {QUICK_SETTINGS.map((item) => (
             <AnimatedProfileCard
               key={item.id}
@@ -307,15 +309,15 @@ export default function AdminProfileScreen() {
             activeOpacity={0.8}
           >
             <LogOut size={18} color={COLORS.error} strokeWidth={2.5} />
-            <Text style={styles.logoutText}>Sign Out</Text>
+            <Text style={styles.logoutText}>{t('signOut')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* App Version */}
         <View style={styles.appInfo}>
-          <Text style={styles.appVersion}>Admin Portal v1.0.0</Text>
+          <Text style={styles.appVersion}>{t('adminPortalVersion')}</Text>
           <Text style={styles.appCopyright}>
-            © 2026 SentryApp. All rights reserved.
+            {t('copyright')}
           </Text>
         </View>
       </ScrollView>

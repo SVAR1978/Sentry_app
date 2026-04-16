@@ -11,6 +11,7 @@ import {
   Image,
 } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import {
   Plane,
   Hotel,
@@ -71,6 +72,7 @@ function getCategoryIcon(category: string) {
 // Main Component
 // ============================================================
 const BookingPartners: React.FC = () => {
+  const { t } = useTranslation('common');
   const [partners, setPartners] = useState<BookingPartner[]>([]);
   const [recentPartners, setRecentPartners] = useState<BookingPartner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,7 +127,7 @@ const BookingPartners: React.FC = () => {
     async (partner: BookingPartner) => {
       // Security: Only open HTTPS URLs
       if (!partner.url.startsWith("https://")) {
-        Alert.alert("Security Warning", "This URL is not secure.");
+        Alert.alert(t('securityWarning'), t('urlNotSecure'));
         return;
       }
 
@@ -139,7 +141,7 @@ const BookingPartners: React.FC = () => {
         await Linking.openURL(partner.url);
       } catch (error) {
         console.error("[BookingPartners] Failed to open URL:", error);
-        Alert.alert("Error", "Could not open the partner website.");
+        Alert.alert(t('error'), t('couldNotOpenPartner'));
         setActivePartner(null);
       }
     },
@@ -155,7 +157,7 @@ const BookingPartners: React.FC = () => {
             style={styles.loadingText}
             accessibilityLiveRegion="polite"
           >
-            Loading travel partners...
+            {t('loadingTravelPartners')}
           </Text>
         </View>
       </View>
@@ -170,8 +172,8 @@ const BookingPartners: React.FC = () => {
       {/* Section Header */}
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Book Travel</Text>
-          <Text style={styles.sectionSubtitle}>Trusted travel partners</Text>
+          <Text style={styles.sectionTitle}>{t('bookTravel')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('trustedTravelPartners')}</Text>
         </View>
       </View>
 
@@ -195,7 +197,7 @@ const BookingPartners: React.FC = () => {
         <View style={styles.recentSection}>
           <View style={styles.recentHeader}>
             <Clock size={13} color={COLORS.secondary} strokeWidth={2.5} />
-            <Text style={styles.recentTitle}>Recently Visited</Text>
+            <Text style={styles.recentTitle}>{t('recentlyVisited')}</Text>
           </View>
           <ScrollView
             horizontal

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   View,
   StyleSheet,
@@ -32,6 +33,7 @@ const SAVED_KEY = "@sentry:saved_places";
 type FilterOption = "all" | "vegetarian" | "non_veg" | "budget" | "fine_dining" | "street_food";
 
 export default function FoodListScreen() {
+  const { t } = useTranslation('common');
   const [filter, setFilter] = useState<FilterOption>("all");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
@@ -79,12 +81,12 @@ export default function FoodListScreen() {
   }, [filter]);
 
   const filters: { key: FilterOption; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "vegetarian", label: "Vegetarian" },
-    { key: "non_veg", label: "Non-Veg" },
-    { key: "budget", label: "Budget" },
-    { key: "fine_dining", label: "Fine Dining" },
-    { key: "street_food", label: "Street Food" },
+    { key: "all", label: t('all') },
+    { key: "vegetarian", label: t('vegetarian') },
+    { key: "non_veg", label: t('nonVeg') },
+    { key: "budget", label: t('budget') },
+    { key: "fine_dining", label: t('fineDining') },
+    { key: "street_food", label: t('streetFood') },
   ];
 
   return (
@@ -95,11 +97,11 @@ export default function FoodListScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backBtn}
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('goBack')}
         >
           <ArrowLeft size={20} color={C.primary} strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Food & Dining</Text>
+        <Text style={styles.headerTitle}>{t('foodAndDining')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -172,13 +174,13 @@ export default function FoodListScreen() {
                         { color: item.isVegetarian ? C.success : C.danger },
                       ]}
                     >
-                      {item.isVegetarian ? "🟢 Veg" : "🔴 Non-Veg"}
+                      {item.isVegetarian ? `🟢 ${t('veg')}` : `🔴 ${t('nonVeg')}`}
                     </Text>
                   </View>
                   <Text style={styles.cuisineText}>{item.cuisine}</Text>
                 </View>
                 <View style={styles.bottomRow}>
-                  <Text style={styles.cost}>₹{item.avgCostForTwo} for two</Text>
+                  <Text style={styles.cost}>₹{item.avgCostForTwo} {t('forTwo')}</Text>
                   {dist !== "" && (
                     <View style={styles.distRow}>
                       <MapPin size={10} color={C.secondary} strokeWidth={2.5} />
@@ -189,12 +191,12 @@ export default function FoodListScreen() {
                 <View style={styles.badges}>
                   {item.hygieneRated && (
                     <View style={styles.badge}>
-                      <Text style={styles.badgeText}>✅ Hygiene</Text>
+                      <Text style={styles.badgeText}>✅ {t('hygiene')}</Text>
                     </View>
                   )}
                   {item.touristFriendly && (
                     <View style={[styles.badge, { backgroundColor: "rgba(33,16,11,0.04)" }]}>
-                      <Text style={[styles.badgeText, { color: C.primary }]}>🌍 Tourist</Text>
+                      <Text style={[styles.badgeText, { color: C.primary }]}>🌍 {t('tourist')}</Text>
                     </View>
                   )}
                 </View>
@@ -204,7 +206,7 @@ export default function FoodListScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No restaurants match this filter</Text>
+            <Text style={styles.emptyText}>{t('noRestaurantsMatch')}</Text>
           </View>
         }
       />

@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { X } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 interface AddContactModalProps {
   visible: boolean;
@@ -45,19 +46,20 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
   setRelationship,
   colors,
 }) => {
+  const { t } = useTranslation('emergency');
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Add Emergency Contact</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('addContact')}</Text>
             <TouchableOpacity onPress={onClose}>
               <X size={22} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Name *</Text>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>{t('contactName')} *</Text>
             <TextInput
               style={[
                 styles.input,
@@ -71,7 +73,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Phone Number *</Text>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>{t('contactPhone')} *</Text>
             <TextInput
               style={[
                 styles.input,
@@ -86,7 +88,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Email Address *</Text>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>{t('contactEmail')} *</Text>
             <TextInput
               style={[
                 styles.input,
@@ -102,7 +104,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Relationship</Text>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>{t('relationship')}</Text>
             <TextInput
               style={[
                 styles.input,
@@ -120,13 +122,13 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
               style={[styles.cancelButton, { backgroundColor: colors.surfaceContainerHigh }]}
               onPress={onClose}
             >
-              <Text style={[styles.cancelButtonText, { color: colors.textMuted }]}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: colors.textMuted }]}>{t('cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.saveButton, { backgroundColor: colors.primary }]}
               onPress={onSave}
             >
-              <Text style={[styles.saveButtonText, { color: colors.white }]}>Add Contact</Text>
+              <Text style={[styles.saveButtonText, { color: colors.white }]}>{t('addContact')}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

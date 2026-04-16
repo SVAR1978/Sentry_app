@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "../../constants/userHomeData";
 
 interface Destination {
@@ -37,6 +38,7 @@ const FeaturedDestinations: React.FC<FeaturedDestinationsProps> = ({
   destinations,
 }) => {
   const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
+  const { t } = useTranslation('common');
 
   const toggleSaved = (id: string) => {
     setSavedIds((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -46,11 +48,11 @@ const FeaturedDestinations: React.FC<FeaturedDestinationsProps> = ({
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Featured Destinations</Text>
-          <Text style={styles.sectionSubtitle}>Explore India's wonders</Text>
+          <Text style={styles.sectionTitle}>{t('featuredDestinations')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('exploreIndiasWonders')}</Text>
         </View>
         <TouchableOpacity style={styles.seeAllBtn} activeOpacity={0.7}>
-          <Text style={styles.seeAllText}>See all</Text>
+          <Text style={styles.seeAllText}>{t('seeAll')}</Text>
           <MaterialCommunityIcons
             name="arrow-right"
             size={14}

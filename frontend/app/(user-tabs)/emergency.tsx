@@ -373,10 +373,10 @@ export default function EmergencyScreen() {
     setAlertConfig({
       visible: true,
       type: "confirm",
-      title: `Call ${name}?`,
+      title: t('callContact', { name }),
       message: `${number}`,
-      confirmText: "Call Now",
-      cancelText: "Cancel",
+      confirmText: t('callNow'),
+      cancelText: t('cancel'),
       onCancel: hideAlert,
       onConfirm: async () => {
         hideAlert();
@@ -388,9 +388,9 @@ export default function EmergencyScreen() {
             setAlertConfig({
               visible: true,
               type: "error",
-              title: "Unable to Open Dialer",
-              message: `Please dial ${number} manually.`,
-              confirmText: "Okay",
+              title: t('unableOpenDialer'),
+              message: t('pleaseDialManually', { number }),
+              confirmText: t('okay'),
               onConfirm: hideAlert,
             });
           }, 500);
@@ -409,9 +409,9 @@ export default function EmergencyScreen() {
       setAlertConfig({
         visible: true,
         type: "error",
-        title: "Invalid Input",
-        message: "Please enter a valid name.",
-        confirmText: "Okay",
+        title: t('invalidInput'),
+        message: t('enterValidName'),
+        confirmText: t('okay'),
         onConfirm: hideAlert,
       });
       return;
@@ -420,9 +420,9 @@ export default function EmergencyScreen() {
       setAlertConfig({
         visible: true,
         type: "error",
-        title: "Invalid Input",
-        message: "Please enter a valid phone number.",
-        confirmText: "Okay",
+        title: t('invalidInput'),
+        message: t('enterValidPhone'),
+        confirmText: t('okay'),
         onConfirm: hideAlert,
       });
       return;
@@ -456,9 +456,9 @@ export default function EmergencyScreen() {
     setAlertConfig({
       visible: true,
       type: "success",
-      title: "Contact Added",
-      message: `${newContactName} has been added to your emergency contacts.`,
-      confirmText: "Continue",
+      title: t('contactAdded'),
+      message: t('contactAddedMsg', { name: newContactName }),
+      confirmText: t('continueBtn'),
       onConfirm: hideAlert,
     });
   };
@@ -476,10 +476,10 @@ export default function EmergencyScreen() {
     setAlertConfig({
       visible: true,
       type: "confirm",
-      title: "Delete Contact",
-      message: `Are you sure you want to remove ${contactName} from emergency contacts?`,
-      confirmText: "Delete",
-      cancelText: "Cancel",
+      title: t('deleteContact'),
+      message: t('deleteContactConfirm', { name: contactName }),
+      confirmText: t('deleteContact'),
+      cancelText: t('cancel'),
       onCancel: hideAlert,
       onConfirm: async () => {
         hideAlert();
@@ -513,10 +513,10 @@ export default function EmergencyScreen() {
         setAlertConfig({
           visible: true,
           type: "error",
-          title: "Permission Denied",
-          message: "Location permission is required to share your live location. Please enable it in Settings.",
-          confirmText: "Open Settings",
-          cancelText: "Cancel",
+          title: t('permissionDeniedTitle'),
+          message: t('locationPermRequired'),
+          confirmText: t('openSettings'),
+          cancelText: t('cancel'),
           onCancel: hideAlert,
           onConfirm: async () => {
             hideAlert();
@@ -564,17 +564,17 @@ export default function EmergencyScreen() {
       });
 
       const shareMessage =
-        `*LIVE LOCATION — Emergency Share*\n\n` +
+        `*${t('liveLocationShare')}*\n\n` +
         `From: ${userName}\n` +
         `Location: ${addressStr || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`}\n` +
         `Time: ${timestamp}\n\n` +
         `Google Maps URL:\n${mapsLink}\n\n` +
-        `This location was shared via the Sentry Emergency App.`;
+        t('sharedViaSentry');
 
       // 5. Open Native Share Sheet
       const result = await Share.share({
         message: shareMessage,
-        title: "My Live Location — Sentry Emergency",
+        title: t('shareTitleLive'),
       });
 
       if (result.action === Share.sharedAction) {
@@ -582,9 +582,9 @@ export default function EmergencyScreen() {
         setAlertConfig({
           visible: true,
           type: "success",
-          title: "Location Shared",
-          message: `Your live location has been shared successfully.`,
-          confirmText: "Done",
+          title: t('locationSharedSuccess'),
+          message: t('locationSharedMsg'),
+          confirmText: t('done'),
           onConfirm: hideAlert,
         });
       }
@@ -593,9 +593,9 @@ export default function EmergencyScreen() {
       setAlertConfig({
         visible: true,
         type: "error",
-        title: "Location Error",
-        message: err?.message || "Unable to fetch your current location. Please check your GPS and try again.",
-        confirmText: "Okay",
+        title: t('locationError'),
+        message: err?.message || t('locationErrorMsg'),
+        confirmText: t('okay'),
         onConfirm: hideAlert,
       });
     } finally {
@@ -763,9 +763,9 @@ export default function EmergencyScreen() {
               <View style={dispatchStyles.headerTextContainer}>
                 <View style={dispatchStyles.titleRow}>
                   <AlertTriangle size={16} color="#FF3636" />
-                  <Text style={dispatchStyles.headerTitle}>SOS DISPATCH</Text>
+                  <Text style={dispatchStyles.headerTitle}>{t('sosDispatch')}</Text>
                 </View>
-                <Text style={dispatchStyles.headerSubtitle}>Real-time Emergency Routing</Text>
+                <Text style={dispatchStyles.headerSubtitle}>{t('realTimeRouting')}</Text>
               </View>
               <View style={dispatchStyles.headerRight}>
                 {alertPayload && <StatusBadge status={alertPayload.status} t={t} />}
@@ -780,7 +780,7 @@ export default function EmergencyScreen() {
                   <View style={dispatchStyles.alertRow}>
                     <View style={dispatchStyles.alertLabel}>
                       <ShieldAlert size={14} color="#FF6B6B" />
-                      <Text style={dispatchStyles.alertLabelText}>ALERT ID</Text>
+                      <Text style={dispatchStyles.alertLabelText}>{t('alertId')}</Text>
                     </View>
                     <Text style={dispatchStyles.alertValue}>{alertPayload.alertId}</Text>
                   </View>
@@ -790,7 +790,7 @@ export default function EmergencyScreen() {
                   <View style={dispatchStyles.alertRow}>
                     <View style={dispatchStyles.alertLabel}>
                       <Clock size={14} color="#FF6B6B" />
-                      <Text style={dispatchStyles.alertLabelText}>TIMESTAMP</Text>
+                      <Text style={dispatchStyles.alertLabelText}>{t('timestamp')}</Text>
                     </View>
                     <Text style={dispatchStyles.alertValue}>
                       {new Date(alertPayload.timestamp).toLocaleString("en-IN")}
@@ -802,13 +802,13 @@ export default function EmergencyScreen() {
                   <View style={dispatchStyles.alertRow}>
                     <View style={dispatchStyles.alertLabel}>
                       <MapPin size={14} color="#FF6B6B" />
-                      <Text style={dispatchStyles.alertLabelText}>LOCATION</Text>
+                      <Text style={dispatchStyles.alertLabelText}>{t('location')}</Text>
                     </View>
                     <Text style={dispatchStyles.alertValue} numberOfLines={2}>
                       {alertPayload.location
                         ? alertPayload.location.address ||
                         `${alertPayload.location.latitude.toFixed(4)}, ${alertPayload.location.longitude.toFixed(4)}`
-                        : "Acquiring..."}
+                        : t('acquiring')}
                     </Text>
                   </View>
 
@@ -817,10 +817,10 @@ export default function EmergencyScreen() {
                   <View style={dispatchStyles.alertRow}>
                     <View style={dispatchStyles.alertLabel}>
                       <User size={14} color="#FF6B6B" />
-                      <Text style={dispatchStyles.alertLabelText}>CONTACTS</Text>
+                      <Text style={dispatchStyles.alertLabelText}>{t('contacts')}</Text>
                     </View>
                     <Text style={dispatchStyles.alertValue}>
-                      {alertPayload.destinations.length} recipient(s)
+                      {t('recipientCount', { count: alertPayload.destinations.length })}
                     </Text>
                   </View>
                 </>
@@ -829,11 +829,11 @@ export default function EmergencyScreen() {
                   <View style={dispatchStyles.preDispatchIconWrapper}>
                     <AlertTriangle size={42} color="#FF3636" strokeWidth={2} />
                   </View>
-                  <Text style={dispatchStyles.preDispatchTitle}>Ready to Dispatch</Text>
+                  <Text style={dispatchStyles.preDispatchTitle}>{t('readyToDispatch')}</Text>
                   <Text style={dispatchStyles.preDispatchSubtitle}>
                     {familyContacts.length > 0
-                      ? `Alert will be sent to ${familyContacts.length} contact(s) and emergency services`
-                      : "No contacts saved — alert will go to Emergency Services (112)"}
+                      ? t('alertWillBeSent', { count: familyContacts.length })
+                      : t('noContactsSaved')}
                   </Text>
                 </View>
               )}
@@ -842,7 +842,7 @@ export default function EmergencyScreen() {
             {/* Delivery Log */}
             {alertPayload && alertPayload.deliveryLog.length > 0 && (
               <View style={dispatchStyles.logSection}>
-                <Text style={dispatchStyles.logTitle}>Delivery Tracking System</Text>
+                <Text style={dispatchStyles.logTitle}>{t('deliveryTracking')}</Text>
                 <ScrollView
                   ref={scrollViewRef}
                   style={dispatchStyles.logScroll}
@@ -874,7 +874,7 @@ export default function EmergencyScreen() {
                         <Radio size={22} color={COLORS.white} />
                       )}
                       <Text style={dispatchStyles.dispatchButtonText}>
-                        {isDispatching ? "DISPATCHING ALERT..." : "CONFIRM & DISPATCH"}
+                        {isDispatching ? t('dispatchingAlert') : t('confirmDispatch')}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -884,7 +884,7 @@ export default function EmergencyScreen() {
                     activeOpacity={0.7}
                   >
                     <X size={18} color={COLORS.textMuted} />
-                    <Text style={dispatchStyles.cancelDispatchText}>Cancel Action</Text>
+                    <Text style={dispatchStyles.cancelDispatchText}>{t('cancelAction')}</Text>
                   </TouchableOpacity>
                 </>
               ) : alertPayload.status === "RESOLVED" ? (
@@ -898,7 +898,7 @@ export default function EmergencyScreen() {
                     style={dispatchStyles.dispatchButtonGradient}
                   >
                     <CheckCircle size={22} color={COLORS.white} />
-                    <Text style={dispatchStyles.dispatchButtonText}>Done — You're Safe</Text>
+                    <Text style={dispatchStyles.dispatchButtonText}>{t('doneYoureSafe')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               ) : (
@@ -913,7 +913,7 @@ export default function EmergencyScreen() {
                       style={dispatchStyles.dispatchButtonGradient}
                     >
                       <CheckCircle size={22} color={COLORS.white} />
-                      <Text style={dispatchStyles.dispatchButtonText}>I'm Safe — Resolve</Text>
+                      <Text style={dispatchStyles.dispatchButtonText}>{t('imSafeResolve')}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -921,7 +921,7 @@ export default function EmergencyScreen() {
                     onPress={cancelSOS}
                     activeOpacity={0.7}
                   >
-                    <Text style={dispatchStyles.cancelDispatchText}>Dismiss Panel</Text>
+                    <Text style={dispatchStyles.cancelDispatchText}>{t('dismissPanel')}</Text>
                   </TouchableOpacity>
                 </>
               )}

@@ -199,7 +199,7 @@ export default function ProfileScreen() {
           <View style={styles.profileSection}>
             <ProfilePhotoPicker user={user} updateUser={updateUser} />
             <View style={styles.userNameContainer}>
-              <Text style={styles.userName}>{user?.name || "Vilash Kumar"}</Text>
+              <Text style={styles.userName}>{user?.name || t('explorer')}</Text>
             </View>
           </View>
         </LinearGradient>

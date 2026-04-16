@@ -27,7 +27,7 @@
   "saveContact": "Save Contact",
   "editContact": "Edit Contact",
   "deleteContact": "Delete Contact",
-  "deleteContactConfirm": "Are you sure you want to delete this contact?",
+  "deleteContactConfirm": "Are you sure you want to remove {{name}} from emergency contacts?",
   "pending": "PENDING",
   "sending": "SENDING",
   "dispatched": "DISPATCHED",
@@ -47,5 +47,53 @@
   "reconnecting": "Reconnecting...",
   "alertHistory": "Alert History",
   "noAlertHistory": "No previous alerts",
-  "deliveryLog": "Delivery Log"
+  "deliveryLog": "Delivery Log",
+  "loading": "Loading...",
+
+  "callContact": "Call {{name}}?",
+  "unableOpenDialer": "Unable to Open Dialer",
+  "pleaseDialManually": "Please dial {{number}} manually.",
+  "okay": "Okay",
+  "cancel": "Cancel",
+
+  "invalidInput": "Invalid Input",
+  "enterValidName": "Please enter a valid name.",
+  "enterValidPhone": "Please enter a valid phone number.",
+  "contactAdded": "Contact Added",
+  "contactAddedMsg": "{{name}} has been added to your emergency contacts.",
+  "continueBtn": "Continue",
+
+  "permissionDeniedTitle": "Permission Denied",
+  "locationPermRequired": "Location permission is required to share your live location. Please enable it in Settings.",
+  "openSettings": "Open Settings",
+
+  "locationSharedSuccess": "Location Shared",
+  "locationSharedMsg": "Your live location has been shared successfully.",
+  "done": "Done",
+
+  "locationError": "Location Error",
+  "locationErrorMsg": "Unable to fetch your current location. Please check your GPS and try again.",
+
+  "liveLocationShare": "LIVE LOCATION — Emergency Share",
+  "sharedViaSentry": "This location was shared via the Sentry Emergency App.",
+  "shareTitleLive": "My Live Location — Sentry Emergency",
+
+  "sosDispatch": "SOS DISPATCH",
+  "realTimeRouting": "Real-time Emergency Routing",
+  "alertId": "ALERT ID",
+  "timestamp": "TIMESTAMP",
+  "location": "LOCATION",
+  "acquiring": "Acquiring...",
+  "contacts": "CONTACTS",
+  "recipientCount": "{{count}} recipient(s)",
+  "readyToDispatch": "Ready to Dispatch",
+  "alertWillBeSent": "Alert will be sent to {{count}} contact(s) and emergency services",
+  "noContactsSaved": "No contacts saved — alert will go to Emergency Services (112)",
+  "deliveryTracking": "Delivery Tracking System",
+  "dispatchingAlert": "DISPATCHING ALERT...",
+  "confirmDispatch": "CONFIRM & DISPATCH",
+  "cancelAction": "Cancel Action",
+  "doneYoureSafe": "Done — You're Safe",
+  "imSafeResolve": "I'm Safe — Resolve",
+  "dismissPanel": "Dismiss Panel"
 }

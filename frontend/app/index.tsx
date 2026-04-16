@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Image, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../store/AuthContext";
 
 const COLORS = {
@@ -11,6 +12,7 @@ const COLORS = {
 
 export default function Index() {
   const { isAuthenticated, role, loading } = useAuth();
+  const { t } = useTranslation('common');
   const [splashFinished, setSplashFinished] = useState(false);
 
   // Entrance Animations
@@ -74,8 +76,8 @@ export default function Index() {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.appName}>Sentry</Text>
-        <Text style={styles.tagline}>Intelligent Protection</Text>
+        <Text style={styles.appName}>{t('appName')}</Text>
+        <Text style={styles.tagline}>{t('tagline')}</Text>
       </Animated.View>
     </View>
   );

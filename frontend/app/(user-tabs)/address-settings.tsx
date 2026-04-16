@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   View,
   StyleSheet,
@@ -37,6 +38,7 @@ const COLORS = {
 
 export default function AddressSettingsScreen() {
   const { user, updateUser } = useAuth();
+  const { t } = useTranslation('common');
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [address, setAddress] = useState(user?.address || "");
@@ -54,10 +56,10 @@ export default function AddressSettingsScreen() {
         address: address,
       });
 
-      Alert.alert("Success", "Address updated successfully");
+      Alert.alert(t('success'), t('addressUpdated'));
       router.navigate("/profile");
     } catch (error) {
-      Alert.alert("Error", "Failed to update address");
+      Alert.alert(t('error'), t('failedUpdateAddress'));
       console.error(error);
     } finally {
       setLoading(false);
@@ -69,7 +71,7 @@ export default function AddressSettingsScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert("Permission Denied", "Allow location access to get your current address.");
+        Alert.alert(t('permissionDenied'), t('allowLocationAccess'));
         return;
       }
 
@@ -85,7 +87,7 @@ export default function AddressSettingsScreen() {
         setAddress(formattedAddress.trim().replace(/^, /, ""));
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to get current location");
+      Alert.alert(t('error'), t('failedGetLocation'));
       console.error(error);
     } finally {
       setLocating(false);
@@ -112,7 +114,7 @@ export default function AddressSettingsScreen() {
           >
             <ChevronLeft color={COLORS.white} size={28} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Address</Text>
+          <Text style={styles.headerTitle}>{t('myAddress')}</Text>
           <View style={{ width: 48 }} />
         </View>
 
@@ -131,7 +133,7 @@ export default function AddressSettingsScreen() {
       >
         <View style={styles.formSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>SAVED ADDRESS</Text>
+            <Text style={styles.sectionLabel}>{t('savedAddress')}</Text>
             <TouchableOpacity
               onPress={getCurrentLocation}
               style={styles.locateButton}
@@ -142,7 +144,7 @@ export default function AddressSettingsScreen() {
               ) : (
                 <>
                   <Navigation size={14} color={COLORS.textSecondary} />
-                  <Text style={styles.locateText}>Locate Me</Text>
+                  <Text style={styles.locateText}>{t('locateMe')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -153,7 +155,7 @@ export default function AddressSettingsScreen() {
               <MapIcon size={20} color={COLORS.secondary} />
             </View>
             <TextInput
-              label="Home Address"
+              label={t('homeAddress')}
               value={address}
               onChangeText={setAddress}
               style={styles.input}
@@ -177,7 +179,7 @@ export default function AddressSettingsScreen() {
           ) : (
             <>
               <Save size={20} color={COLORS.white} strokeWidth={2.5} />
-              <Text style={styles.saveButtonText}>Update Address</Text>
+              <Text style={styles.saveButtonText}>{t('updateAddress')}</Text>
             </>
           )}
         </TouchableOpacity>

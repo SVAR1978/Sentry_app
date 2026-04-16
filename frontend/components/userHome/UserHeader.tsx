@@ -3,6 +3,7 @@ import { MapPin, ShieldAlert, ShieldCheck, Shield } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { Avatar, Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../constants/userHomeData";
 import {
@@ -25,7 +26,8 @@ export interface LocationRiskResult {
 
 const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
   const insets = useSafeAreaInsets();
-  const [locationName, setLocationName] = useState("Locating...");
+  const { t } = useTranslation('common');
+  const [locationName, setLocationName] = useState(t('locating'));
   const [currentRisk, setCurrentRisk] = useState<LocationRiskResult | null>(null);
   const [isLoadingRisk, setIsLoadingRisk] = useState(true);
 
@@ -44,7 +46,7 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
                 : address;
             setLocationName(displayCity);
           } else {
-            setLocationName("Location Found");
+            setLocationName(t('locationFound'));
           }
 
           // 2. Resolve Area ID for Risk Model
@@ -70,10 +72,10 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
             console.warn("[UserHeader] Error fetching risk score:", riskError);
           }
         } else {
-          setLocationName("India");
+          setLocationName(t('india'));
         }
       } catch (error) {
-        setLocationName("Explore India");
+        setLocationName(t('exploreIndia'));
       } finally {
         setIsLoadingRisk(false);
       }
@@ -105,7 +107,7 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
           {/* Top Row: Greeting + Avatar */}
           <View style={styles.headerTop}>
             <View style={styles.greetingContainer}>
-              <Text style={styles.userName}>{user?.name || "Explorer"}</Text>
+              <Text style={styles.userName}>{user?.name || t('explorer')}</Text>
               <View style={styles.locationRow}>
                 <MapPin size={14} color={COLORS.secondary} strokeWidth={2.5} />
                 <Text style={styles.locationNameText}>{locationName}</Text>
@@ -137,16 +139,16 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
 
           {/* Hero Section & Risk Score */}
           <View style={styles.heroSection}>
-            <Text style={styles.headerTitle}>Find your next safe</Text>
+            <Text style={styles.headerTitle}>{t('findNextSafe')}</Text>
             <Text style={[styles.headerTitle, { color: COLORS.secondary }]}>
-              adventure
+              {t('adventure')}
             </Text>
             
             <View style={styles.riskCardWrapper}>
               {isLoadingRisk ? (
                  <View style={styles.riskLoading}>
                    <ActivityIndicator size="small" color={COLORS.white} />
-                   <Text style={styles.loadingText}>Analyzing regional safety...</Text>
+                   <Text style={styles.loadingText}>{t('analyzingRegionalSafety')}</Text>
                  </View>
               ) : currentRisk ? (
                 <View style={[styles.riskCard, { backgroundColor: getRiskTheme(currentRisk.risk_level).bg, borderColor: getRiskTheme(currentRisk.risk_level).border }]}>
@@ -158,10 +160,10 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
                     })}
                     <View style={styles.riskInfo}>
                       <Text style={[styles.riskLevelText, { color: getRiskTheme(currentRisk.risk_level).text }]}>
-                        {currentRisk.risk_level} Risk Zone
+                        {t('riskZone', { level: currentRisk.risk_level })}
                       </Text>
                       <Text style={[styles.riskDetailsText, { color: getRiskTheme(currentRisk.risk_level).text }]}>
-                        Score: {currentRisk.final_score} • {currentRisk.area_id}
+                        {t('scoreLabel', { score: currentRisk.final_score, area: currentRisk.area_id })}
                       </Text>
                     </View>
                   </View>
