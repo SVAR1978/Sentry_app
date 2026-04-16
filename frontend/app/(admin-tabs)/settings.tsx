@@ -3,8 +3,6 @@ import {
   Mail,
   AlertTriangle,
   Languages,
-  Trash2,
-  Database,
   ChevronRight,
   LogOut,
 } from "lucide-react-native";
@@ -131,22 +129,7 @@ export default function SettingsScreen() {
     },
   ];
 
-  const DANGER_ITEMS = [
-    {
-      id: "clear_cache",
-      title: t('clearCache'),
-      icon: Trash2,
-      confirmTitle: t('clearCache'),
-      confirmMessage: t('clearCacheMsg'),
-    },
-    {
-      id: "reset_db",
-      title: t('resetDatabase'),
-      icon: Database,
-      confirmTitle: t('resetDatabase'),
-      confirmMessage: t('resetDatabaseMsg'),
-    },
-  ];
+
 
   const handleLogout = () => {
     Alert.alert(t('signOut'), t('logoutAdminConfirm'), [
@@ -164,13 +147,6 @@ export default function SettingsScreen() {
 
   const toggleSwitch = (id: string) => {
     setSwitches({ ...switches, [id]: !switches[id] });
-  };
-
-  const handleDangerPress = (item: (typeof DANGER_ITEMS)[0]) => {
-    Alert.alert(item.confirmTitle, item.confirmMessage, [
-      { text: t('cancel'), style: "cancel" },
-      { text: item.confirmTitle.split(" ")[0], style: "destructive" },
-    ]);
   };
 
   const handleSettingPress = (item: (typeof GENERAL_SETTINGS)[0]) => {
@@ -236,34 +212,6 @@ export default function SettingsScreen() {
                     color={COLORS.textMuted}
                   />
                 )}
-            </AnimatedSettingCard>
-          ))}
-        </View>
-
-        {/* Danger Zone */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: COLORS.error }]}>
-            {t('dangerZone')}
-          </Text>
-          {DANGER_ITEMS.map((item) => (
-            <AnimatedSettingCard
-              key={item.id}
-              onPress={() => handleDangerPress(item)}
-              isDanger
-            >
-                <View style={styles.cardLeft}>
-                  <View style={[styles.cardIconBox, styles.dangerIconBox]}>
-                    <item.icon
-                      size={22}
-                      color={COLORS.error}
-                      strokeWidth={2}
-                    />
-                  </View>
-                  <Text style={[styles.cardTitle, { color: COLORS.error }]}>
-                    {item.title}
-                  </Text>
-                </View>
-                <ChevronRight size={20} color={COLORS.error} />
             </AnimatedSettingCard>
           ))}
         </View>
