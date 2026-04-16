@@ -1,0 +1,140 @@
+:root {
+  color-scheme: dark;
+  --bg: #08111f;
+  --bg-soft: #101c31;
+  --card: rgba(12, 22, 41, 0.88);
+  --card-border: rgba(148, 163, 184, 0.18);
+  --text: #e5eefc;
+  --muted: #b6c2d9;
+  --accent: #58c6ff;
+  --accent-strong: #1e90ff;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(88, 198, 255, 0.18), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(30, 144, 255, 0.16), transparent 24%),
+    linear-gradient(160deg, var(--bg), var(--bg-soft));
+  color: var(--text);
+}
+
+body {
+  min-height: 100vh;
+}
+
+.page-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.hero-card {
+  width: min(1040px, 100%);
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 28px;
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  background: var(--card);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.hero-copy {
+  width: min(720px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  line-height: 0.98;
+  max-width: 11ch;
+}
+
+.lead {
+  margin: 18px 0 0;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #04111e;
+  text-decoration: none;
+  font-weight: 800;
+  box-shadow: 0 16px 40px rgba(30, 144, 255, 0.28);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.download-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 18px 46px rgba(30, 144, 255, 0.35);
+}
+
+.download-button:active {
+  transform: translateY(0);
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.hint span {
+  color: var(--text);
+  font-weight: 700;
+}
+
+@media (max-width: 820px) {
+  .hero-card {
+    padding: 20px;
+  }
+
+  .hero-copy {
+    padding: 8px;
+  }
+}
