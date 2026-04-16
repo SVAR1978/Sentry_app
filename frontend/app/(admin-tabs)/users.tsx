@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Animated,
   ActivityIndicator,
@@ -146,8 +147,8 @@ const AnimatedUserCard = ({ user, index, isOnline }: { user: UserData; index: nu
 
           {/* User Info */}
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user.name || "Unnamed User"}</Text>
-            <Text style={styles.userPhone}>{user.phone || "No phone"}</Text>
+            <Text style={styles.userName}>{user.name || t('unnamedUser')}</Text>
+            <Text style={styles.userPhone}>{user.phone || t('noPhone')}</Text>
             <View style={styles.userMeta}>
               <View
                 style={[
@@ -173,7 +174,7 @@ const AnimatedUserCard = ({ user, index, isOnline }: { user: UserData; index: nu
                     { color: isOnline ? COLORS.success : COLORS.secondary },
                   ]}
                 >
-                  {isOnline ? "Online" : "Offline"}
+                  {isOnline ? t('online') : t('offline')}
                 </Text>
               </View>
               <View style={styles.joinedTag}>
@@ -193,6 +194,7 @@ const AnimatedUserCard = ({ user, index, isOnline }: { user: UserData; index: nu
 // ─── COMPONENT ────────────────────────────────────────────────────
 export default function UsersScreen() {
   const { onLiveUsersCount, onUserActivity, isConnected } = useSocket();
+  const { t } = useTranslation('common');
   const insets = useSafeAreaInsets();
 
   // ─── STATE ──────────────────────────────────────────────
@@ -228,7 +230,7 @@ export default function UsersScreen() {
       }
     } catch (err: any) {
       console.error("[UsersScreen] Failed to fetch users:", err);
-      setError("Failed to load users. Pull to retry.");
+      setError(t('failedLoadUsers'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -315,9 +317,9 @@ export default function UsersScreen() {
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 8 }]}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>User Management</Text>
+            <Text style={styles.headerTitle}>{t('userManagement')}</Text>
             <Text style={styles.headerSubtitle}>
-              {users.length} total users
+              {t('totalUsersCount', { count: users.length })}
             </Text>
           </View>
           <View style={styles.connectionIndicator}>
@@ -340,17 +342,17 @@ export default function UsersScreen() {
           <View style={[styles.quickStatItem, { backgroundColor: `${COLORS.success}12` }]}>
             <UserCheck size={16} color={COLORS.success} strokeWidth={2} />
             <Text style={[styles.quickStatValue, { color: COLORS.success }]}>{onlineCount}</Text>
-            <Text style={styles.quickStatLabel}>Online</Text>
+            <Text style={styles.quickStatLabel}>{t('online')}</Text>
           </View>
           <View style={[styles.quickStatItem, { backgroundColor: `${COLORS.secondary}12` }]}>
             <UserX size={16} color={COLORS.secondary} strokeWidth={2} />
             <Text style={[styles.quickStatValue, { color: COLORS.secondary }]}>{offlineCount}</Text>
-            <Text style={styles.quickStatLabel}>Offline</Text>
+            <Text style={styles.quickStatLabel}>{t('offline')}</Text>
           </View>
           <View style={[styles.quickStatItem, { backgroundColor: `${COLORS.primary}12` }]}>
             <Users size={16} color={COLORS.primary} strokeWidth={2} />
             <Text style={[styles.quickStatValue, { color: COLORS.primary }]}>{users.length}</Text>
-            <Text style={styles.quickStatLabel}>Total</Text>
+            <Text style={styles.quickStatLabel}>{t('total')}</Text>
           </View>
         </View>
       </View>
@@ -361,7 +363,7 @@ export default function UsersScreen() {
           <Search size={20} color={isFocused ? COLORS.primary : COLORS.textMuted} strokeWidth={2.5} />
           <TextInput
             style={styles.customSearchInput}
-            placeholder="Search by name or phone..."
+            placeholder={t('searchByNameOrPhone')}
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -384,14 +386,14 @@ export default function UsersScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading users...</Text>
+          <Text style={styles.loadingText}>{t('loadingUsers')}</Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => fetchUsers()}>
             <RefreshCw size={16} color={COLORS.white} strokeWidth={2} />
-            <Text style={styles.retryBtnText}>Retry</Text>
+            <Text style={styles.retryBtnText}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -418,11 +420,11 @@ export default function UsersScreen() {
             {filteredUsers.length === 0 ? (
               <View style={styles.emptyState}>
                 <Search size={40} color={COLORS.textMuted} strokeWidth={1.5} />
-                <Text style={styles.emptyTitle}>No users found</Text>
+                <Text style={styles.emptyTitle}>{t('noUsersFound')}</Text>
                 <Text style={styles.emptySubtitle}>
                   {searchQuery
-                    ? "Try adjusting your search query"
-                    : "No users match the selected filter"}
+                    ? t('tryAdjustingSearch')
+                    : t('noUsersMatchFilter')}
                 </Text>
               </View>
             ) : (
@@ -444,7 +446,7 @@ export default function UsersScreen() {
                     onPress={() => setShowAllUsers(!showAllUsers)}
                   >
                     <Text style={styles.seeAllBtnText}>
-                      {showAllUsers ? "Show Less" : `See All Users (${filteredUsers.length})`}
+                      {showAllUsers ? t('showLess') : t('seeAllUsers', { count: filteredUsers.length })}
                     </Text>
                   </TouchableOpacity>
                 )}

@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Avatar, Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../constants/userHomeData";
 import {
@@ -18,8 +19,8 @@ interface UserHeaderProps {
 
 const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
   const insets = useSafeAreaInsets();
-  const [locationName, setLocationName] = useState("Locating...");
-
+  const { t } = useTranslation('common');
+  const [locationName, setLocationName] = useState(t('locating'));
 
   useEffect(() => {
     const fetchLocationAndRisk = async () => {
@@ -36,14 +37,14 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
                 : address;
             setLocationName(displayCity);
           } else {
-            setLocationName("Location Found");
+            setLocationName(t('locationFound'));
           }
 
         } else {
-          setLocationName("India");
+          setLocationName(t('india'));
         }
       } catch (error) {
-        setLocationName("Explore India");
+        setLocationName(t('exploreIndia'));
       }
     };
 
@@ -64,7 +65,7 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
           {/* Top Row: Greeting + Avatar */}
           <View style={styles.headerTop}>
             <View style={styles.greetingContainer}>
-              <Text style={styles.userName}>{user?.name || "Explorer"}</Text>
+              <Text style={styles.userName}>{user?.name || t('explorer')}</Text>
               <View style={styles.locationRow}>
                 <MapPin size={14} color={COLORS.secondary} strokeWidth={2.5} />
                 <Text style={styles.locationNameText}>{locationName}</Text>
@@ -96,10 +97,11 @@ const UserHeader: React.FC<UserHeaderProps> = ({ user }) => {
 
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <Text style={styles.headerTitle}>Find your next safe</Text>
+            <Text style={styles.headerTitle}>{t('findNextSafe')}</Text>
             <Text style={[styles.headerTitle, { color: COLORS.secondary }]}>
-              adventure
+              {t('adventure')}
             </Text>
+
           </View>
 
         </View>

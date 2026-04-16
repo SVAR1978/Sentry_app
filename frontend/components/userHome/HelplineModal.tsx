@@ -15,6 +15,7 @@ import {
     View,
 } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
     COLORS,
@@ -32,6 +33,7 @@ interface HelplineModalProps {
 
 const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('common');
   const slideAnim = useRef(new Animated.Value(MODAL_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -72,19 +74,19 @@ const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
     const phoneNumber = `tel:${helpline.number}`;
 
     Alert.alert(
-      `Call ${helpline.name}?`,
+      t('callHelpline', { name: helpline.name }),
       `${helpline.number}${
         helpline.alternateNumber
-          ? ` (Alternate: ${helpline.alternateNumber})`
+          ? ` (${t('alternateLabel', { number: helpline.alternateNumber })})`
           : ""
       }\n\n${helpline.description}`,
       [
         {
-          text: "Cancel",
+          text: t('cancel'),
           style: "cancel",
         },
         {
-          text: "Call Now",
+          text: t('callNow'),
           style: "default",
           onPress: async () => {
             try {
@@ -94,9 +96,9 @@ const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
               await Linking.openURL(phoneNumber);
             } catch (error) {
               Alert.alert(
-                "Unable to Open Dialer",
-                `Please dial ${helpline.number} manually.`,
-                [{ text: "OK" }],
+                t('unableOpenDialer'),
+                t('pleaseDialManually', { number: helpline.number }),
+                [{ text: t('okay') }],
               );
             }
           },
@@ -108,15 +110,15 @@ const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
   const getCategoryTitle = (category: string) => {
     switch (category) {
       case "tourist":
-        return "Tourist Services";
+        return t('touristServices');
       case "safety":
-        return "Safety & Security";
+        return t('safetySecurity');
       case "medical":
-        return "Medical Emergency";
+        return t('medicalEmergency');
       case "transport":
-        return "Transport Helplines";
+        return t('transportHelplines');
       default:
-        return "Other Services";
+        return t('otherServices');
     }
   };
 
@@ -251,9 +253,9 @@ const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Emergency Helplines</Text>
+              <Text style={styles.title}>{t('emergencyHelplines')}</Text>
               <Text style={styles.subtitle}>
-                Tap any number to call instantly
+                {t('tapAnyNumber')}
               </Text>
             </View>
             <TouchableOpacity
@@ -279,17 +281,17 @@ const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
               />
             </View>
             <View style={styles.emergencyTextContainer}>
-              <Text style={styles.emergencyTextPrimary}>National Emergency</Text>
-              <Text style={styles.emergencyTextSecondary}>Immediate dispatch</Text>
+              <Text style={styles.emergencyTextPrimary}>{t('nationalEmergency')}</Text>
+              <Text style={styles.emergencyTextSecondary}>{t('immediateDispatch')}</Text>
             </View>
             <TouchableOpacity
               style={styles.emergencyButton}
               onPress={() =>
                 handleCall({
                   id: "emergency",
-                  name: "National Emergency",
+                  name: t('nationalEmergency'),
                   number: "112",
-                  description: "Single emergency number for all services",
+                  description: t('singleEmergencyNumber'),
                   icon: "alert-circle",
                   color: "#D93636",
                   category: "safety",
@@ -298,7 +300,7 @@ const HelplineModal: React.FC<HelplineModalProps> = ({ visible, onClose }) => {
               activeOpacity={0.8}
             >
               <LucideIcons.Phone size={16} color="#FFFFFF" strokeWidth={3} style={{ marginRight: 6 } as any} />
-              <Text style={styles.emergencyButtonText}>Call 112</Text>
+              <Text style={styles.emergencyButtonText}>{t('callEmergencyNumber')}</Text>
             </TouchableOpacity>
           </View>
 

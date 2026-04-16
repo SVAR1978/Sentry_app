@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   View,
   StyleSheet,
@@ -33,6 +34,7 @@ const SAVED_KEY = "@sentry:saved_places";
 type FilterOption = "all" | "freeEntry" | "topRated" | "nearest";
 
 export default function AttractionListScreen() {
+  const { t } = useTranslation('common');
   const [filter, setFilter] = useState<FilterOption>("all");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
@@ -90,10 +92,10 @@ export default function AttractionListScreen() {
   }, [filter, userLocation]);
 
   const filters: { key: FilterOption; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "freeEntry", label: "Free Entry" },
-    { key: "topRated", label: "Top Rated" },
-    { key: "nearest", label: "Nearest" },
+    { key: "all", label: t('all') },
+    { key: "freeEntry", label: t('freeEntry') },
+    { key: "topRated", label: t('topRated') },
+    { key: "nearest", label: t('nearest') },
   ];
 
   return (
@@ -108,7 +110,7 @@ export default function AttractionListScreen() {
         >
           <ArrowLeft size={20} color={C.primary} strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Attractions</Text>
+        <Text style={styles.headerTitle}>{t('allAttractions')}</Text>
         <View style={{ width: 40 }} />
       </View>
 

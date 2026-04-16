@@ -32,6 +32,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../store/AuthContext";
 import { useSocket } from "../../store/SocketContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 
 
 const COLORS = {
@@ -120,6 +121,7 @@ function getActivityIcon(type: ActivityItem["type"]) {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const { onUserActivity, onLiveUsersCount, onSOSAlert, isConnected } = useSocket();
+  const { t } = useTranslation('common');
   const insets = useSafeAreaInsets();
 
   // ─── STATE ────────────────────────────────────────────────
@@ -226,9 +228,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const unsubscribe = onUserActivity((event) => {
       const actionLabels: Record<string, string> = {
-        LOGIN: "User logged in",
-        LOGOUT: "User logged out",
-        SIGNUP: "New user registered",
+        LOGIN: t('userLoggedIn'),
+        LOGOUT: t('userLoggedOut'),
+        SIGNUP: t('newUserRegistered'),
       };
 
       const newActivity: ActivityItem = {
@@ -270,7 +272,7 @@ export default function AdminDashboard() {
         const sosActivity: ActivityItem = {
           id: `sos-${alertId}`,
           type: "SOS",
-          action: `EMERGENCY SOS from ${userName}`,
+          action: t('emergencySosFrom', { name: userName }),
           user: userName,
           timestamp: event.payload.timestamp || new Date().toISOString(),
           read: false,
@@ -293,7 +295,7 @@ export default function AdminDashboard() {
         const statusActivity: ActivityItem = {
           id: `sos-update-${alertId}-${Date.now()}`,
           type: "SOS",
-          action: `SOS Alert ${status.toLowerCase()}`,
+          action: t('sosAlertStatus', { status: status.toLowerCase() }),
           user: "System",
           timestamp: event.payload.timestamp || new Date().toISOString(),
           read: false,
@@ -370,21 +372,21 @@ export default function AdminDashboard() {
   const dynamicStats = [
     {
       id: "1",
-      title: "Total Users",
+      title: t('totalUsers'),
       value: totalUsers.toLocaleString(),
       icon: Users,
       color: "#21100B",
     },
     {
       id: "2",
-      title: "Live Users",
+      title: t('liveUsers'),
       value: liveUsers.toString(),
       icon: Navigation,
       color: "#10B981",
     },
     {
       id: "3",
-      title: "Active SOS",
+      title: t('activeSOS'),
       value: activeSOSCount.toString(),
       icon: Siren,
       color: activeSOSCount > 0 ? COLORS.error : COLORS.secondary,
@@ -422,9 +424,9 @@ export default function AdminDashboard() {
                 />
               </View>
               <View style={styles.greeting}>
-                <Text style={styles.greetingText}>Admin Dashboard</Text>
+                <Text style={styles.greetingText}>{t('adminDashboard')}</Text>
                 <Text style={styles.userName}>
-                  {user?.name || "Administrator"}
+                  {user?.name || t('administrator')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -447,19 +449,19 @@ export default function AdminDashboard() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.headerTitle}>Welcome back, Admin!</Text>
+          <Text style={styles.headerTitle}>{t('welcomeBackAdmin')}</Text>
           <View style={styles.connectionStatus}>
             {isConnected ? (
               <>
                 <Animated.View style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]} />
                 <Wifi size={12} color="rgba(255,255,255,0.7)" strokeWidth={2} />
-                <Text style={styles.connectionText}>Live</Text>
+                <Text style={styles.connectionText}>{t('live')}</Text>
               </>
             ) : (
               <>
                 <View style={[styles.liveDot, { backgroundColor: COLORS.error }]} />
                 <WifiOff size={12} color="rgba(255,255,255,0.5)" strokeWidth={2} />
-                <Text style={[styles.connectionText, { color: "rgba(255,255,255,0.5)" }]}>Reconnecting…</Text>
+                <Text style={[styles.connectionText, { color: "rgba(255,255,255,0.5)" }]}>{t('reconnecting')}</Text>
               </>
             )}
           </View>
@@ -509,7 +511,7 @@ export default function AdminDashboard() {
           {/* Recent Activity */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Activity</Text>
+              <Text style={styles.sectionTitle}>{t('recentActivity')}</Text>
               <View style={styles.sectionHeaderRight}>
                 <View style={styles.activityCountBadge}>
                   <Text style={styles.activityCountText}>{activities.length}</Text>
@@ -521,9 +523,9 @@ export default function AdminDashboard() {
               <Card style={styles.activityCard}>
                 <View style={styles.emptyState}>
                   <Clock size={32} color={COLORS.textMuted} strokeWidth={1.5} />
-                  <Text style={styles.emptyStateText}>No activity yet</Text>
+                  <Text style={styles.emptyStateText}>{t('noActivityYet')}</Text>
                   <Text style={styles.emptyStateSubtext}>
-                    User logins, signups, and alerts will appear here in real-time
+                    {t('activityWillAppear')}
                   </Text>
                 </View>
               </Card>
@@ -587,13 +589,13 @@ export default function AdminDashboard() {
             {/* Panel Header */}
             <View style={styles.panelHeader}>
               <View>
-                <Text style={styles.panelTitle}>Notifications</Text>
-                <Text style={styles.panelSubtitle}>Real-time system alerts</Text>
+                <Text style={styles.panelTitle}>{t('notifications')}</Text>
+                <Text style={styles.panelSubtitle}>{t('realTimeAlerts')}</Text>
               </View>
               <View style={styles.panelActions}>
                 {notifications.length > 0 && (
                   <TouchableOpacity onPress={handleClearNotifications} style={styles.clearBtn}>
-                    <Text style={styles.clearBtnText}>Clear All</Text>
+                    <Text style={styles.clearBtnText}>{t('clearAll')}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity onPress={() => setShowNotifications(false)} style={styles.closeBtn}>
@@ -613,9 +615,9 @@ export default function AdminDashboard() {
                   <View style={styles.emptyBellCircle}>
                     <Bell size={32} color={COLORS.textMuted} strokeWidth={1.5} />
                   </View>
-                  <Text style={styles.emptyNotifText}>All caught up!</Text>
+                  <Text style={styles.emptyNotifText}>{t('allCaughtUp')}</Text>
                   <Text style={styles.emptyNotifSubtext}>
-                    New notifications will appear here
+                    {t('newNotificationsAppear')}
                   </Text>
                 </View>
               ) : (

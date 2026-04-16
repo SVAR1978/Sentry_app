@@ -4,6 +4,7 @@ import { BookOpen } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SAFETY_TIPS, SafetyTip } from "../../constants/exploreData";
+import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TIP_CARD_WIDTH = SCREEN_WIDTH * 0.7;
@@ -19,10 +20,11 @@ interface SafetyTipsProps {
 
 export const SafetyTips: React.FC<SafetyTipsProps> = ({ colors }) => {
   const router = useRouter();
+  const { t } = useTranslation('emergency');
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>📰 Safety Tips for Tourists</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>📰 {t('safetyTips')}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -57,7 +59,7 @@ export const SafetyTips: React.FC<SafetyTipsProps> = ({ colors }) => {
               <View style={styles.tipBottom}>
                 <View style={styles.tipReadTime}>
                   <BookOpen size={12} color="rgba(255,255,255,0.8)" strokeWidth={2.5} />
-                  <Text style={styles.tipReadTimeText}>{tip.readTimeMin} min read</Text>
+                  <Text style={styles.tipReadTimeText}>{tip.readTimeMin} min</Text>
                 </View>
               </View>
             </LinearGradient>

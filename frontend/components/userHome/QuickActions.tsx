@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { COLORS, QuickAction } from "../../constants/userHomeData";
 import HelplineModal from "./HelplineModal";
 
@@ -19,6 +20,7 @@ interface QuickActionsProps {
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
+  const { t } = useTranslation('common');
   const [helplineModalVisible, setHelplineModalVisible] = useState(false);
 
   const handleEmergencyCall = useCallback(async (action: QuickAction) => {
@@ -33,9 +35,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
       await Linking.openURL(phoneNumber);
     } catch (error) {
       Alert.alert(
-        "Unable to Open Dialer",
-        `Please dial ${action.phoneNumber} manually.`,
-        [{ text: "OK" }]
+        t('unableOpenDialer'),
+        t('pleaseDialManually', { number: action.phoneNumber }),
+        [{ text: t('okay') }]
       );
     }
   }, []);
@@ -62,15 +64,15 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
         if (action.mapFilter) {
           Alert.alert(
             action.serviceName || action.label,
-            "What would you like to do?",
+            t('whatWouldYouLikeToDo'),
             [
-              { text: "Cancel", style: "cancel" },
+              { text: t('cancel'), style: "cancel" },
               {
-                text: "Find Nearest",
+                text: t('findNearest'),
                 onPress: () => handleFindNearest(action),
               },
               {
-                text: `Call ${action.phoneNumber}`,
+                text: t('callNumber', { number: action.phoneNumber }),
                 onPress: () => handleEmergencyCall(action),
               },
             ]
@@ -88,7 +90,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
       <View style={styles.container}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>Emergency Services</Text>
+            <Text style={styles.sectionTitle}>{t('emergencyServices')}</Text>
           </View>
         </View>
         <View style={styles.quickActionsGrid}>

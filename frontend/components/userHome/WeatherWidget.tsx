@@ -2,6 +2,7 @@ import * as LucideIcons from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "../../constants/userHomeData";
 import {
   getCachedWeather,
@@ -18,6 +19,7 @@ const getIconColor = (icon: string) => {
 };
 
 const WeatherWidget: React.FC = () => {
+  const { t } = useTranslation('common');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -50,7 +52,7 @@ const WeatherWidget: React.FC = () => {
       <View style={styles.section}>
         <View style={styles.weatherCard}>
           <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading weather...</Text>
+          <Text style={styles.loadingText}>{t('loadingWeather')}</Text>
         </View>
       </View>
     );
@@ -63,9 +65,9 @@ const WeatherWidget: React.FC = () => {
           <View style={styles.errorRow}>
             <LucideIcons.CloudAlert size={36} color="#8A9BB8" strokeWidth={2} />
             <View style={styles.errorInfo}>
-              <Text style={styles.errorText}>Weather unavailable</Text>
+              <Text style={styles.errorText}>{t('weatherUnavailable')}</Text>
               <TouchableOpacity onPress={fetchWeather}>
-                <Text style={styles.retryText}>Tap to retry</Text>
+                <Text style={styles.retryText}>{t('tapToRetry')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -79,10 +81,10 @@ const WeatherWidget: React.FC = () => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Current Weather</Text>
+        <Text style={styles.sectionTitle}>{t('currentWeather')}</Text>
         <TouchableOpacity onPress={fetchWeather} style={styles.refreshBtn}>
           <LucideIcons.RefreshCw size={14} color={COLORS.textMuted} strokeWidth={2.5} />
-          <Text style={styles.refreshText}>Refresh</Text>
+          <Text style={styles.refreshText}>{t('refresh')}</Text>
         </TouchableOpacity>
       </View>
 

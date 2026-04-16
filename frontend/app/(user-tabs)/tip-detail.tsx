@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,6 +25,7 @@ import { SAFETY_TIPS, EXPLORE_COLORS as C } from "../../constants/exploreData";
 const FEEDBACK_KEY = "@sentry:tip_feedback";
 
 export default function TipDetailScreen() {
+  const { t } = useTranslation('common');
   const { tipId } = useLocalSearchParams<{ tipId: string }>();
   const tip = SAFETY_TIPS.find((t) => t.id === tipId);
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
@@ -63,7 +65,7 @@ export default function TipDetailScreen() {
     try {
       await Share.share({
         title: tip.title.replace("\n", " "),
-        message: `${tip.title.replace("\n", " ")}\n\n${tip.content.slice(0, 200)}...\n\nShared from Sentry App`,
+        message: `${tip.title.replace("\n", " ")}\n\n${tip.content.slice(0, 200)}...\n\n${t('sharedFromSentry')}`,
       });
     } catch {}
   }, [tip]);
@@ -71,7 +73,7 @@ export default function TipDetailScreen() {
   if (!tip) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Tip not found</Text>
+        <Text style={styles.errorText}>{t('tipNotFound')}</Text>
       </View>
     );
   }
@@ -115,7 +117,7 @@ export default function TipDetailScreen() {
             <Text style={styles.heroTitle}>{tip.title.replace("\n", " ")}</Text>
             <View style={styles.readTimeBadge}>
               <BookOpen size={14} color="rgba(255,255,255,0.8)" strokeWidth={2.5} />
-              <Text style={styles.readTimeText}>{tip.readTimeMin} min read</Text>
+              <Text style={styles.readTimeText}>{tip.readTimeMin} {t('minRead')}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -174,7 +176,7 @@ export default function TipDetailScreen() {
 
         {/* Feedback */}
         <View style={styles.feedbackSection}>
-          <Text style={styles.feedbackTitle}>Was this helpful?</Text>
+          <Text style={styles.feedbackTitle}>{t('wasThisHelpful')}</Text>
           <View style={styles.feedbackButtons}>
             <TouchableOpacity
               style={[styles.feedbackBtn, feedback === "up" && styles.feedbackBtnActive]}
@@ -191,7 +193,7 @@ export default function TipDetailScreen() {
                   feedback === "up" && styles.feedbackBtnTextActive,
                 ]}
               >
-                Yes
+                {t('yes')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -209,19 +211,19 @@ export default function TipDetailScreen() {
                   feedback === "down" && styles.feedbackBtnTextActive,
                 ]}
               >
-                No
+                {t('no')}
               </Text>
             </TouchableOpacity>
           </View>
           {feedbackSaved && (
-            <Text style={styles.feedbackThanks}>Thank you for your feedback!</Text>
+            <Text style={styles.feedbackThanks}>{t('thankYouFeedback')}</Text>
           )}
         </View>
 
         {/* Related Tips */}
         {relatedTips.length > 0 && (
           <View style={styles.relatedSection}>
-            <Text style={styles.relatedTitle}>More Tips</Text>
+            <Text style={styles.relatedTitle}>{t('moreTips')}</Text>
             {relatedTips.map((related) => (
               <TouchableOpacity
                 key={related.id}
@@ -242,7 +244,7 @@ export default function TipDetailScreen() {
                 >
                   <Text style={styles.relatedCardCategory}>{related.category}</Text>
                   <Text style={styles.relatedCardTitle}>{related.title.replace("\n", " ")}</Text>
-                  <Text style={styles.relatedCardRead}>{related.readTimeMin} min read</Text>
+                  <Text style={styles.relatedCardRead}>{related.readTimeMin} {t('minRead')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ))}

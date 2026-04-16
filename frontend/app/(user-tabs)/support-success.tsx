@@ -7,6 +7,7 @@ import {
   Easing,
 } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -25,6 +26,7 @@ const COLORS = {
 };
 
 export default function SupportSuccessScreen() {
+  const { t } = useTranslation('common');
   const { ticketRef, email } = useLocalSearchParams<{
     ticketRef: string;
     email: string;
@@ -90,18 +92,18 @@ export default function SupportSuccessScreen() {
             },
           ]}
         >
-          <Text style={styles.title}>Message Sent!</Text>
+          <Text style={styles.title}>{t('messageSent')}</Text>
           <Text style={styles.subtitle}>
-            Our support team will get back to you within 24–48 hours at{" "}
+            {t('supportTeamWillGetBack')}{" "}
             <Text style={styles.emailHighlight}>{email || "your email"}</Text>
           </Text>
 
           {/* Ticket Reference Card */}
           <View style={styles.ticketCard}>
-            <Text style={styles.ticketLabel}>TICKET REFERENCE</Text>
+            <Text style={styles.ticketLabel}>{t('ticketReference')}</Text>
             <Text style={styles.ticketRef}>{ticketRef || "TSA-XXXXX"}</Text>
             <Text style={styles.ticketHint}>
-              Save this number for future reference
+              {t('saveThisNumber')}
             </Text>
           </View>
 
@@ -113,7 +115,7 @@ export default function SupportSuccessScreen() {
               activeOpacity={0.85}
             >
               <HelpCircle size={18} color={COLORS.white} strokeWidth={2.5} />
-              <Text style={styles.primaryButtonText}>Back to Help Center</Text>
+              <Text style={styles.primaryButtonText}>{t('backToHelpCenter')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -122,7 +124,7 @@ export default function SupportSuccessScreen() {
               activeOpacity={0.85}
             >
               <Home size={18} color={COLORS.primary} strokeWidth={2.5} />
-              <Text style={styles.secondaryButtonText}>Go to Home</Text>
+              <Text style={styles.secondaryButtonText}>{t('goToHome')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

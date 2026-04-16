@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Dimensions,
     ScrollView,
@@ -29,7 +30,7 @@ const COLORS = {
   border: "#EDE7E3",
 };
 
-const TIME_FILTERS = ["Today", "This Week", "This Month", "This Year"];
+const TIME_FILTERS_KEYS = ["today", "thisWeek", "thisMonth", "thisYear"];
 
 
 
@@ -77,7 +78,8 @@ const REPORTS = [
 ];
 
 export default function ReportsScreen() {
-  const [selectedTime, setSelectedTime] = useState("This Week");
+  const { t } = useTranslation('common');
+  const [selectedTime, setSelectedTime] = useState("thisWeek");
   const insets = useSafeAreaInsets();
 
   return (
@@ -86,9 +88,9 @@ export default function ReportsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 8 }]}>
-          <Text style={styles.headerTitle}>Reports & Analytics</Text>
+          <Text style={styles.headerTitle}>{t('reportsAndAnalytics')}</Text>
           <Text style={styles.headerSubtitle}>
-            Monitor your platform performance
+            {t('monitorPerformance')}
           </Text>
         </View>
 
@@ -98,21 +100,21 @@ export default function ReportsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.timeFilters}
         >
-          {TIME_FILTERS.map((filter) => (
+          {TIME_FILTERS_KEYS.map((filterKey) => (
             <Chip
-              key={filter}
-              selected={selectedTime === filter}
-              onPress={() => setSelectedTime(filter)}
+              key={filterKey}
+              selected={selectedTime === filterKey}
+              onPress={() => setSelectedTime(filterKey)}
               style={[
                 styles.timeChip,
-                selectedTime === filter && styles.timeChipSelected,
+                selectedTime === filterKey && styles.timeChipSelected,
               ]}
               textStyle={[
                 styles.timeText,
-                selectedTime === filter && styles.timeTextSelected,
+                selectedTime === filterKey && styles.timeTextSelected,
               ]}
             >
-              {filter}
+              {t(filterKey)}
             </Chip>
           ))}
         </ScrollView>
@@ -121,7 +123,7 @@ export default function ReportsScreen() {
 
         {/* Chart Placeholder */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>User Activity Trend</Text>
+          <Text style={styles.sectionTitle}>{t('userActivityTrend')}</Text>
           <Card style={styles.chartCard}>
             <Card.Content style={styles.chartContent}>
               <View style={styles.chartIconBg}>
@@ -131,9 +133,9 @@ export default function ReportsScreen() {
                   color={COLORS.primary}
                 />
               </View>
-              <Text style={styles.chartPlaceholder}>Activity Chart</Text>
+              <Text style={styles.chartPlaceholder}>{t('activityChart')}</Text>
               <Text style={styles.chartSubtext}>
-                Interactive chart will be displayed here
+                {t('interactiveChartHere')}
               </Text>
             </Card.Content>
           </Card>
@@ -142,14 +144,14 @@ export default function ReportsScreen() {
         {/* Generated Reports */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Generated Reports</Text>
+            <Text style={styles.sectionTitle}>{t('generatedReports')}</Text>
             <TouchableOpacity style={styles.generateButton} activeOpacity={0.8}>
               <MaterialCommunityIcons
                 name="plus"
                 size={18}
                 color={COLORS.white}
               />
-              <Text style={styles.generateText}>Generate</Text>
+              <Text style={styles.generateText}>{t('generate')}</Text>
             </TouchableOpacity>
           </View>
 
