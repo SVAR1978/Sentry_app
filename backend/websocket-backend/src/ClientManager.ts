@@ -38,6 +38,10 @@ export class ClientManager {
     ClientManager.ensureLiveCountInterval();
     broadcastLiveUserCountToAdmins(ClientManager.clients);
 
+    if (role === "ADMIN") {
+      this.sendInitialLocations().catch(err => console.error("Failed to send initial locations:", err));
+    }
+
     ws.on("message", (data) => {
       try {
         const message = JSON.parse(data.toString()) as IncomingMessage;
@@ -232,6 +236,55 @@ export class ClientManager {
         },
       })
     );
+  }
+
+  private async sendInitialLocations() {
+    try {
+      // Get the latest location per active user from Prisma
+      const latestLogs = await prisma.locationLog.findMany({
+        distinct: ['userId'],
+        orderBy: [
+          { userId: 'asc' },
+          { timestamp: 'desc' }
+        ],
+        select: {
+          userId: true,
+          latitude: true,
+          longitude: true,
+          accuracy: true,
+          speed: true,
+          heading: true,
+        }
+      });
+
+      if (this.ws.readyState !== WebSocket.OPEN) return;
+
+      // Ensure we only send locations for users who are currently connected
+      const activeUserIds = new Set(
+        ClientManager.clients.filter(c => c.role === "USER").map(c => c.userId)
+      );
+
+      let sentCount = 0;
+      for (const log of latestLogs) {
+        if (!activeUserIds.has(log.userId)) continue;
+        
+        this.ws.send(JSON.stringify({
+          type: "USER_LOCATION",
+          userId: log.userId,
+          latitude: log.latitude,
+          longitude: log.longitude,
+          accuracy: log.accuracy,
+          speed: log.speed,
+          heading: log.heading,
+          source: "DATABASE_SYNC"
+        }));
+        sentCount++;
+      }
+      
+      console.log(`[ClientManager] Sent ${sentCount} initial user locations to admin ${this.userId}`);
+    } catch (err) {
+      console.error("[ClientManager] Failed to fetch initial locations from DB:", err);
+    }
   }
 
   private sendChatError(message: string, conversationId?: string) {

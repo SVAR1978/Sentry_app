@@ -18,6 +18,7 @@ export default {
     
 
     android: {
+      package: "com.vikash1978.touristapp",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -57,6 +58,9 @@ export default {
 
     // Environment variables injected here
     extra: {
+        eas: {
+          projectId: "88bc627a-cdf5-419f-91ba-f9e394bf6d3d"
+        },
         openWeatherKey: process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY,
         openWeatherUrl: process.env.EXPO_PUBLIC_OPENWEATHER_API_URL,
         weatherFetchTimeout: process.env.EXPO_PUBLIC_WEATHER_FETCH_TIMEOUT,

@@ -154,8 +154,6 @@ export default function MapScreen() {
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
   const navigationManagerRef = useRef<NavigationManager | null>(null);
 
-  // ── Panic state ──
-  const [isPanic, setIsPanic] = useState(false);
 
   // ── UI state ──
   const [isLoading, setIsLoading] = useState(true);
@@ -782,17 +780,6 @@ export default function MapScreen() {
   }, [userLocation]);
 
 
-  const togglePanic = useCallback(() => {
-    setIsPanic((p) => {
-      if (!p) {
-        Alert.alert(
-          "Panic Mode Activated",
-          "Your location is being shared with emergency contacts.",
-        );
-      }
-      return !p;
-    });
-  }, []);
 
   const toggleNearbyPanel = useCallback(() => {
     setShowNearbyPanel((prev) => {
@@ -990,7 +977,6 @@ export default function MapScreen() {
               coordinate={userLocation}
               heading={heading}
               accuracy={accuracy}
-              isPanic={isPanic}
             />
           )}
         </MapView>
@@ -1033,12 +1019,6 @@ export default function MapScreen() {
 
         {/* ── FABs ── */}
         <View style={[styles.fabContainer, showDirections && { bottom: 400 }]}>
-          <FAB
-            icon={isPanic ? "alert-octagon" : "alert-circle"}
-            style={[styles.fab, isPanic && styles.fabPanic]}
-            color={isPanic ? "#fff" : "#EF4444"}
-            onPress={togglePanic}
-          />
           <FAB
             icon={followUser ? "crosshairs-gps" : "crosshairs"}
             style={[styles.fab, followUser && styles.fabFollow]}
@@ -1278,7 +1258,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   fab: { backgroundColor: "#FFFFFF", elevation: 4 },
-  fabPanic: { backgroundColor: "#D93636" },
   fabFollow: { backgroundColor: "#21100B" },
 
   routeLoadingOverlay: {

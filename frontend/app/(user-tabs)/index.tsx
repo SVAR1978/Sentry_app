@@ -6,6 +6,7 @@ import { Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import QuickActions from "../../components/userHome/QuickActions";
+import SafetyGauge from "../../components/userHome/SafetyGauge";
 import SafetyTips from "../../components/userHome/SafetyTips";
 import UserHeader from "../../components/userHome/UserHeader";
 import WeatherWidget from "../../components/userHome/WeatherWidget";
@@ -94,6 +95,7 @@ export default function UserHomeScreen() {
           ]}
         >
           <QuickActions actions={QUICK_ACTIONS} />
+          <SafetyGauge />
           <SafetyTips />
           <BookingPartners />
           <WeatherWidget />

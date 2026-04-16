@@ -188,45 +188,15 @@ const PulsingMarker = React.memo(
 // ─── MAIN COMPONENT ─────────────────────────────────────────────
 export default function AdminMapScreen() {
   const insets = useSafeAreaInsets();
-  const { onUserLocation, onLiveUsersCount, isConnected } = useSocket();
+  const { onUserLocation, onLiveUsersCount, onUserActivity, isConnected } = useSocket();
   const mapRef = useRef<MapView>(null);
 
   // State
-  const [activeUsers, setActiveUsers] = useState<Record<string, UserNode>>({
-    "mock-patrol-1": {
-      userId: "mock-patrol-1",
-      name: "Patrol Alpha",
-      latitude: 28.6139 + 0.005,
-      longitude: 77.2090 + 0.005,
-      accuracy: 10,
-      heading: 45,
-      speed: 1.2,
-      lastSeen: Date.now(),
-    },
-    "mock-patrol-2": {
-      userId: "mock-patrol-2",
-      name: "Guard Beta",
-      latitude: 28.6139 - 0.008,
-      longitude: 77.2090 + 0.002,
-      accuracy: 25,
-      heading: 120,
-      speed: 0,
-      lastSeen: Date.now() - 60000,
-    },
-    "mock-patrol-3": {
-      userId: "mock-patrol-3",
-      name: "Unit Charlie",
-      latitude: 28.6139,
-      longitude: 77.2090 - 0.006,
-      accuracy: 15,
-      heading: 310,
-      speed: 2.5,
-      lastSeen: Date.now(),
-    }
-  });
+  const [activeUsers, setActiveUsers] = useState<Record<string, UserNode>>({});
   const [selectedUser, setSelectedUser] = useState<UserNode | null>(null);
   const [userDirectory, setUserDirectory] = useState<Record<string, UserInfo>>({});
   const [showUserList, setShowUserList] = useState(false);
+  const [serverLiveCount, setServerLiveCount] = useState(0);
   const [, setTick] = useState(0);
 
   // Animations
@@ -242,6 +212,58 @@ export default function AdminMapScreen() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // ─── LIVE USERS COUNT — authoritative sync from server ────────
+  useEffect(() => {
+    const unsub = onLiveUsersCount((event) => {
+      const { count, activeUserIds } = event.payload;
+      setServerLiveCount(count);
+      console.log(`[AdminMap] 🟢 Live users from server: ${count} | IDs: [${(activeUserIds || []).join(", ")}]`);
+
+      // Prune users who are no longer in the server's active list
+      if (activeUserIds && activeUserIds.length >= 0) {
+        const serverSet = new Set(activeUserIds);
+        setActiveUsers((prev) => {
+          const next = { ...prev };
+          let changed = false;
+          for (const id of Object.keys(next)) {
+            if (!serverSet.has(id)) {
+              console.log(`[AdminMap] 🔴 Removing disconnected user: "${next[id].name}" (${id})`);
+              // Close selected panel if this user was selected
+              setSelectedUser((sel) => (sel?.userId === id ? null : sel));
+              delete next[id];
+              changed = true;
+            }
+          }
+          if (changed) {
+            console.log(`[AdminMap] 📊 After prune: ${Object.keys(next).length} users on map`);
+          }
+          return changed ? next : prev;
+        });
+      }
+    });
+    return () => unsub();
+  }, [onLiveUsersCount]);
+
+  // ─── USER SESSION (LOGIN / LOGOUT) — instant removal ──────────
+  useEffect(() => {
+    const unsub = onUserActivity((event) => {
+      const { userId, userName, action } = event.payload;
+      if (action === "LOGOUT") {
+        console.log(`[AdminMap] 🚪 User logged out: "${userName}" (${userId})`);
+        setActiveUsers((prev) => {
+          if (!prev[userId]) return prev;
+          const next = { ...prev };
+          delete next[userId];
+          return next;
+        });
+        setSelectedUser((sel) => (sel?.userId === userId ? null : sel));
+      } else if (action === "LOGIN") {
+        console.log(`[AdminMap] 🟢 User logged in: "${userName}" (${userId})`);
+      }
+    });
+    return () => unsub();
+  }, [onUserActivity]);
 
   // Tick for relative time
   useEffect(() => {
@@ -266,25 +288,31 @@ export default function AdminMapScreen() {
         console.error("[AdminMap] Failed to fetch user directory:", err);
       }
     };
+
     fetchUserDirectory();
   }, []);
 
   // ─── REAL-TIME LOCATION UPDATES ──────────────────────────────
   useEffect(() => {
     const unsub = onUserLocation((event) => {
-      setActiveUsers((prev) => ({
-        ...prev,
-        [event.userId]: {
-          userId: event.userId,
-          name: userDirectory[event.userId]?.name || `User-${event.userId.substring(0, 6)}`,
-          latitude: event.latitude,
-          longitude: event.longitude,
-          accuracy: event.accuracy,
-          heading: event.heading,
-          speed: event.speed,
-          lastSeen: Date.now(),
-        },
-      }));
+      setActiveUsers((prev) => {
+        const userName = userDirectory[event.userId]?.name || `User-${event.userId.substring(0, 6)}`;
+        const next = {
+          ...prev,
+          [event.userId]: {
+            userId: event.userId,
+            name: userName,
+            latitude: event.latitude,
+            longitude: event.longitude,
+            accuracy: event.accuracy,
+            heading: event.heading,
+            speed: event.speed,
+            lastSeen: Date.now(),
+          },
+        };
+        console.log(`[AdminMap] 📍 Location update from "${userName}" — Total tracked: ${Object.keys(next).length}`);
+        return next;
+      });
 
       // Update selected user if it's the same
       setSelectedUser((prev) => {
@@ -303,25 +331,8 @@ export default function AdminMapScreen() {
       });
     });
 
-    // Cleanup stale users every 30s
-    const interval = setInterval(() => {
-      setActiveUsers((prev) => {
-        const now = Date.now();
-        let changed = false;
-        const next = { ...prev };
-        for (const [id, user] of Object.entries(next)) {
-          if (now - user.lastSeen > 120000) {
-            delete next[id];
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    }, 30000);
-
     return () => {
       unsub();
-      clearInterval(interval);
     };
   }, [onUserLocation, userDirectory]);
 
@@ -466,7 +477,12 @@ export default function AdminMapScreen() {
       <Animated.View
         style={[
           styles.headerGlass,
-          { top: Math.max(insets.top, 20) + 10, opacity: headerFade },
+          { 
+            top: Math.max(insets.top, 20) + 10, 
+            opacity: headerFade,
+            zIndex: 100,
+            elevation: 100
+          },
         ]}
       >
         <View style={styles.headerContent}>
@@ -483,7 +499,7 @@ export default function AdminMapScreen() {
               />
               <Text style={styles.statusText}>
                 {isConnected
-                  ? `${usersList.length} Active ${usersList.length === 1 ? "Patrol" : "Patrols"}`
+                  ? `${usersList.length} on Map · ${serverLiveCount} Online`
                   : "Reconnecting…"}
               </Text>
             </View>
@@ -504,7 +520,7 @@ export default function AdminMapScreen() {
       </Animated.View>
 
       {/* ── Map Controls ── */}
-      <View style={[styles.controlsColumn, { bottom: selectedUser ? 250 : 110 }]}>
+      <View style={[styles.controlsColumn, { bottom: selectedUser ? 250 : 110, zIndex: 100, elevation: 100 }]}>
         <TouchableOpacity
           style={styles.controlBtn}
           onPress={fitAllUsers}
@@ -528,6 +544,8 @@ export default function AdminMapScreen() {
           {
             top: Math.max(insets.top, 20) + 90,
             transform: [{ translateX: listSlide }],
+            zIndex: 100,
+            elevation: 100,
           },
         ]}
       >
